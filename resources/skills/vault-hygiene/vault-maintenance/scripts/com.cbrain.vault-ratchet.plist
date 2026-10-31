@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Weekly vault ratchet, Mondays 07:15. Ships as a file, not loaded on your behalf. Install:
+     sed "s#<REPO>#$PWD#g" resources/skills/vault-hygiene/vault-maintenance/scripts/com.cbrain.vault-ratchet.plist \
+       > ~/Library/LaunchAgents/com.cbrain.vault-ratchet.plist
+     launchctl load ~/Library/LaunchAgents/com.cbrain.vault-ratchet.plist -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.cbrain.vault-ratchet</string>
+  <key>ProgramArguments</key><array>
+    <string>/usr/bin/python3</string>
+    <string><REPO>/resources/skills/vault-hygiene/vault-maintenance/scripts/ratchet.py</string>
+  </array>
+  <key>WorkingDirectory</key><string><REPO></string>
+  <key>StartCalendarInterval</key><dict>
+    <key>Weekday</key><integer>1</integer><key>Hour</key><integer>7</integer><key>Minute</key><integer>15</integer>
+  </dict>
+  <key>StandardOutPath</key><string><REPO>/output/vault-ratchet/ratchet.log</string>
+  <key>StandardErrorPath</key><string><REPO>/output/vault-ratchet/ratchet.log</string>
+</dict></plist>

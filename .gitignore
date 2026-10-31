@@ -1,0 +1,51 @@
+# Second Brain content
+cbrain/
+
+# Third Party Skills
+autoresearch/
+
+# Output Artifact Folder
+output/
+
+# Input Artifact Folder
+input/
+
+# Generated audit cache (real vault contents — regenerate locally via link_audit.py)
+resources/skills/vault-hygiene/vault-maintenance/scripts/audit.json
+
+# Real operational data (regenerate locally from your own LinkedIn export; see *.example templates)
+resources/skills/workflow-ops/linkedin-viral-scheduler/viral-metrics.tsv
+resources/skills/workflow-ops/linkedin-weekly-review/account-metrics.tsv
+
+# Your private persona — see IDENTITY.example.md for the public template
+IDENTITY.md
+
+# .DS_Store
+.DS_Store
+
+# Real partner/client domain lists (copy schema/domain_map.example.yaml → domain_map.yaml)
+resources/skills/workflow-ops/calendar-to-contacts/schema/domain_map.yaml
+resources/skills/workflow-ops/mail-to-conversations/schema/domain_map.yaml
+resources/skills/workflow-ops/mail-triage/schema/companies.json
+
+# Eval golden sets — real prompts/facts carry client names; never tracked
+resources/skills/_evals/
+
+# compiled native helpers (built on first server start)
+webapp/native/bin/
+
+# Private local vault history (scripts/vault_history.sh) — client data, never tracked or pushed
+/.vault-history.git/
+
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Real Slack channel list (employer-internal names + ids; copy schema/channels.example.json → channels.json)
+resources/skills/workflow-ops/slack-intel/schema/channels.json
+
+# Employer packs — everything that ends with an employment contract (see employers/README.md).
+# Only the contract and the empty template are public; real packs and the ACTIVE pointer stay local.
+/employers/*
+!/employers/README.md
+!/employers/_template/

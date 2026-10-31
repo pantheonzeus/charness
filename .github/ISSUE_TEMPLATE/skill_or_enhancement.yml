@@ -1,0 +1,77 @@
+name: "💡 Skill or enhancement proposal"
+description: Propose a new skill, an optimization to an existing one, or a change to the Charter / hooks.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Lead with the **outcome**, not the code. What should the harness be able to do that it can't today, and why does it matter?
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of change
+      options:
+        - "New skill"
+        - "Optimize an existing skill"
+        - "Charter / policy change"
+        - "Hook / mechanism change"
+        - "Docs / repo meta"
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: The problem to solve and the observable result. If nobody can name the outcome, it's not ready to build.
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Skill category
+      description: For a new or optimized skill — which category does it belong to?
+      options:
+        - "knowledge-graph"
+        - "research"
+        - "sales"
+        - "content"
+        - "workflow-ops"
+        - "vault-hygiene"
+        - "N/A (not a skill change)"
+    validations:
+      required: false
+  - type: textarea
+    id: triggers
+    attributes:
+      label: Triggers & done-when
+      description: |
+        For a skill proposal: what user phrasings should dispatch it (the `triggers:`), and the observable *done-when* condition that says the task succeeded.
+      placeholder: |
+        Triggers: "...", "..."
+        Done when: <observable completion condition>
+    validations:
+      required: false
+  - type: textarea
+    id: blueprint
+    attributes:
+      label: Rough blueprint
+      description: The step→verify shape of the skill, or the specific edit to the Charter/hook. Enforceable clauses over vague advice.
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Existing skills that partly cover this, or simpler paths you rejected — and why. (The simplest thing that solves the problem wins.)
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      options:
+        - label: I scanned `resources/skills/INDEX.md` and this isn't already covered by an existing skill.
+          required: true
+        - label: I read the SKILL.md contract in `resources/skills/README.md`.
+          required: false

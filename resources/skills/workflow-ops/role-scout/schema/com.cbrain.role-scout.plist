@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>/Users/YOU/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+	</dict>
+	<key>Label</key>
+	<string>com.cbrain.role-scout</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/Users/YOU/.local/bin/uv</string>
+		<string>run</string>
+		<string>-q</string>
+		<string>/Users/YOU/GitHub/cbrain/resources/skills/workflow-ops/role-scout/scripts/role_scout.py</string>
+		<string>run</string>
+	</array>
+	<key>StandardErrorPath</key>
+	<string>/Users/YOU/GitHub/cbrain/output/role-scout.log</string>
+	<key>StandardOutPath</key>
+	<string>/Users/YOU/GitHub/cbrain/output/role-scout.log</string>
+	<key>StartCalendarInterval</key>
+	<array>
+		<dict><key>Hour</key><integer>8</integer><key>Minute</key><integer>5</integer></dict>
+		<dict><key>Hour</key><integer>12</integer><key>Minute</key><integer>5</integer></dict>
+		<dict><key>Hour</key><integer>16</integer><key>Minute</key><integer>5</integer></dict>
+		<dict><key>Hour</key><integer>20</integer><key>Minute</key><integer>5</integer></dict>
+	</array>
+</dict>
+</plist>

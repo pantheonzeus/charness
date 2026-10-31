@@ -1,0 +1,18 @@
+{
+ "_doc": "Template for employers/<active>/client-news/clients.json. Queries are Google News search syntax and carry only public names. must/exclude are regexes over title + snippet. note is relative to cbrain/ and must exist. context tells the analyse agent which engagement to read the news against.",
+ "window": "2d",
+ "items_per_run": 8,
+ "items_per_init": 6,
+ "clients": [
+  {
+   "name": "Example Industries",
+   "note": "Clients/Example Industries.md",
+   "queries": ["\"Example Industries\"", "\"Example Industries\" (CEO OR AI OR acquisition OR restructuring)"],
+   "locales": ["en-US", "de-DE"],
+   "must": "example industries",
+   "exclude": "example industries stock price prediction",
+   "people": ["Jane Doe"],
+   "context": "Current client: data platform modernisation. Read news for IT, AI, budget and leadership signals."
+  }
+ ]
+}

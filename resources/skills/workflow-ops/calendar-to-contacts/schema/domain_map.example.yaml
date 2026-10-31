@@ -1,0 +1,11 @@
+# Email domain → Company overrides for calendar-to-contacts.
+# Copy to domain_map.yaml (gitignored — your real list stays local) and edit.
+# One "domain: Company" per line. Used before the title-case-the-domain heuristic.
+# Add entries when the heuristic gets a company name wrong (acronyms, sub-domains,
+# multi-word names). Personal-mail domains (gmail/outlook/…) are always left blank.
+
+yourcompany.com: Your Company
+yourcompany.co.uk: Your Company UK
+acme-industries.com: ACME Industries
+# Multi-part TLDs the heuristic can't title-case cleanly
+example-uni.ac.uk: Example University — Engineering Faculty

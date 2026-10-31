@@ -1,0 +1,8 @@
+{
+  "_doc": "Copy to companies.json (gitignored: real client names). Order matters: the first company whose `lists` appear in From/To/Cc, or whose `domains` match the sender (suffix match, so sub.example.com counts), wins.",
+  "companies": [
+    {"name": "Project Consortium", "domains": ["partner-university.edu", "partner-a.com"], "lists": ["project-list@partner-university.edu"]},
+    {"name": "Your Company", "domains": ["yourcompany.com"]},
+    {"name": "Client A", "domains": ["client-a.com"]}
+  ]
+}

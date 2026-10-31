@@ -1,0 +1,106 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "{ python3 \"$CLAUDE_PROJECT_DIR/scripts/skill_router.py\" compact 2>/dev/null || { printf '### Repo skill registry (fallback: first 9,000 characters of resources/skills/INDEX.md; read the file for the rest)\\n\\n'; head -c 9000 \"$CLAUDE_PROJECT_DIR/resources/skills/INDEX.md\"; }; } | jq -Rs '{hookSpecificOutput:{hookEventName:\"SessionStart\",additionalContext:.}}'",
+            "statusMessage": "Loading repo skill registry"
+          },
+          {
+            "type": "command",
+            "command": "{ printf '### Persistent memory index — learned facts & corrections. Recall these before acting; full entries live in the memory dir alongside MEMORY.md.\\n\\n'; cat \"$HOME/.claude/projects/$(printf '%s' \"$CLAUDE_PROJECT_DIR\" | tr '/' '-')/memory/MEMORY.md\" 2>/dev/null; python3 \"$CLAUDE_PROJECT_DIR/scripts/memory_sweep.py\" --brief 2>/dev/null; } | jq -Rs '{hookSpecificOutput:{hookEventName:\"SessionStart\",additionalContext:.}}'",
+            "statusMessage": "Loading persistent memory index"
+          },
+          {
+            "type": "command",
+            "command": "{ printf '### Active persona/identity — loaded from IDENTITY.md if present, else the generic public default IDENTITY.example.md. See Soul.md for the voice mechanics that apply regardless of persona.\\n\\n'; cat \"$CLAUDE_PROJECT_DIR/IDENTITY.md\" 2>/dev/null || cat \"$CLAUDE_PROJECT_DIR/IDENTITY.example.md\" 2>/dev/null; } | jq -Rs '{hookSpecificOutput:{hookEventName:\"SessionStart\",additionalContext:.}}'",
+            "statusMessage": "Loading active persona"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/employer.py\" context 2>/dev/null | jq -Rs '{hookSpecificOutput:{hookEventName:\"SessionStart\",additionalContext:.}}'",
+            "statusMessage": "Loading active employer pack"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/write-boundary.sh\"",
+            "statusMessage": "Checking write boundary"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/ingest_lint.py\" hook",
+            "statusMessage": "Checking memory provenance"
+          }
+        ]
+      },
+      {
+        "matcher": "WebFetch|WebSearch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/egress-guard.sh\"",
+            "statusMessage": "Checking egress"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__.*__.*send.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/send-gate.sh\"",
+            "statusMessage": "Checking send approval"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/ingest_lint.py\" hook",
+            "statusMessage": "Keeping provenance labels"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/control-spine-gate.sh\"",
+            "statusMessage": "Checking control-spine gate"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/memory_nudge.py\"",
+            "statusMessage": "Checking for memory candidates"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/skill_router.py\" hook",
+            "statusMessage": "Preselecting skills"
+          }
+        ]
+      }
+    ]
+  }
+}

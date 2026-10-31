@@ -1,0 +1,11 @@
+{
+  "_comment": "Tunable scorer config. autoresearch mutates ONE field per iteration and keeps on train-agreement gain. Iteration 0 reproduces the live two-gate scoring so every gain is attributable. composite_weights mirror rubric.md (Scorecard B); substance_weight 0.5 mirrors the combined-loop objective (0.5*substance + 0.5*composite); tier_cutoffs start at the rubric's own Standard(50)/Viral(85) boundaries. See references/methodology.md.",
+  "composite_weights": {
+    "hook": 0.30,
+    "readability": 0.20,
+    "spacing": 0.20,
+    "aifluff": 0.30
+  },
+  "substance_weight": 0.5,
+  "tier_cutoffs": [50, 85]
+}

@@ -1,0 +1,49 @@
+{
+  "_doc": "Copy employers/_template/ to employers/<slug>/ (gitignored), fill this in, write <slug> into employers/ACTIVE, then run `python3 scripts/employer.py validate`. Keys starting with _ are comments. Full runbook: employers/README.md.",
+  "employer": {
+    "name": "Example Corp",
+    "company_names": ["Example Corp"],
+    "_company_names": "Lower-cased substrings that mark a person or account as 'us' (client-follow-through's gate).",
+    "domains": ["example.com"],
+    "work_email": "you@example.com",
+    "start": "YYYY-MM-DD",
+    "end": null
+  },
+  "providers": {
+    "_doc": "One adapter per capability: mail google|m365, calendar google|m365|eventkit, files google|m365, chat slack|teams|none. Contracts: resources/adapters/<capability>.md. A loop whose adapter is not bound refuses to run.",
+    "mail":     {"adapter": "m365", "via": ["graph"]},
+    "calendar": {"adapter": "eventkit", "via": ["eventkit"]},
+    "files":    {"adapter": "m365", "via": ["graph"], "mode": "read"},
+    "chat":     {"adapter": "none"}
+  },
+  "runtime": {
+    "claude_login": "personal",
+    "_doc": "Which Claude login runs the loops. Keep it personal: an employer seat stops every loop when the job ends."
+  },
+  "confidentiality": {
+    "class": "employer-internal",
+    "vault_ok": {},
+    "_vault_ok": "Dated approvals for this employer's content in the vault, e.g. {\"chat\": \"2026-11-01\"}. Empty = output/ only."
+  },
+  "files": [
+    "mail-triage/companies.json",
+    "mail-to-conversations/domain_map.yaml",
+    "calendar-to-contacts/domain_map.yaml"
+  ],
+  "_files": "Real config files of skills, filed as <skill-id>/<file>. Start each from the skill's schema/*.example.*.",
+  "loops": [],
+  "_loops": "launchd labels this employer's bindings feed, e.g. com.cbrain.mail-triage. `employer.py loops --load --apply` starts them.",
+  "brand": {
+    "dir": "brand",
+    "house_style": "Example Corp house style",
+    "cta_heading": "How Example Corp can help",
+    "bundled_skills": [],
+    "internal_kb": null
+  },
+  "exit": {
+    "notes": [],
+    "credentials": [],
+    "output_dirs": ["output/meetings", "output/mail-triage"],
+    "vault_markers": []
+  }
+}

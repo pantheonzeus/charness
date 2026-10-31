@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frame-Shift Lab</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Ccircle cx=%228%22 cy=%228%22 r=%226%22 fill=%22none%22 stroke=%22%236b4fbb%22 stroke-width=%222%22/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f6f5f2; --surface:#fff; --sunk:#efede8; --ink:#1c1c1e; --muted:#62666d; --line:#d9d6cf;
+  --model:#6b4fbb; --model-bg:#efeafb; --code:#0f7b6c; --code-bg:#e2f3f0;
+  --human:#a86400; --human-bg:#fcefd9; --seal:#b3261e; --seal-bg:#fbe8e6; --data:#55606e; --data-bg:#eceef1;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#131315; --surface:#1c1d20; --sunk:#17181a; --ink:#ececec; --muted:#a2a6ac; --line:#34363b;
+  --model:#b39dfa; --model-bg:#28213d; --code:#4fd1bd; --code-bg:#14302c;
+  --human:#f0b35a; --human-bg:#382a13; --seal:#f28b82; --seal-bg:#3a1e1c; --data:#aab4c0; --data-bg:#25282d; }}
+:root[data-theme="dark"]{
+  --bg:#131315; --surface:#1c1d20; --sunk:#17181a; --ink:#ececec; --muted:#a2a6ac; --line:#34363b;
+  --model:#b39dfa; --model-bg:#28213d; --code:#4fd1bd; --code-bg:#14302c;
+  --human:#f0b35a; --human-bg:#382a13; --seal:#f28b82; --seal-bg:#3a1e1c; --data:#aab4c0; --data-bg:#25282d; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+main{max-width:1280px;margin:0 auto;padding:28px 16px 80px}
+h1{font-size:26px;margin:0}
+h2{font-size:17px;margin:0 0 4px}
+.sub{color:var(--muted);margin:2px 0 0}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;align-items:flex-end}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.controls label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+select,input[type=number]{font:inherit;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px;width:96px}
+.chk{flex-direction:row!important;align-items:center;gap:6px!important;font-size:13px!important;color:var(--ink)!important;padding-bottom:8px}
+button{font:inherit;font-weight:600;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 14px;cursor:pointer}
+button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:disabled{opacity:.45;cursor:default}
+.status{font-size:13px;color:var(--muted);margin-top:10px;min-height:20px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;border:1.5px solid;margin-right:5px;vertical-align:-1px}
+.datarow{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:12px}
+.stat{background:var(--sunk);border-radius:10px;padding:10px 12px}
+.stat b{display:block;font-size:20px}
+.stat span{font-size:12.5px;color:var(--muted)}
+.split{display:flex;height:30px;border-radius:8px;overflow:hidden;margin-top:12px;font-size:12.5px;font-weight:600}
+.split div{display:flex;align-items:center;padding:0 10px}
+.sa{background:var(--code-bg);color:var(--code);flex:60}
+.sb{background:var(--seal-bg);color:var(--seal);flex:40;border:1.5px dashed var(--seal);border-radius:0 8px 8px 0}
+.arms{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+@media (max-width:860px){.arms{grid-template-columns:1fr}}
+.arm{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;min-height:240px}
+#arm-control,#arm-shift{max-height:72vh;overflow-y:auto}
+.arm.ctrl{border-top:4px solid var(--code)} .arm.shift{border-top:4px solid var(--model)}
+.armhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.think{font-size:12.5px;color:var(--model);min-height:18px}
+.think.on::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--model);margin-right:6px;animation:p 1s infinite}
+@keyframes p{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.think.on::before{animation:none}}
+.frame{border:1px solid var(--line);border-radius:10px;margin-top:10px;overflow:hidden}
+.fhead{background:var(--model-bg);padding:8px 10px;font-size:13.5px}
+.ctrl .fhead{background:var(--code-bg)}
+.fhead .q{font-weight:600}
+.fmeta{font-size:12px;color:var(--muted);margin-top:2px}
+.op{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--model);margin-right:6px}
+.ctrl .op{color:var(--code)}
+.yield{float:right;font-size:12px;font-weight:700}
+.hyp{display:grid;grid-template-columns:42px 1fr auto;gap:8px;padding:6px 10px;border-top:1px solid var(--line);font-size:13px;align-items:start}
+.hyp .id{color:var(--muted);font-variant-numeric:tabular-nums}
+.hyp .st{color:var(--muted);font-size:12px}
+.chip{font-size:11px;font-weight:700;padding:2px 7px;border-radius:99px;white-space:nowrap;text-transform:uppercase;letter-spacing:.03em}
+.kept{background:var(--code-bg);color:var(--code)} .killed{background:var(--sunk);color:var(--muted)} .invalid{background:var(--seal-bg);color:var(--seal)}
+.funnel{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:10px}
+@media (max-width:860px){.funnel{grid-template-columns:1fr}}
+.frow{display:grid;grid-template-columns:150px 1fr 40px;gap:8px;align-items:center;font-size:13px;margin:5px 0}
+.bar{height:16px;border-radius:4px;background:var(--sunk);overflow:hidden}
+.bar div{height:100%;border-radius:4px;transition:width .5s}
+.deck{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-top:12px}
+.card{border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--surface);display:flex;flex-direction:column;gap:10px}
+.card .txt{font-size:14px}
+.rate{display:flex;gap:6px;flex-wrap:wrap}
+.rate button{font-size:12.5px;padding:4px 9px;font-weight:600}
+.rate button.sel{background:var(--human-bg);border-color:var(--human);color:var(--human)}
+.lab{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.lab.loop-shift{color:var(--model)} .lab.loop-control{color:var(--code)} .lab.known{color:var(--seal)} .lab.decoy{color:var(--muted)}
+.rev{font-size:12.5px;color:var(--muted);border-top:1px dashed var(--line);padding-top:8px}
+.rev b{color:var(--ink)}
+.verdict{border-radius:12px;padding:16px 18px;margin-top:16px;border:2px solid var(--line)}
+.verdict h2{font-size:22px}
+.v-PASS{border-color:var(--code);background:var(--code-bg)}
+.v-KILL{border-color:var(--seal);background:var(--seal-bg)}
+.v-VOID,.v-INCONCLUSIVE{border-color:var(--human);background:var(--human-bg)}
+table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.hide{display:none}
+.err{color:var(--seal);font-weight:600}
+.muted{color:var(--muted)}
+.cand{font-size:12.5px;margin-top:10px}
+.cand td{padding:4px 6px}
+.ok{color:var(--code);font-weight:700} .no{color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div>
+    <h1>Frame-Shift Lab</h1>
+    <p class="sub">An autonomous discovery loop on synthetic demand-space data. Can rewriting the question find something the original frame can't?</p>
+  </div>
+  <div class="controls">
+    <label>Model<select id="model"><option value="sonnet">Sonnet</option><option value="haiku">Haiku</option><option value="opus">Opus</option></select></label>
+    <label>Rounds per arm<input id="rounds" type="number" min="1" max="8" value="6"></label>
+    <label>Frames (shift arm)<input id="frames" type="number" min="1" max="8" value="3"></label>
+    <label>Hypotheses / round<input id="per" type="number" min="2" max="10" value="6"></label>
+    <label>Data seed<input id="seed" type="number" value="7"></label>
+    <label class="chk"><input id="mock" type="checkbox"> scripted (no Claude)</label>
+    <button id="go" class="primary">Run experiment</button>
+  </div>
+</header>
+<div class="status" id="status">Pick a budget and press Run. Both arms get the same number of hypotheses.</div>
+<div class="legend">
+  <span><i style="background:var(--model-bg);border-color:var(--model)"></i>Claude proposes (headless <code>claude -p</code>)</span>
+  <span><i style="background:var(--code-bg);border-color:var(--code)"></i>Code tests and gates</span>
+  <span><i style="background:var(--human-bg);border-color:var(--human)"></i>You judge, blind</span>
+  <span><i style="background:var(--seal-bg);border-color:var(--seal)"></i>Sealed from the loop</span>
+</div>
+
+<section class="panel" id="data">
+  <h2>1 · The data</h2>
+  <p class="sub">Synthetic occasions in a premium-spirits category. Five demand spaces are planted and sealed as "your map". Four more connections are planted on columns the original frame ignores. The loop sees neither, only the column dictionary and its own test results.</p>
+  <div class="datarow" id="stats"></div>
+  <div class="split"><div class="sa" id="sa">Split A · discovery · the loop tests here</div><div class="sb" id="sb">🔒 Split B · confirmation</div></div>
+  <p class="sub" id="f0" style="margin-top:10px"></p>
+</section>
+
+<div class="arms">
+  <section class="arm ctrl">
+    <div class="armhead"><h2>2a · Control arm</h2><span class="think" id="think-control"></span></div>
+    <p class="sub">The hypothesis loop inside the original frame only.</p>
+    <div id="arm-control"></div>
+  </section>
+  <section class="arm shift">
+    <div class="armhead"><h2>2b · Frame-shift arm</h2><span class="think" id="think-shift"></span></div>
+    <p class="sub">The outer loop rewrites the question, and the inner loop tests inside it.</p>
+    <div id="arm-shift"></div>
+  </section>
+</div>
+
+<section class="panel hide" id="gates">
+  <h2>3 · Gates</h2>
+  <p class="sub">G1 checks replication on sealed split B with Benjamini–Hochberg FDR at q = 0.05. G2 requires &lt; 30% overlap with the sealed map. G3 requires the low end of the € range to be ≥ €150k/yr.</p>
+  <div class="funnel" id="funnel"></div>
+  <details class="cand"><summary>All candidates</summary><table id="candtbl"></table></details>
+</section>
+
+<section class="panel hide" id="review">
+  <h2>4 · Blind review: you are the panel</h2>
+  <p class="sub">The deck mixes cards that cleared G1–G3 with spaces from your sealed map and decoys that looked strong on A but failed on B. Every card is worded by code, so nothing gives its source away. Rate each one, then reveal.</p>
+  <div class="deck" id="deck"></div>
+  <p style="margin-top:14px"><button id="reveal" class="primary">Reveal sources and verdict</button> <span class="muted" id="ratedcount"></span></p>
+</section>
+
+<section class="hide" id="result">
+  <div class="verdict" id="verdict"></div>
+  <div class="panel">
+    <h2>Recall guard</h2>
+    <p class="sub">Could the loop rediscover what your method already knew? If it couldn't, anything it calls new is noise.</p>
+    <div id="recall"></div>
+  </div>
+  <div class="panel">
+    <h2>Ground truth: the planted connections</h2>
+    <p class="sub">This exists only because the data is synthetic. On real data, the blind panel is the only check.</p>
+    <table id="planted"></table>
+  </div>
+</section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct = x => x == null ? "–" : (x*100).toFixed(0) + "%";
+const eur = x => x >= 1e6 ? `€${(x/1e6).toFixed(1)}M` : `€${Math.round(x/1e3)}k`;
+let run = null, es = null, ratings = {}, calls = 0, cost = 0;
+
+function reset(){
+  ["arm-control","arm-shift","funnel","deck","recall","planted","candtbl","verdict"].forEach(i => $(i).innerHTML = "");
+  ["gates","review","result"].forEach(i => $(i).classList.add("hide"));
+  ratings = {}; calls = 0; cost = 0;
+}
+function frameBox(arm, f){
+  const d = document.createElement("div");
+  d.className = "frame"; d.id = `frame-${arm}-${f.id}`;
+  d.innerHTML = `<div class="fhead"><span class="yield" id="y-${arm}-${f.id}"></span>
+    <span class="op">${esc(f.id)} · ${esc(f.operator)}</span><div class="q">${esc(f.question)}</div>
+    <div class="fmeta">unit: ${esc(f.unit)} · outcome: ${esc(f.outcome)} · columns: ${esc((f.columns||[]).join(", "))}</div>
+    ${f.why && f.operator !== "original" ? `<div class="fmeta"><i>${esc(f.why)}</i></div>` : ""}</div>`;
+  $(`arm-${arm}`).appendChild(d);
+}
+function hypRow(h){
+  const box = $(`frame-${h.arm}-${h.frame_id}`); if (!box) return;
+  const r = h.resA || {};
+  const stat = h.verdict === "invalid" ? esc(h.reason)
+    : r.seg == null ? esc(h.reason)
+    : `${h.spec.outcome} ${h.spec.outcome==="spend_eur" ? "€"+r.seg.toFixed(0)+" vs €"+r.rest.toFixed(0) : pct(r.seg)+" vs "+pct(r.rest)} · lift ${r.lift?.toFixed(2)} · n ${r.n} · ${esc(h.reason)}`;
+  const d = document.createElement("div"); d.className = "hyp";
+  d.innerHTML = `<span class="id">${h.id}</span><div>${esc(h.statement && h.statement!=="scripted" ? h.statement : h.spec_text || "")}
+    <div class="st">${h.spec_text && h.statement!=="scripted" ? esc(h.spec_text)+"<br>" : ""}${stat}</div></div>
+    <span class="chip ${h.verdict}">${h.verdict}</span>`;
+  box.appendChild(d);
+  updateYield(h.arm, h.frame_id);
+}
+function updateYield(arm, fid){
+  const box = $(`frame-${arm}-${fid}`);
+  const rows = box.querySelectorAll(".hyp .chip"); let kept = 0;
+  rows.forEach(c => c.classList.contains("kept") && kept++);
+  $(`y-${arm}-${fid}`).textContent = `${kept}/${rows.length} kept`;
+}
+function think(arm, role){ const t = $(`think-${arm}`); t.textContent = role ? `Claude is proposing ${role}…` : ""; t.classList.toggle("on", !!role); }
+
+function funnel(arms){
+  const max = Math.max(arms.control.tested, arms.shift.tested, 1);
+  const steps = [["tested","Tested on A"],["kept","Kept on A"],["g1","G1 · replicates on B"],["g2","G2 · not in your map"],["g3","G3 · € traced"]];
+  $("funnel").innerHTML = ["control","shift"].map(a => `<div><b>${a==="control"?"Control":"Frame-shift"}</b>${steps.map(([k,l]) =>
+    `<div class="frow"><span>${l}</span><div class="bar"><div style="width:${arms[a][k]/max*100}%;background:var(${a==="control"?"--code":"--model"})"></div></div><b>${arms[a][k]}</b></div>`).join("")}
+    ${arms[a].invalid ? `<div class="muted" style="font-size:12px">${arms[a].invalid} rejected at compile</div>` : ""}</div>`).join("");
+}
+function candTable(cs){
+  const y = b => b ? '<span class="ok">✓</span>' : '<span class="no">–</span>';
+  $("candtbl").innerHTML = `<tr><th>ID</th><th>Frame</th><th>Segment</th><th>G1</th><th>G2</th><th>G3</th><th>p on B</th><th>overlap</th><th>€/yr</th></tr>` +
+    cs.map(c => `<tr><td>${c.id}</td><td>${c.frame_id}</td><td>${esc(c.spec_text)}</td><td>${y(c.g1)}</td><td>${y(c.g2)}</td><td>${y(c.g3)}</td>
+    <td>${c.pB.toExponential(1)}</td><td>${c.g1 ? Math.round(c.overlap*100)+"% "+esc(c.nearest_known) : "–"}</td>
+    <td>${c.money ? eur(c.money.low)+"–"+eur(c.money.high) : "–"}</td></tr>`).join("");
+}
+function deck(cards){
+  $("review").classList.remove("hide");
+  $("deck").innerHTML = cards.map(c => `<div class="card" id="c-${c.id}"><div class="txt">${esc(c.text)}</div>
+    <div class="rate" data-id="${c.id}">${[["new","New & plausible"],["known","Already known"],["implausible","Not credible"]].map(([v,l]) =>
+      `<button data-v="${v}">${l}</button>`).join("")}</div><div class="rev hide"></div></div>`).join("");
+  document.querySelectorAll(".rate").forEach(r => r.addEventListener("click", e => {
+    const v = e.target.dataset.v; if (!v) return;
+    ratings[r.dataset.id] = v;
+    r.querySelectorAll("button").forEach(b => b.classList.toggle("sel", b.dataset.v === v));
+    $("ratedcount").textContent = `${Object.keys(ratings).length}/${cards.length} rated`;
+  }));
+  $("ratedcount").textContent = `0/${cards.length} rated`;
+}
+
+function onEvent(ev){
+  switch(ev.type){
+    case "start": {
+      run = ev.run_id; const d = ev.data;
+      $("stats").innerHTML = [[d.rows.toLocaleString(),"occasions"],[d.respondents.toLocaleString(),"respondents"],[d.columns,"context & profile columns"],
+        [pct(d.premium_rate),"premium rate overall"],["🔒 "+d.known_spaces,"known spaces, sealed"]].map(([b,s]) => `<div class="stat"><b>${b}</b><span>${s}</span></div>`).join("");
+      $("sa").textContent = `Split A · ${d.rows_a.toLocaleString()} occasions · the loop tests here`;
+      $("sb").textContent = `🔒 Split B · ${d.rows_b.toLocaleString()} · opened at G1`;
+      $("f0").innerHTML = `<b>Original frame:</b> ${esc(ev.original_frame.question)}`;
+      $("status").textContent = `Run ${run} · ${ev.cfg.mock ? "scripted proposer" : "Claude " + ev.cfg.model} · ${ev.cfg.rounds} rounds × ${ev.cfg.per_round} hypotheses per arm · frame-shift splits its rounds across ${ev.cfg.frames} frames`;
+      break; }
+    case "frame": frameBox(ev.arm, ev.frame); think(ev.arm, ev.arm === "shift" ? "hypotheses for " + ev.frame.id : "hypotheses"); break;
+    case "thinking": think(ev.arm, ev.role === "frame" ? "the next frame" : "hypotheses"); break;
+    case "hypothesis": hypRow(ev); break;
+    case "llm_call": calls++; cost += ev.cost_usd || 0; think(ev.arm, null);
+      $("status").textContent = $("status").textContent.replace(/ · \d+ Claude calls.*$/, "") + ` · ${calls} Claude calls · $${cost.toFixed(3)} equiv.`; break;
+    case "gates": $("gates").classList.remove("hide"); funnel(ev.arms); candTable(ev.candidates); break;
+    case "deck": deck(ev.cards); break;
+    case "done": think("control"); think("shift"); $("go").disabled = false;
+      $("status").textContent += " · done, now review the deck"; break;
+    case "error": think("control"); think("shift"); $("go").disabled = false;
+      $("status").innerHTML = `<span class="err">Run stopped: ${esc(ev.message)}</span>`; break;
+  }
+}
+function attach(id){
+  es && es.close();
+  es = new EventSource(`/api/events/${id}`);
+  es.onmessage = m => onEvent(JSON.parse(m.data));
+  es.addEventListener("end", () => es.close());
+}
+
+$("go").onclick = async () => {
+  reset(); $("go").disabled = true; $("status").textContent = "Starting…";
+  const body = {model: $("model").value, rounds: +$("rounds").value, frames: +$("frames").value, per_round: +$("per").value, seed: +$("seed").value, mock: $("mock").checked};
+  const r = await fetch("/api/run", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
+  if (!r.ok){ $("status").innerHTML = `<span class="err">${esc((await r.json()).detail)}</span>`; $("go").disabled = false; return; }
+  attach((await r.json()).run_id);
+};
+
+$("reveal").onclick = async () => {
+  const r = await fetch(`/api/reveal/${run}`, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ratings})});
+  const d = await r.json();
+  d.cards.forEach(c => {
+    const el = $(`c-${c.id}`).querySelector(".rev"); el.classList.remove("hide");
+    const kind = c.kind === "loop" ? `loop-${c.arm}` : c.kind;
+    const name = {"loop-shift":"Frame-shift loop","loop-control":"Control loop","known":"Your sealed map","decoy":"Decoy: failed on B"}[kind];
+    let body = `<div class="lab ${kind}">${name}${c.rating ? ` · you said “${c.rating}”` : ""}</div>`;
+    if (c.kind === "known") body += `<b>${esc(c.src)}</b>`;
+    if (c.statement) body += `<div><b>Claude:</b> ${esc(c.statement)}</div><div><i>${esc(c.rationale)}</i></div>`;
+    if (c.frame) body += `<div>Frame ${esc(c.frame.id)} · ${esc(c.frame.operator)}: ${esc(c.frame.question)}</div>`;
+    if (c.resB && c.resB.seg != null) body += `<div>On sealed B: ${pct(c.resB.seg)} vs ${pct(c.resB.rest)}, p ${c.resB.p.toExponential(1)}</div>`;
+    if (c.money) body += `<div>€ trace: <b>${eur(c.money.low)}–${eur(c.money.high)}/yr</b> · ${esc(c.money.how)} · ${esc(c.money.assumptions.join("; "))}</div>`;
+    if (c.overlap != null && c.kind === "loop") body += `<div>Overlap with your map: ${Math.round(c.overlap*100)}% (${esc(c.nearest_known)})</div>`;
+    el.innerHTML = body;
+  });
+  $("result").classList.remove("hide");
+  const vclass = d.verdict.startsWith("KILL") ? "KILL" : d.verdict;
+  $("verdict").className = `verdict v-${vclass}`;
+  $("verdict").innerHTML = `<h2>Verdict: ${esc(d.verdict)}</h2><p>${esc(d.why)}</p><p class="muted">Ledger: ${esc(d.ledger)} · ${d.cost_usd ? "$"+d.cost_usd+" API-equivalent (billed to your subscription)" : "no model cost"}</p>`;
+  $("recall").innerHTML = `<p>Control rediscovered <b>${d.recall.control.length}</b>: ${esc(d.recall.control.join(", ") || "none")}<br>
+    Frame-shift rediscovered <b>${d.recall.shift.length}</b>: ${esc(d.recall.shift.join(", ") || "none")}<br>
+    Combined <b>${d.recall_union.length}/5</b> (the guard needs ≥ 2).</p>`;
+  $("planted").innerHTML = `<tr><th>Planted connection</th><th>Reachable by</th><th>Segment</th><th>Found (G1 survivors ≥ 40% overlap)</th></tr>` +
+    d.planted.map(p => `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.operator)}</td><td>${esc(p.text)}</td>
+    <td>${p.hits.length ? p.hits.map(h => `${h[0]} (${h[1]}, ${Math.round(h[2]*100)}%)`).join(", ") : '<span class="muted">not found</span>'}</td></tr>`).join("");
+  $("result").scrollIntoView({behavior:"smooth"});
+};
+
+fetch("/api/current").then(r => r.json()).then(c => { if (c.run_id){ run = c.run_id; $("go").disabled = !c.done; attach(c.run_id); } });
+</script>
+</body>
+</html>

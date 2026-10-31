@@ -1,0 +1,195 @@
+{
+ "_doc": "Closed failure taxonomy for headless agent runs. Rules are tried in order; the first match wins. `level: run` codes make a run FAILED, `level: step` codes make it DEGRADED. `track: false` codes are recorded but never open an issue (normal agent exploration). A new code is added only when UNCLASSIFIED keeps recurring (open coding -> closed taxonomy). MAST/TRAIL columns map each code to the published taxonomies for comparison. `behavior` + `sites` name the harness behavior that owns each code and the files implementing it (references/handbook.md).",
+ "run_rules": [
+  {
+   "code": "AUTH_EXPIRED",
+   "when": "auth_failed == true (run_agent.sh matched an auth error: expired OAuth session, invalid key, not logged in)",
+   "mast": "system design",
+   "trail": "system execution: API/system",
+   "fix": "The `claude` login expired; every headless job fails until it is renewed. Run `claude` in a terminal and log in. The alarm (auth-alarm.json, Jarvis pill, one macOS notification) clears on the next good run.",
+   "behavior": "Runner, ledger & handoff",
+   "sites": [
+    "scripts/run_agent.sh"
+   ]
+  },
+  {
+   "code": "INFRA",
+   "when": "no JSON result, exit 143/SIGTERM, terminal_reason api_error, or is_error with no other run code",
+   "mast": "system design",
+   "trail": "system execution: API/system",
+   "fix": "Usually transient (sleep, network, rate limit). Auth failures are AUTH_EXPIRED; recurring INFRA means the launchd environment is broken: check the job log.",
+   "behavior": "Runner, ledger & handoff",
+   "sites": [
+    "scripts/run_agent.sh",
+    "the job's launchd plist"
+   ]
+  },
+  {
+   "code": "BUDGET",
+   "when": "subtype error_max_turns / error_max_budget_usd, terminal_reason max_turns / budget_exhausted / prompt_too_long",
+   "mast": "system design: step limits",
+   "trail": "system execution: resource management",
+   "fix": "Re-derive budget_usd from ledger p95 x 1.5 (see .claude/agents/<job>.md) or cut the batch the job is given.",
+   "behavior": "Agent definition",
+   "sites": [
+    ".claude/agents/<job>.md (budget_usd)",
+    "scripts/run_agent.sh (--max-budget-usd)"
+   ]
+  },
+  {
+   "code": "GATE",
+   "when": "terminal_reason hook_stopped / stop_hook_prevented",
+   "mast": "task verification",
+   "trail": "planning: task management",
+   "fix": "The control spine stopped the run with checkpoints open: read the run's RESPONSE.md, find the box the agent could not clear.",
+   "behavior": "Completion gate",
+   "sites": [
+    ".claude/hooks/control-spine-gate.sh",
+    "output/.runs/<run>/RESPONSE.md"
+   ]
+  },
+  {
+   "code": "NO_HANDOFF",
+   "when": "handoff_present == false",
+   "mast": "inter-agent misalignment",
+   "trail": "planning: task management",
+   "fix": "The child never wrote its RESPONSE.md. Check the packet names the exact path and the agent definition's Success line.",
+   "behavior": "Runner, ledger & handoff",
+   "sites": [
+    "the launcher's handoff path (run_agent.sh arg 2)",
+    ".claude/agents/<job>.md",
+    "resources/skills/_shared/delegation-handoff.md"
+   ]
+  }
+ ],
+ "step_rules": [
+  {
+   "code": "BOUNDARY_BLOCKED",
+   "tool": ".*",
+   "pattern": "write-boundary guard|was blocked\\. For security|outside the allowed (working )?director|outside the allowed zones",
+   "track": true,
+   "mast": "system design",
+   "trail": "system execution: configuration",
+   "fix": "Agent wrote or listed outside the allowed zones (often /tmp), or outside its job's write_scopes (hook log line carries `job`). Zones: tell the agent definition to use its STATE_ROOT for scratch files. Scopes: if the path is a legitimate output of the job, a human widens `write_scopes:` in .claude/agents/<job>.md; otherwise the wall worked, fix the prompt.",
+   "behavior": "Write boundary",
+   "sites": [
+    ".claude/hooks/write-boundary.sh",
+    "the CLI working-directory sandbox",
+    ".claude/agents/<job>.md (Headless shell rule, write_scopes)"
+   ]
+  },
+  {
+   "code": "PERM_BLOCKED",
+   "tool": ".*",
+   "pattern": "requires approval|Contains [a-z_ -]+|contains multiple operations|Parser skipped input|cannot be auto-allowed|integer attribute|Arithmetic expansion|Redirect has multiple targets|expansion obfuscation|has been denied|doesn't want to proceed|require explicit approval|Brace expansion|^(<tool_use_error>)?Blocked: |executes arbitrary commands",
+   "track": true,
+   "mast": "system design",
+   "trail": "system execution: configuration",
+   "fix": "Headless runs cannot answer prompts. Either allowlist the exact command for that job (--allowedTools) or tell the agent to use Read/Grep/Glob and single plain commands instead of compound shell.",
+   "behavior": "Command permissions",
+   "sites": [
+    "the job launcher's --allowedTools",
+    ".claude/agents/<job>.md (Headless shell rule)"
+   ]
+  },
+  {
+   "code": "SKILL_MISROUTE",
+   "tool": "Skill",
+   "pattern": "Unknown skill|cannot be used with Skill tool",
+   "track": true,
+   "mast": "system design: disobey role/spec",
+   "trail": "reasoning: decision making",
+   "fix": "Repo skills are files, not Skill-tool skills. The agent must Read resources/skills/<category>/<slug>/SKILL.md.",
+   "behavior": "Skill dispatch",
+   "sites": [
+    "Charter.md \u00a73",
+    "resources/skills/INDEX.md",
+    ".claude/agents/<job>.md"
+   ]
+  },
+  {
+   "code": "STALE_EDIT",
+   "tool": "Edit|MultiEdit|Write",
+   "pattern": "String to replace not found|has been modified since|has not been read yet|must read|Found \\d+ matches of the string to replace",
+   "track": true,
+   "mast": "system design",
+   "trail": "planning: context management",
+   "fix": "Agent edited from a stale or imagined copy, or anchored on a line that occurs more than once. Re-read before Edit; for append-only notes, append instead of replacing.",
+   "behavior": "Shared-file editing",
+   "sites": [
+    ".claude/agents/<job>.md (Edit rule)",
+    "the job's co-written files (e.g. PLAN.json via webapp/tasks.py)"
+   ]
+  },
+  {
+   "code": "PATH_MISS",
+   "tool": ".*",
+   "pattern": "File does not exist|EISDIR|No such file or directory|does not exist\\.|ENOENT",
+   "track": true,
+   "mast": "system design",
+   "trail": "reasoning: hallucination",
+   "fix": "Agent guessed a path. Put the exact paths it needs in the task packet or skill; prefer Glob before Read.",
+   "behavior": "Task packet & paths",
+   "sites": [
+    "the launcher's prompt and seeded files",
+    "the skill's SKILL.md",
+    ".claude/agents/<job>.md (Path rule)"
+   ]
+  },
+  {
+   "code": "NET_FAIL",
+   "tool": ".*",
+   "pattern": "timeout of \\d+ms|maxContentLength|went to sleep|ECONNRESET|ETIMEDOUT|fetch failed|socket hang up|\\b(403|404|429|5\\d\\d)\\b.*(status|error)|Request failed|unable to fetch from|Request interrupted by user",
+   "track": false,
+   "mast": "-",
+   "trail": "system execution: API/system",
+   "fix": "External site or sleep. A headless run has no user, so \"Request interrupted by user\" means the Mac slept (or the process was killed) mid-call. Only act if one host keeps failing: drop or replace that source.",
+   "behavior": "Environment",
+   "sites": [
+    "scripts/run_agent.sh (caffeinate)",
+    "external sites"
+   ]
+  },
+  {
+   "code": "ENV_MISSING",
+   "tool": ".*",
+   "pattern": "not installed|command not found|No module named|is not recognized",
+   "track": true,
+   "mast": "system design",
+   "trail": "system execution: configuration",
+   "fix": "A dependency is missing on this Mac. Install it once (brew/uv) or remove the step that needs it.",
+   "behavior": "Environment",
+   "sites": [
+    "this Mac's installs (brew, uv)",
+    "the skill's scripts/"
+   ]
+  },
+  {
+   "code": "BAD_INPUT",
+   "tool": ".*",
+   "pattern": "InputValidationError|Invalid tool parameters|tool_use_error>Error",
+   "track": true,
+   "mast": "system design",
+   "trail": "reasoning: output generation",
+   "fix": "Malformed tool call. Usually model noise; recurring means a skill shows the wrong call shape.",
+   "behavior": "Task packet & paths",
+   "sites": [
+    "the skill's SKILL.md (call examples)",
+    ".claude/agents/<job>.md"
+   ]
+  },
+  {
+   "code": "CMD_FAIL",
+   "tool": "Bash",
+   "pattern": "^Exit code \\d+",
+   "track": false,
+   "mast": "-",
+   "trail": "-",
+   "fix": "A shell command returned non-zero (grep with no match counts). Exploration noise unless it hides a real step failure.",
+   "behavior": "Environment",
+   "sites": [
+    "the job's own scripts"
+   ]
+  }
+ ]
+}
