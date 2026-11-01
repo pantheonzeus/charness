@@ -7,7 +7,7 @@
 **What does not:** business models, value propositions, platform strategy, servitization / as-a-Service models and business-viability experiments belong in `business-design`. Operating model, roadmap, KPI system and business case belong in `strategy`. Infrastructure belongs in `technology`. Service design hands off to these, and the handoffs are named in each skill.
 
 **Sub-domains (conceptual grouping, flat on disk):**
-1. **Engagement & framing:** `service-design-engagement` (entry point and router)
+1. **Engagement & framing:** `service-design-engagement` (entry point and router), `engagement-kickoff` (delivery start after the sale)
 2. **Discover:** `service-discovery-research`, `journey-mapping`, `service-ecosystem-mapping`
 3. **Define & develop:** `service-blueprint`, `service-concept-prototyping`, `service-codesign-facilitation`
 4. **Measure:** `service-performance-measurement`
@@ -15,4 +15,4 @@
 
 **Provenance:** house-authored 2026-10-10 from a role analysis of the UK DDaT service designer framework, principal-level job specs, and current human–AI service research. The analysis and sources are in `service-design-engagement/references/role-and-competencies.md`.
 
-**Skills:** `service-design-engagement`, `service-discovery-research`, `journey-mapping`, `service-ecosystem-mapping`, `service-blueprint`, `service-concept-prototyping`, `service-codesign-facilitation`, `service-performance-measurement`, `agentic-service-blueprint`, `agent-ready-service`, `agentic-service-evaluation`
+**Skills:** `service-design-engagement`, `service-discovery-research`, `journey-mapping`, `service-ecosystem-mapping`, `service-blueprint`, `service-concept-prototyping`, `service-codesign-facilitation`, `service-performance-measurement`, `agentic-service-blueprint`, `agent-ready-service`, `agentic-service-evaluation`, `engagement-kickoff`

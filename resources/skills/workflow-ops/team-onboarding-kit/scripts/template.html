@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__NAME__'s Sprint Onboarding</title>
+<style>
+:root{--bg:#f6f5f1;--surface:#fff;--surface-2:#efede6;--ink:#1d2321;--ink-2:#55605b;--line:#dcd9cf;--accent:#0b5d4b;--accent-soft:#d9ece6;--warn:#a4461c;--warn-soft:#f6e3d8;--ok:#2d7a3e;--ok-soft:#dcefdf;--bad:#b3261e;--bad-soft:#f7dedc;--chip:#e7e4da;--shadow:0 1px 2px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.04)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121614;--surface:#1a201d;--surface-2:#222a26;--ink:#e8ece9;--ink-2:#a3aea8;--line:#2f3934;--accent:#5cc6a6;--accent-soft:#1d3a32;--warn:#f0a07a;--warn-soft:#3d2a20;--ok:#7bc98a;--ok-soft:#1f3524;--bad:#f2a49e;--bad-soft:#3c2220;--chip:#2a332f;--shadow:none}}
+:root[data-theme="dark"]{--bg:#121614;--surface:#1a201d;--surface-2:#222a26;--ink:#e8ece9;--ink-2:#a3aea8;--line:#2f3934;--accent:#5cc6a6;--accent-soft:#1d3a32;--warn:#f0a07a;--warn-soft:#3d2a20;--ok:#7bc98a;--ok-soft:#1f3524;--bad:#f2a49e;--bad-soft:#3c2220;--chip:#2a332f;--shadow:none}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:27px;line-height:1.2;margin:0 0 4px;letter-spacing:-.01em}h2{font-size:19px;margin:0 0 10px}h3{font-size:16px;margin:0 0 6px}
+.sub{color:var(--ink-2);margin:0}.muted{color:var(--ink-2)}.meta{font-size:12px;color:var(--ink-2)}
+header{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:12px}
+.conf{display:inline-block;background:var(--warn-soft);color:var(--warn);font-size:12px;font-weight:600;padding:3px 8px;border-radius:6px;margin-top:8px}
+.progress{min-width:220px}.progress .bar{height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin-top:6px}.progress .bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+nav{display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:5;border-bottom:1px solid var(--line);margin-bottom:18px}
+nav button,.pill{border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 12px;border-radius:99px;cursor:pointer;font:inherit;font-size:14px;text-decoration:none}
+nav button[aria-selected="true"],.pill[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+:root[data-theme="dark"] nav button[aria-selected="true"],:root[data-theme="dark"] .pill[aria-pressed="true"]{color:#0d1311}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) nav button[aria-selected="true"],:root:not([data-theme="light"]) .pill[aria-pressed="true"]{color:#0d1311}}
+.right{margin-left:auto}
+section{display:none}section.on{display:block}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:var(--shadow)}
+.grid{display:grid;gap:12px}.g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}.g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.hero{background:var(--accent-soft);border-left:4px solid var(--accent);padding:14px 16px;border-radius:10px;margin-bottom:14px}
+.chip{display:inline-block;background:var(--chip);border-radius:99px;padding:2px 9px;font-size:12px;margin:2px 4px 2px 0}
+.chip.acc{background:var(--accent-soft);color:var(--accent);font-weight:600}.chip.warn{background:var(--warn-soft);color:var(--warn);font-weight:600}
+ul.clean{list-style:none;padding:0;margin:0}
+label.task{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--line);cursor:pointer}label.task:last-child{border-bottom:0}
+label.task input{margin-top:4px;accent-color:var(--accent);width:16px;height:16px;flex:none}label.task.done .t{text-decoration:line-through;color:var(--ink-2)}
+.day{margin-bottom:14px}.day.today{outline:2px solid var(--accent);outline-offset:2px}
+.dayhead{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;justify-content:space-between;margin-bottom:8px}
+.media{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0;background:var(--surface-2)}
+.media .top{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.media audio,.media video{width:100%;margin-top:8px;border-radius:8px}.media video{max-height:420px;background:#000}
+.media img{width:100%;border-radius:8px;margin-top:8px;cursor:zoom-in;border:1px solid var(--line)}
+.media .done-btn{flex:none}
+button.btn{border:1px solid var(--accent);background:var(--accent);color:#fff;padding:7px 12px;border-radius:8px;cursor:pointer;font:inherit;font-size:13px}
+button.ghost{background:transparent;color:var(--accent)}
+.media.watched{border-color:var(--ok);background:var(--ok-soft)}
+.sprintrow{display:grid;grid-template-columns:90px 1fr;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}.sprintrow:last-child{border-bottom:0}
+.sprintrow.today{background:var(--accent-soft);border-radius:8px;padding:9px 8px}
+.sprintrow b{font-size:14px}
+.q{margin-bottom:12px}.q .opts{display:grid;gap:6px;margin-top:8px}
+.q button.opt{text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 10px;border-radius:8px;cursor:pointer;font:inherit}
+.q button.opt.picked{border-color:var(--accent);background:var(--accent-soft)}
+.q button.opt.right{border-color:var(--ok);background:var(--ok-soft)}.q button.opt.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.q .why{display:none;margin-top:8px;font-size:14px;color:var(--ink-2)}.q.answered .why{display:block}
+.flash{min-height:150px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;cursor:pointer;font-size:17px;padding:22px}
+.flash .side{font-size:12px;color:var(--ink-2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
+.rate{display:flex;gap:6px;margin-top:6px}.rate button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:4px 10px;cursor:pointer;font:inherit;font-size:13px}
+.rate button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.prompt{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line)}.prompt:last-child{border-bottom:0}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
+a{color:var(--accent)}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}.toast.on{opacity:1}
+@media (max-width:560px){.sprintrow{grid-template-columns:1fr;gap:2px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="hello"></h1>
+      <p class="sub" id="subline"></p>
+      <span class="conf" id="banner"></span>
+    </div>
+    <div class="progress"><small id="progLabel"></small><div class="bar"><i id="progBar"></i></div></div>
+  </header>
+
+  <nav role="tablist">
+    <button role="tab" data-tab="start" aria-selected="true">Start here</button>
+    <button role="tab" data-tab="week">My prep week</button>
+    <button role="tab" data-tab="sprint">My sprint</button>
+    <button role="tab" data-tab="check">Self-check</button>
+    <button role="tab" data-tab="ask">Ask &amp; read</button>
+    <button role="tab" data-tab="library">Library</button>
+    <a class="pill" id="pbNav" target="_blank">Playbook ↗</a>
+    <button class="pill right" id="themeBtn">◐</button>
+  </nav>
+
+  <section id="start" class="on">
+    <div class="hero" id="promise"></div>
+    <div class="grid g2">
+      <div class="card"><h2>What you own</h2><p id="owns" style="margin:0"></p></div>
+      <div class="card"><h2>What the others own</h2><p id="others" style="margin:0"></p></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h2>Only have 20 minutes?</h2>
+      <p class="muted" style="margin-top:0">Watch the two-minute sprint video, then look at the sprint-at-a-glance infographic. That's enough to follow Monday's alignment call.</p>
+      <div id="fast"></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h2>How this works</h2>
+      <ul style="margin:0;padding-left:20px">
+        <li><b>My prep week</b>: one block a day (<span class="prepLabel"></span>), with the media to play and the things to do. Tick as you go; ticks stay in this browser.</li>
+        <li><b>My sprint</b>: your job on each day of <span class="sprintLabel"></span>. Today is highlighted.</li>
+        <li><b>Self-check</b>: your quiz, the vocabulary flashcards, and a readiness check for the end of prep week.</li>
+        <li><b>Ask &amp; read</b>: questions to put to the team notebook (it answers from our sources, with citations), plus the primary research worth your time.</li>
+        <li class="pbOnly"><b>Playbook</b>: the shared plan, day-by-day agenda, people and concepts.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="week"><div id="weeklist"></div></section>
+
+  <section id="sprint">
+    <div class="card"><h2>Your job each day</h2><div id="sprintlist"></div></div>
+    <p class="meta pbOnly">Full agenda, rhythm and decisions per day: <a class="pbLink" target="_blank">the shared playbook</a>.</p>
+  </section>
+
+  <section id="check">
+    <div class="card"><h2 id="readyHead"></h2><p class="muted" style="margin-top:0">Rate yourself honestly: 1 = not yet, 2 = roughly, 3 = I could do it in front of the client. Anything at 1 on Friday morning gets 20 minutes.</p><div id="ready"></div></div>
+    <div class="card" style="margin-top:12px"><h2>Your quiz</h2><div class="tools"><span id="score" class="chip acc"></span><button class="btn ghost" id="resetQuiz">Reset</button></div><div id="quiz"></div></div>
+    <div class="card" style="margin-top:12px"><h2>Vocabulary flashcards</h2><p class="muted" style="margin-top:0">Click the card to flip it. Mark the ones you knew; the rest come back first next time.</p>
+      <div class="card flash" id="flash" tabindex="0" role="button"></div>
+      <div class="tools" style="margin-top:10px;justify-content:center"><button class="btn ghost" id="fPrev">←</button><button class="btn" id="fKnew">Knew it</button><button class="btn ghost" id="fNext">→</button><span class="meta" id="fCount"></span></div>
+    </div>
+  </section>
+
+  <section id="ask">
+    <div class="card"><h2>Ask the team notebook</h2><p class="muted" style="margin-top:0">The notebook answers only from our sources, with citations. Copy a question, open the notebook, paste it.</p>
+      <p><a class="btn" style="text-decoration:none;display:inline-block" id="nbLink" target="_blank">Open the notebook ↗</a></p><div id="prompts"></div></div>
+    <div class="card" style="margin-top:12px"><h2>Frontier reading, picked for you</h2><div id="reading"></div></div>
+  </section>
+
+  <section id="library">
+    <div class="tools" id="libFilters"></div>
+    <div id="liblist"></div>
+  </section>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const DATA = __DATA__;
+const P = DATA.person, M = DATA.media;
+const E = DATA.engagement;
+const KEY = "onboarding-" + (E.key || "kit") + "-" + DATA.slug;
+let S = {}; try { S = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; } catch (e) { S = {}; }
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const today = new Date().toISOString().slice(0, 10);
+const toast = m => { const t = $("#toast"); t.textContent = m; t.classList.add("on"); setTimeout(() => t.classList.remove("on"), 1500); };
+const icon = k => ({audio:"🎧", video:"🎬", infographic:"🖼"}[k] || "");
+const kindLabel = k => ({audio:"Podcast", video:"Video", infographic:"Infographic"}[k] || k);
+
+function mediaHTML(key, compact){
+  const m = M[key]; if (!m) return `<div class="media"><span class="meta">${esc(key)} is still being generated.</span></div>`;
+  const id = "m_" + key, w = !!S[id];
+  const player = m.kind === "audio" ? `<audio controls preload="none" src="${esc(m.file)}"></audio>`
+    : m.kind === "video" ? `<video controls preload="none" src="${esc(m.file)}"></video>`
+    : `<a href="${esc(m.file)}" target="_blank"><img loading="lazy" src="${esc(m.file)}" alt="${esc(m.title)}"></a>`;
+  return `<div class="media${w ? " watched" : ""}" data-m="${id}"><div class="top"><div>
+    <span class="chip acc">${icon(m.kind)} ${kindLabel(m.kind)}${m.min ? " · " + Math.round(m.min) + " min" : ""}</span>
+    <b>${esc(m.title)}</b><div class="meta">${esc(m.desc)}</div></div>
+    <button class="btn ${w ? "" : "ghost"} done-btn" data-done="${id}">${w ? "✓ Done" : "Mark done"}</button></div>${compact ? "" : player}</div>`;
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-done]"); if (!b) return;
+  const id = b.dataset.done; S[id] = !S[id]; save();
+  const box = b.closest(".media"); box.classList.toggle("watched", S[id]);
+  b.textContent = S[id] ? "✓ Done" : "Mark done"; b.classList.toggle("ghost", !S[id]); progress();
+});
+function task(id, text){ const on = !!S[id];
+  return `<li><label class="task${on ? " done" : ""}"><input type="checkbox" data-id="${id}"${on ? " checked" : ""}><span class="t">${esc(text)}</span></label></li>`; }
+document.addEventListener("change", e => { const id = e.target.dataset && e.target.dataset.id; if (!id) return;
+  S[id] = e.target.checked; save(); e.target.closest("label").classList.toggle("done", e.target.checked); progress(); });
+
+/* engagement */
+$("#subline").textContent = E.subtitle; $("#banner").textContent = E.banner;
+document.querySelectorAll(".prepLabel").forEach(x => x.textContent = E.prep_label);
+document.querySelectorAll(".sprintLabel").forEach(x => x.textContent = E.sprint_label);
+$("#readyHead").textContent = `Ready by ${E.ready_by}?`;
+if (E.playbook) { $("#pbNav").href = E.playbook; document.querySelectorAll(".pbLink").forEach(x => x.href = E.playbook); }
+else { $("#pbNav").remove(); document.querySelectorAll(".pbOnly").forEach(x => x.remove()); }
+
+/* start */
+$("#hello").textContent = `Hi ${P.name}, your sprint onboarding`;
+$("#promise").innerHTML = `<b>${esc(P.role)}.</b> ${esc(P.promise)}`;
+$("#owns").textContent = P.owns; $("#others").textContent = P.others;
+$("#fast").innerHTML = mediaHTML("V3") + mediaHTML("I3");
+
+/* week */
+$("#weeklist").innerHTML = P.week.map((w, i) => `<div class="card day${w.date === today ? " today" : ""}">
+  <div class="dayhead"><h2 style="margin:0">${esc(w.day)} · ${esc(w.title)}</h2><span class="chip">${w.min} min of media &amp; reading</span></div>
+  ${w.media.map(k => mediaHTML(k)).join("")}
+  <h3 style="margin-top:10px">Do</h3><ul class="clean">${w.doing.map((t, j) => task(`w${i}_${j}`, t)).join("")}</ul></div>`).join("");
+
+/* sprint */
+$("#sprintlist").innerHTML = P.sprint.map(s => `<div class="sprintrow${s.date === today ? " today" : ""}"><b>${esc(s.day)}</b><div>${esc(s.text)}</div></div>`).join("");
+
+/* readiness */
+$("#ready").innerHTML = P.ready.map((r, i) => { const v = S["r" + i] || 0;
+  return `<div style="padding:8px 0;border-bottom:1px dashed var(--line)"><div>${esc(r)}</div><div class="rate">${[1,2,3].map(n => `<button data-r="${i}" data-v="${n}" aria-pressed="${v === n}">${n}</button>`).join("")}</div></div>`; }).join("");
+$("#ready").addEventListener("click", e => { const b = e.target.closest("[data-r]"); if (!b) return;
+  S["r" + b.dataset.r] = +b.dataset.v; save();
+  b.parentElement.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", x === b)); progress(); });
+
+/* quiz */
+/* Quiz state per question in S["q"+i]: choice → {sel:[j...], done:bool, ok:bool}; open → {text, done:bool, ok:bool|null (self-graded)} */
+const Q = P.quizItems || [];
+function qState(i){ return S["q" + i] || {}; }
+function renderQuiz(){
+  if (!Q.length) { $("#quiz").innerHTML = `<p class="muted">The quiz is still being generated in NotebookLM. Rebuild the page when it's ready.</p>`; $("#score").textContent = ""; return; }
+  $("#quiz").innerHTML = Q.map((q, i) => { const st = qState(i);
+    if (q.type === "choice") {
+      const sel = st.sel || [];
+      const opts = q.options.map((o, j) => {
+        const cls = !st.done ? (sel.includes(j) ? " picked" : "") : o.ok ? " right" : sel.includes(j) ? " wrong" : "";
+        return `<button class="opt${cls}" data-j="${j}"${st.done ? " disabled" : ""}>${esc(o.t)}${st.done && (o.ok || sel.includes(j)) && o.why ? `<span class="meta" style="display:block;margin-top:4px">${esc(o.why)}</span>` : ""}</button>`; }).join("");
+      const btn = q.multi && !st.done ? `<button class="btn" data-check="${i}" style="margin-top:8px">Check</button>` : "";
+      return `<div class="q${st.done ? " answered" : ""}" data-q="${i}"><b>${i + 1}. ${esc(q.q)}</b>${q.multi ? ` <span class="chip">pick all that apply</span>` : ""}
+        <div class="opts">${opts}</div>${btn}${st.done ? `<div class="why"><b>${st.ok ? "✓ Right." : "✗ Not quite."}</b></div>` : ""}</div>`;
+    }
+    return `<div class="q${st.done ? " answered" : ""}" data-q="${i}"><b>${i + 1}. ${esc(q.q)}</b> <span class="chip">open question</span>
+      <textarea data-open="${i}" rows="${q.answer.length > 80 ? 4 : 2}" placeholder="Write your answer first, then compare." style="width:100%;margin-top:8px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit"${st.done ? " disabled" : ""}>${esc(st.text || "")}</textarea>
+      ${q.hint && !st.done ? `<div class="meta">Hint: ${esc(q.hint)}</div>` : ""}
+      ${!st.done ? `<button class="btn" data-reveal="${i}" style="margin-top:8px">Compare with the model answer</button>` :
+      `<div class="why" style="display:block"><b>Model answer:</b> ${esc(q.answer)}${q.also && q.also.length ? `<br><span class="meta">Also accepted: ${esc(q.also.join(", "))}</span>` : ""}${q.why ? `<br>${esc(q.why)}` : ""}</div>
+       <div class="rate" style="margin-top:6px"><span class="meta" style="align-self:center">Did you have it?</span><button data-self="${i}" data-v="1" aria-pressed="${st.ok === true}">Yes</button><button data-self="${i}" data-v="0" aria-pressed="${st.ok === false}">Not quite</button></div>`}</div>`;
+  }).join("");
+  const graded = Q.filter((_, i) => qState(i).done && qState(i).ok !== null && qState(i).ok !== undefined);
+  const right = Q.filter((_, i) => qState(i).ok === true);
+  $("#score").textContent = `${right.length} / ${Q.length} right · ${graded.length} answered`;
+}
+function finishChoice(i){ const q = Q[i], st = qState(i), sel = st.sel || [];
+  const ok = q.options.every((o, j) => o.ok === sel.includes(j)); S["q" + i] = {sel, done: true, ok}; save(); renderQuiz(); progress(); }
+$("#quiz").addEventListener("click", e => {
+  const o = e.target.closest(".opt");
+  if (o) { const i = +o.closest(".q").dataset.q, q = Q[i], st = qState(i); if (st.done) return; const j = +o.dataset.j;
+    if (!q.multi) { S["q" + i] = {sel: [j]}; finishChoice(i); return; }
+    const sel = new Set(st.sel || []); sel.has(j) ? sel.delete(j) : sel.add(j); S["q" + i] = {sel: [...sel]}; save(); renderQuiz(); return; }
+  const c = e.target.closest("[data-check]"); if (c) { finishChoice(+c.dataset.check); return; }
+  const r = e.target.closest("[data-reveal]"); if (r) { const i = +r.dataset.reveal;
+    S["q" + i] = {text: document.querySelector(`[data-open="${i}"]`).value, done: true, ok: null}; save(); renderQuiz(); return; }
+  const s = e.target.closest("[data-self]"); if (s) { const i = +s.dataset.self; S["q" + i] = {...qState(i), ok: s.dataset.v === "1"}; save(); renderQuiz(); progress(); }
+});
+$("#quiz").addEventListener("input", e => { const t = e.target.closest("[data-open]"); if (!t) return;
+  const i = +t.dataset.open; S["q" + i] = {...qState(i), text: t.value}; save(); });
+$("#resetQuiz").addEventListener("click", () => { Q.forEach((_, i) => delete S["q" + i]); save(); renderQuiz(); progress(); });
+renderQuiz();
+
+/* flashcards */
+const C = DATA.cards || []; let ci = 0, flipped = false;
+const deck = () => C.map((c, i) => i).sort((a, b) => (!!S["k" + a]) - (!!S["k" + b]));
+let order = deck();
+function renderCard(){
+  if (!C.length) { $("#flash").innerHTML = `<span class="muted">The flashcards are still being generated.</span>`; return; }
+  const c = C[order[ci]];
+  $("#flash").innerHTML = `<div class="side">${flipped ? "Meaning" : "Term"}${S["k" + order[ci]] ? " · ✓ known" : ""}</div><div>${esc(flipped ? c.b : c.f)}</div>`;
+  $("#fCount").textContent = `${ci + 1} / ${C.length} · ${C.filter((_, i) => S["k" + i]).length} known`;
+}
+$("#flash").addEventListener("click", () => { flipped = !flipped; renderCard(); });
+$("#flash").addEventListener("keydown", e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); flipped = !flipped; renderCard(); } });
+$("#fNext").addEventListener("click", () => { ci = (ci + 1) % Math.max(C.length, 1); flipped = false; renderCard(); });
+$("#fPrev").addEventListener("click", () => { ci = (ci - 1 + C.length) % Math.max(C.length, 1); flipped = false; renderCard(); });
+$("#fKnew").addEventListener("click", () => { if (!C.length) return; S["k" + order[ci]] = true; save(); ci = (ci + 1) % C.length; flipped = false; renderCard(); progress(); });
+renderCard();
+
+/* ask & read */
+$("#nbLink").href = DATA.notebook;
+$("#prompts").innerHTML = P.ask.map(a => `<div class="prompt"><span>${esc(a)}</span><button class="btn ghost" data-copy="${esc(a)}">Copy</button></div>`).join("");
+document.addEventListener("click", async e => { const b = e.target.closest("[data-copy]"); if (!b) return;
+  try { await navigator.clipboard.writeText(b.dataset.copy); toast("Copied"); } catch (err) { toast("Copy failed: select the text"); } });
+$("#reading").innerHTML = P.reading.map(([t, u, w]) => `<div class="prompt"><span><a href="${esc(u)}" target="_blank">${esc(t)}</a><br><span class="meta">${esc(w)}</span></span></div>`).join("");
+
+/* library */
+const mine = new Set(P.week.flatMap(w => w.media));
+let lf = "Mine";
+const LF = ["Mine", "All", "Podcasts", "Videos", "Infographics"];
+$("#libFilters").innerHTML = LF.map(f => `<button class="pill" data-f="${f}" aria-pressed="${f === lf}">${f}</button>`).join("");
+function renderLib(){
+  const keys = DATA.order.filter(k => M[k]).filter(k => lf === "All" || (lf === "Mine" && mine.has(k)) ||
+    (lf === "Podcasts" && M[k].kind === "audio") || (lf === "Videos" && M[k].kind === "video") || (lf === "Infographics" && M[k].kind === "infographic"));
+  $("#liblist").innerHTML = keys.map(k => mediaHTML(k)).join("") || `<p class="muted">Nothing here yet.</p>`;
+}
+$("#libFilters").addEventListener("click", e => { const b = e.target.closest("[data-f]"); if (!b) return; lf = b.dataset.f;
+  document.querySelectorAll("#libFilters .pill").forEach(x => x.setAttribute("aria-pressed", x.dataset.f === lf)); renderLib(); });
+renderLib();
+
+/* progress */
+function progress(){
+  const media = [...mine].filter(k => M[k]), tasks = P.week.flatMap((w, i) => w.doing.map((_, j) => `w${i}_${j}`));
+  const parts = [media.filter(k => S["m_" + k]).length, tasks.filter(t => S[t]).length, P.ready.filter((_, i) => S["r" + i] === 3).length];
+  const tot = media.length + tasks.length + P.ready.length, got = parts.reduce((a, b) => a + b, 0);
+  $("#progLabel").textContent = `${got} of ${tot} · media ${parts[0]}/${media.length} · tasks ${parts[1]}/${tasks.length} · ready ${parts[2]}/${P.ready.length}`;
+  $("#progBar").style.width = (tot ? got / tot * 100 : 0) + "%";
+}
+progress();
+
+/* tabs + theme */
+function showTab(t){ document.querySelectorAll("nav [role=tab]").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
+  document.querySelectorAll("section").forEach(s => s.classList.toggle("on", s.id === t)); S._tab = t; save(); }
+document.querySelector("nav").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) showTab(b.dataset.tab); });
+if (S._tab) showTab(S._tab);
+if (S._theme) document.documentElement.dataset.theme = S._theme;
+$("#themeBtn").addEventListener("click", () => { const r = document.documentElement;
+  const dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  r.dataset.theme = dark ? "light" : "dark"; S._theme = r.dataset.theme; save(); });
+document.addEventListener("play", e => { document.querySelectorAll("audio,video").forEach(m => { if (m !== e.target) m.pause(); }); }, true);
+</script>
+</body>
+</html>

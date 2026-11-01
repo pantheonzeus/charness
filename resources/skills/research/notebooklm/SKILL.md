@@ -4,7 +4,7 @@ aliases: [notebooklm]
 name: "NotebookLM — Expert Knowledge to Action"
 category: research
 description: Turn any expert's podcast/YouTube content into a personalized, cited protocol with experiments — bulk-load 300 episodes into NotebookLM from the terminal, run an expert-informed interview, and create tracked experiments in your Obsidian daily note.
-triggers: [notebooklm, notebook lm, podcast of the research, video overview, research podcast, load channel, expert interview, notebooklm ask, health protocol, youtube channel, bulk load videos, import youtube, add source, add to notebook, import to notebooklm]
+triggers: [notebooklm, notebook lm, podcast of the research, video overview, research podcast, load channel, expert interview, notebooklm ask, health protocol, youtube channel, bulk load videos, import youtube, add source, add to notebook, import to notebooklm, studio artifacts, infographic, quiz, flashcards, download artifacts]
 tags: [research, notebooklm, citations, obsidian, youtube, podcasts, experiments, automation]
 related: ["[[source-distillation-topic-note]]", "[[notebooklm-daily-audio]]", "[[linkedin-authentic-storytelling]]"]
 requires:
@@ -15,9 +15,9 @@ environment: "Terminal + Google auth (nlm + notebooklm-py cookies); Obsidian wit
 scripts: [scripts/load_channel.py, scripts/resolve_citations.py, scripts/import_sources.py, scripts/extract_passages.py, scripts/backfill_fulltext.py, scripts/link_audit.sh, scripts/task_media.py]
 workflows: [workflows/add-source.md, workflows/youtube-channel.md, workflows/ask.md, workflows/import.md, workflows/auth.md]
 status: active
-version: 7
+version: 8
 created: 2026-07-05
-updated: 2026-10-31
+updated: 2026-11-01
 # Original upstream frontmatter was {name, description}; preserved as id/name/description above. License: MIT (see body).
 vault_writes: ["cbrain/notes/NotebookLM/*", "cbrain/notes/Dashboards/*", "cbrain/notes/Experiments/*", "cbrain/notes/[0-9]*", "cbrain/projects/*", "cbrain/Clients/*"]
 ---
@@ -186,6 +186,15 @@ Text Jarvis from the phone (or say it): "research X, make a podcast and a video"
 - **Account (principal's call, 2026-10-31):** `work` goes to the nlm profile signed in under the active employer's domains; `personal` (default) to a profile under no employer's domain. No fallback between them. Set up the personal one once: `nlm login --profile personal`.
 - **Delivery:** players in the task's report panel in the console (phone: over `tailscale serve`). The iMessage says only what is ready; the title only for a personal task, and only if the outbound gate passes it.
 - **Dry run:** `python3 resources/skills/research/notebooklm/scripts/task_media.py <task id> --dry-run` prints account, profile, URLs and what is held back.
+
+## Studio Artifacts — Gotchas
+
+- **`nlm download <kind>` takes no `--profile` flag.** With it, every download fails ("No such option"). It uses the default profile; `studio status` and `studio rename` do accept `--profile`.
+- **Quiz JSON mixes four question types:** `multiple_choice`, `multiple_select` (several `isCorrect`), `fill_in_the_blank` (`bestAnswer`, `acceptableAnswers`) and `short_answer` (`grading.modelAnswer`). Parse all four (`--format json`).
+- **Flashcard sides** are `{flashcardContentBlock: [{type: "text", content}]}`, not strings.
+- **Infographics** still contain typos after a "spell-check twice" instruction, and may draw a company's logo unless told "no logos or brand marks". Icons-only layouts have fewer text errors.
+- **`--focus` is the steering prompt** for audio, video, infographic, quiz and flashcards. `--source-ids` scopes each artifact; fewer sources means less drift.
+- For role-tailored team onboarding built on this, see [[team-onboarding-kit]].
 
 ## Citation Resolution
 

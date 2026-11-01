@@ -4,19 +4,19 @@ aliases: [multi-agent-platform]
 name: "Multi-Agent Platform & Orchestration — Lanes, Research Firewall, Three Clocks & Control Plane"
 category: technology
 description: Architect a multi-agent system or an enterprise agent estate. Decide single vs multi-agent on price and task shape (agents ~4x, multi-agent ~15x chat tokens; parallelize reads, serialize writes). Classify each agent into a lane (gated process / bounded loop / research) and put a research firewall in code so outside-sourced claims can never fire a decision. Pick the topology and delegation packet against the known multi-agent failure modes. Separate the three clocks of orchestration (model gateway / agent runtime / process engine, with a two-of-four trigger rule for Temporal/Camunda). Specify the shared control plane (registry, policy repo, ledger, audit chain, evals/shadow, gateway, agent identity, ingest screening) on MCP/A2A/OTel seams, and a placement procedure plus conformance levels so the estate stays governable at agent twenty.
-triggers: [multi-agent, multi agent system, multi-agent platform, agent platform, agent orchestration, orchestrate agents, orchestration layer, agent estate, agent landscape, many agents, 20 agents, orchestrator worker, supervisor agent, agent handoff, agent swarm, subagents, agent to agent, A2A, MCP gateway, agent gateway, agent registry, agent control plane, agent governance platform, agent identity, agent observability, OpenTelemetry agents, Temporal or Camunda, workflow engine for agents, research agent, deep research agent, agent monorepo, agent reference architecture, which orchestration framework, AI Act agents]
+triggers: [multi-agent, multi agent system, multi-agent platform, agent platform, agent orchestration, orchestrate agents, orchestration layer, agent estate, agent landscape, many agents, 20 agents, orchestrator worker, supervisor agent, agent handoff, agent swarm, subagents, agent to agent, A2A, MCP gateway, agent gateway, agent registry, agent control plane, agent governance platform, agent identity, agent observability, OpenTelemetry agents, Temporal or Camunda, workflow engine for agents, research agent, deep research agent, agent monorepo, agent reference architecture, which orchestration framework, AI Act agents, harness as a service, scale my harness, team harness, company harness, explain orchestration to the client, plug-in standard, policy as harness, trust levels]
 tags: [technology, architecture, ai-agents, multi-agent, orchestration, platform, governance]
 related: ["[[agent-architecture]]", "[[agentic-service-blueprint]]", "[[agentic-service-evaluation]]", "[[agent-ready-service]]", "[[ai-opportunity-portfolio]]", "[[ecosystem-platform-design]]", "[[cloud-architecture]]", "[[operating-model-design]]", "[[decision-memo]]"]
 modules: [file-backed-state, evidence-backed-answering, verifier-separation]
 status: active
-version: 1
+version: 2
 created: 2026-10-10
-updated: 2026-10-10
+updated: 2026-11-01
 requires:
   tools: [web_search, web_fetch]
   optional: [python3 (scripts/research_firewall.py reference implementation + selftest)]
 environment: "Runs anywhere. references/landscape-2026-10.md is a dated snapshot (protocols, frameworks, EU AI Act Omnibus dates, industrial vendors); several items are secondary-source only and marked so — re-verify before client use."
-references: [references/landscape-2026-10.md, references/decision-questions.md, ../agent-architecture/references/harness-patterns.md]
+references: [references/landscape-2026-10.md, references/decision-questions.md, references/harness-scaling.md, references/enterprise-orchestration-primer.md, ../agent-architecture/references/harness-patterns.md]
 ---
 
 # Multi-Agent Platform & Orchestration — Lanes, Research Firewall, Three Clocks & Control Plane
@@ -131,6 +131,7 @@ Substantive runs keep a STATE_ROOT at `output/.runs/<YYYYMMDD>-<slug>-agent-plat
 - Framework facts in the deliverable older than a month and not re-verified.
 
 ## Optimizations/Gotchas
+- **Two client-ready references.** [harness-scaling.md](references/harness-scaling.md) answers "it works for me, what does a team or company need?": the single-user couplings, the team layer (plugin + seats + permissioned shared knowledge), the company control plane, works-council co-determination, and "harness as a service" as hosted runtime vs product. [enterprise-orchestration-primer.md](references/enterprise-orchestration-primer.md) is the concept set a client team needs before deciding: the orchestrator's steps and five rules, the scaling evidence, the 13-item Plug-in Standard and task packet, trust levels L0–L2, the governance pyramid made executable, and the control plane by agent count. Fill in client specifics in the deliverable, never in the reference.
 - **Answer a framework debate by asking, not arguing.** Concede what the other side got right, isolate the question they didn't answer (where does state persist when the pod dies? where is the human gate? who pays for which model call? what identity does the agent run as? how would you notice a regression? what happens to outside free text before the prompt?), and hand over the checklist. Full set in [decision-questions.md](references/decision-questions.md).
 - **The long pole is rarely technical.** Real policy weights from domain owners take weeks of the right people's time; the platform pieces take days. Put it on the plan.
 - **These services get much more expensive once production agents predate them.** That is the honest pitch for building the control plane early.
