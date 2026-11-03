@@ -4,16 +4,16 @@ aliases: [skill-library-maintenance]
 name: "Skill Library Maintenance"
 category: vault-hygiene
 description: Import external skills into resources/skills/ and keep the library consistent — copy-verbatim vs reproduce-and-clean, frontmatter mapping, INDEX/counts/category sync, when to extend the schema additively, and proposing new skills from heavy sessions no skill covered.
-triggers: [import skill, add this skill, import a skill from, add to our schema, extend the schema, new skill folder, maintain the skill library, keep INDEX in sync, propose skills, skill candidates, which sessions should become skills]
+triggers: [import skill, add this skill, import a skill from, add to our schema, extend the schema, new skill folder, maintain the skill library, keep INDEX in sync, propose skills, skill candidates, which sessions should become skills, agent skills spec, export a skill, spec-compliant skill]
 tags: [vault-hygiene, skills, meta, import, schema, maintenance]
 related: []
-scripts: [scripts/lint_frontmatter.py, scripts/routing_eval.py, scripts/lean_index.py, scripts/skill_candidates.py, ../../../../scripts/skill_router.py]
+scripts: [scripts/lint_frontmatter.py, scripts/routing_eval.py, scripts/lean_index.py, scripts/skill_candidates.py, scripts/spec_export.py, ../../../../scripts/skill_router.py]
 workflows: [workflows/propose-from-sessions.md]
 modules: [autoresearch-loop]
 status: active
-version: 6
+version: 7
 created: 2026-07-05
-updated: 2026-10-27
+updated: 2026-11-02
 ---
 
 # Skill Library Maintenance
@@ -24,6 +24,7 @@ The meta-skill for `resources/skills/`. Governs importing external skills, keepi
 - "import skill from `<folder>`", "add this skill", "add to our schema / extend our schema".
 - Any add / rename / remove / recategorize of a skill (the INDEX and counts must stay in sync).
 - Deciding whether a new skill's needs justify an additive schema change.
+- Exporting or packaging a skill for a native loader (claude.ai upload, a Claude Code plugin, an org marketplace): run `scripts/spec_export.py export`. It never touches the source.
 - "Propose skills" / "which sessions should become skills": run `workflows/propose-from-sessions.md`. It drafts proposals from heavy sessions no skill covered, and builds only the ones the principal approves.
 
 **Core Blueprint**
@@ -40,6 +41,10 @@ The meta-skill for `resources/skills/`. Governs importing external skills, keepi
 **Standing evals (run after any skill add/rename/trigger change)**
 - **Frontmatter lint (fix-loop to 0):** `python3 resources/skills/vault-hygiene/skill-library-maintenance/scripts/lint_frontmatter.py` checks YAML parse, required keys, id/category vs folder, `modules:` against MODULES.md, and `related:` resolution. Exit 0 iff `errors=0`. A non-zero result blocks the change.
 - **Routing eval (autoresearch loop on INDEX triggers):** `python3 resources/skills/vault-hygiene/skill-library-maintenance/scripts/routing_eval.py --log <STATE_ROOT>/routing-results.tsv`.
+- **Spec exportability (lint rule):** `python3 resources/skills/vault-hygiene/skill-library-maintenance/scripts/spec_export.py check` converts every skill to Agent Skills spec frontmatter in memory and runs the checks of Anthropic's `quick_validate.py` and the `skills-ref` validator on the rendered file. It checks: only the six spec keys at the top level; `name` a slug equal to the folder; description 1–1,024 characters with no `<`/`>`; `compatibility` ≤500. Triggers that don't fit in the description are a warning, not an error. Baseline 2026-11-02: errors=1 (`linkedin-viral-scheduler`'s description, 1,933 chars), warnings=7. New or edited skills must not add errors.
+  - Mapping: `id`→`name`; triggers folded into the description ("Use when: …") while it fits; `environment`→`compatibility` when ≤500 chars; `allowed-tools` stays top level; the display `name` becomes `metadata.title`; every other key moves under `metadata` with its name and YAML type unchanged. Common angle forms are rewritten (`>=`→`≥`, `<path>`→`{path}`).
+  - `export SLUG… --out DIR` writes a complete skill folder per slug: the converted SKILL.md, the body and all bundled files byte-identical.
+  - **In-place migration is not decided.** Pilot run on 5 skills (`output/.runs/20261102-skill-spec-export/`): export only, sources unchanged, awaiting the principal's decision.
 - **Preselector eval (in-session routing hint):** `python3 scripts/skill_router.py eval` prints recall@5 per split. Baseline 2026-10-23: train 17/25, held-out 11/17. Trigger edits (German and email vocabulary are the main misses) are judged on **both** evals: `routing_eval.py` measures an explicit dispatcher reading the whole INDEX, which arXiv:2610.18522 shows stays robust at scale; the preselector measures what an in-session prompt actually gets shown.
   - One headless dispatcher call reads only INDEX.md and routes 42 real past prompts. The golden set lives at `resources/skills/_evals/routing.tsv` (gitignored: real prompts carry client names), split 28 train / 14 held-out.
   - **Loop card** (per `_shared/autoresearch-loop.md`): mutate one trigger or description cell per candidate and keep the SKILL.md `triggers:` in sync. Guards: held-out mean must not drop, and INDEX may grow at most +5%.
@@ -61,4 +66,5 @@ The meta-skill for `resources/skills/`. Governs importing external skills, keepi
 - **Format-compatibility at *use* time (not import)** — a copied script may expect a different JSON shape than the CLI emits (e.g. NotebookLM's flat array vs the `{notebook_id, sources[]}` the import script wants); wrap/map before calling. This is a usage note, not an import fix — never edit the script.
 - **Schema extensions accumulated so far** (all additive): subfolders `references/` (deep prose), `assets/` (binaries/examples/fonts), `scripts/` (executable code), `workflows/` (routed sub-procedures), `schema/` (validation vocab, e.g. `tags.yaml`); frontmatter `version` may be semver (`"7.7"`), plus `requires` / `environment` / `assets` / `scripts` / `workflows` / `schema` manifests.
 - **Scale (documented in README, not pre-built)** — when a category exceeds ~200 skills, split into sub-indexes; then shard into prefix/hash buckets; optionally generate `index.json`. Same structure, no migration.
+- **Spec export, known losses (pilot 2026-11-02):** YAML comments in the frontmatter are dropped. `metadata` values keep their lists and maps, although the spec text says string→string. Both reference validators accept that today; a stricter loader may not (a bet). Source quirks pass through unchanged, e.g. `recall`'s `argument-hint: [a|b]` is a YAML list, not a string.
 - **Reproduce-and-clean is lossy** — prefer copy-verbatim whenever the files exist on disk. Only distil/condense when reproducing pasted text, and preserve every hard rule, gate, and example.

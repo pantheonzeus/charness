@@ -967,3 +967,13 @@ One entry per edit made under the [[change-manifest]] module. Newest first. Verd
   - The daily-intel Sonnet 5.5 medians mix the old 3-section scope with one run on the new 10-section scope.
   - Transcripts log most tool calls twice, so forensics' own step-code occurrence counts and `pair` timelines are inflated. That is flagged, not fixed here.
 - **Verdict:** pending. Read the run-forensics report on 2026-11-08: daily-intel holds its floors on the new scope, and the meeting-prep document floor gets the principal's call (mechanism, or the skill drops "read the file").
+
+## 2026-11-02 — Skill Library Maintenance v7: Agent Skills spec export + exportability lint
+- **Trigger:** a benchmark of an outside org's skill marketplace (`output/20261102-futurice-skill-library-benchmark.md`) found this library invisible to native skill loaders. The display title sits in `name:` (spec: slug == folder), trigger phrases live in a key no loader reads, and 13 custom top-level keys are rejected as errors by Anthropic's `quick_validate.py` and by `skills-ref`. The principal approved a lint rule + conversion script, reviewed on 5 skills first.
+- **Touched:** `vault-hygiene/skill-library-maintenance`: new `scripts/spec_export.py` (`check`, `export`); `SKILL.md` v7 (trigger bullet, a standing eval, a gotcha, 3 triggers); the INDEX row.
+- **Expected to fix (falsifiable):** any skill can be exported as a folder that passes both reference validators without hand edits, except those `check` lists as errors (1 today). The 5-skill pilot did: 4 pass every check, bodies and bundled files byte-identical; `linkedin-viral-scheduler` needs a hand-written description (proposal in the run folder).
+- **Refuted if:** an exported folder is rejected by a real loader (claude.ai upload, `claude plugin validate`, an org marketplace CI) for a reason `check` didn't report. The `metadata` lists/maps (spec text: string→string) are the most likely cause.
+- **Fires on stable:** read-only on sources; nothing in the routing path changed. Router eval after the trigger edit: held-out recall@5 23/30 (22 before, noise ±2), quiet-on-none 12/16 unchanged; `lint_frontmatter.py` errors=0.
+- **Matched baseline:** n/a (no model in the loop; deterministic converter).
+- **Not decided:** in-place migration of the 149 sources versus export-only. Code impact of in-place is one script (`lint_frontmatter.py`); policy text in Charter §6, README, `_template` and the agent files names `vault_writes:` and would need the new path.
+- **Verdict:** pending. Check on the first real upload of an exported skill.
