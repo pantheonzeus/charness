@@ -105,6 +105,8 @@ def main():
         p["week"] = [dict(w, date=cfg.DATES.get(w["day"], "")) for w in p["week"]]
         p["sprint"] = [dict(day=d, date=cfg.DATES.get(d, ""), text=t) for d, t in p["sprint"].items()]
         p["quizItems"] = quizzes.get(p.get("quiz"), [])
+        if p.get("quiz_pick"):  # indices into the quiz: keep it short and in the person's language
+            p["quizItems"] = [p["quizItems"][i] for i in p["quiz_pick"] if i < len(p["quizItems"])]
         data = dict(slug=slug, person=p, engagement=eng, media=media, order=cfg.ORDER, cards=cards, notebook=cfg.NOTEBOOK_URL)
         html = tpl.replace("__DATA__", json.dumps(data, ensure_ascii=False)).replace("__NAME__", p["name"])
         (kit / f"onboarding-{slug}.html").write_text(html)

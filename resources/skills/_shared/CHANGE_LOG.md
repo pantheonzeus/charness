@@ -968,6 +968,28 @@ One entry per edit made under the [[change-manifest]] module. Newest first. Verd
   - Transcripts log most tool calls twice, so forensics' own step-code occurrence counts and `pair` timelines are inflated. That is flagged, not fixed here.
 - **Verdict:** pending. Read the run-forensics report on 2026-11-08: daily-intel holds its floors on the new scope, and the meeting-prep document floor gets the principal's call (mechanism, or the skill drops "read the file").
 
+## 2026-11-02 — Team onboarding kit v2: a capped core path, a plain-language glossary, Go deeper for the rest
+- **Trigger:** the first real use: a v1 kit for a 3-person sprint team, shared 2026-11-01. Both non-lead recipients gave feedback (the run's `FEEDBACK.md`):
+  - one: "a lot of material: cut it to what is really needed to exceed expectations";
+  - the other, new to the topic: "a lot of statements I still don't quite understand" and, per the principal, "hard to prioritise".
+
+  v1 gave non-leads about 2.5 h of media, 10 quiz questions, 22 flashcards, 6 readiness statements, 6 notebook questions and a reading list.
+- **Touched:** `workflow-ops/team-onboarding-kit`:
+  - `SKILL.md` v2: the contract's done criteria, Blueprint steps 1 and 7–9, two gotchas.
+  - `scripts/template.html`: a Go deeper tab replaces "Ask & read" and "Library", with the full library collapsed inside it; "Words you'll hear" on Start here; the core-path minutes, computed from real durations; the first task each day marked "if you do one thing today"; flashcards come from the person's glossary.
+  - `scripts/build_kit.py`: `quiz_pick`.
+  - `scripts/kit.example.py`: `glossary`, `deeper`, `quiz_pick`.
+  - The INDEX row.
+- **Expected to fix (falsifiable):** on the next kit, non-lead recipients report neither overload nor more than 3 unclear statements each. Their "what you skipped" answers name only Go deeper items, not core-path ones.
+- **Refuted if:** a recipient again reports too much material or many unclear terms, or skips core-path items. In that case the caps or the glossary rule are wrong, not just this run's content.
+- **Fires on stable:** the lead's page is unchanged in substance: full path, no glossary, all the media. Its library moved into Go deeper. One extra fresh-context agent pass per kit (~55k tokens on this run).
+- **Measured on this run (direct observation):**
+  - Core media came to 30 min and 28 min for the two non-lead pages (from ~150 min). Quizzes went to 5 questions, readiness to 3 statements, the glossary has 11–12 terms.
+  - The Playwright test passes on all 3 pages.
+  - The plain-language read found 15 + 13 items. The real ones were fixed and the page-text-only false positives ignored.
+- **Risk flagged:** the glossary is hand-written from the sources, so a wrong definition would teach a wrong concept. Every line here was taken from the run's own concept and plan documents. The recipients' answers to the feedback questions are the check.
+- **Verdict:** pending. Check on the recipients' replies to "3 unclear statements + what you skipped" (asked at hand-over of v2), and again on the next kit.
+
 ## 2026-11-02 — Skill Library Maintenance v7: Agent Skills spec export + exportability lint
 - **Trigger:** a benchmark of an outside org's skill marketplace (`output/20261102-futurice-skill-library-benchmark.md`) found this library invisible to native skill loaders. The display title sits in `name:` (spec: slug == folder), trigger phrases live in a key no loader reads, and 13 custom top-level keys are rejected as errors by Anthropic's `quick_validate.py` and by `skills-ref`. The principal approved a lint rule + conversion script, reviewed on 5 skills first.
 - **Touched:** `vault-hygiene/skill-library-maintenance`: new `scripts/spec_export.py` (`check`, `export`); `SKILL.md` v7 (trigger bullet, a standing eval, a gotcha, 3 triggers); the INDEX row.

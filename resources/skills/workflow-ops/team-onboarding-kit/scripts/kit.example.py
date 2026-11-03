@@ -60,15 +60,22 @@ PEOPLE = {
         name="Sam", full="Sam Example", role="Senior service designer",
         owns="The service blueprint, the interviews and the prototype test.",
         others="Alex owns the technical concept and the decision log.",
-        promise="Designing a service with the new technology in it, step by step. About 40 minutes a day.",
-        quiz="QS",
+        promise="Designing a service with the new technology in it. Only what you need for your own sprint days; the rest is under Go deeper and optional.",
+        quiz="QS", quiz_pick=[0, 3, 4, 6, 8],     # the 5 plainest questions, by index; omit to show the whole quiz
+        # Non-lead pages: at most 12 terms outside the person's craft, one plain sentence each from the sources.
+        # Shown on Start here and used as this person's flashcards instead of the team deck.
+        glossary=[("Orchestrator", "The one agent the team talks to. It asks the specialists and hands every real decision to a named person."),
+                  ("Wizard-of-Oz test", "A prototype test where a person secretly plays the system. Nothing is built.")],
+        # Core path: about 30–45 min of podcasts and video for the week, at most 3 media a day; tasks in priority order.
         week=[
-            dict(day="Mon 2", title="The whole picture", min=25, media=["V1", "A1", "I1"],
-                 doing=["Draft the straw-man success criteria"]),
+            dict(day="Mon 2", title="The whole picture", min=10, media=["V1", "I1"],
+                 doing=["Draft first-version success criteria for the client to react to",
+                        "Read 'Words you'll hear' once"]),
         ],
+        deeper=["A1", "A2"],                     # everything else useful: optional Go deeper tab
         sprint={"Mon 9": "Set up the work-in-progress board; capture the working agreement.",
                 "Fri 20": "Present the blueprint and what the test broke and fixed."},
-        ready=["I can draw the future-state blueprint with its oversight lane"],
+        ready=["I can draw the future-state blueprint with its oversight lane"],   # 3 statements at most
         ask=["Write a test script for the prototype session: roles, request, what to log."],
         reading=[]),
 }
