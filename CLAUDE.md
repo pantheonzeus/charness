@@ -39,6 +39,7 @@ The Charter is the runtime that selects and executes the skills (the NLAHs); the
 ├── input/              # Input artifacts (e.g. LinkedIn analytics exports) — git-ignored
 ├── autoresearch/       # Third-party autoresearch scratch area — git-ignored
 ├── resources/
+│   ├── models/         # Per-model-family prompt addenda (Anthropic's tested fixes), appended to headless jobs by run_agent.sh; README.md has the rule
 │   ├── adapters/       # Provider capability contracts (mail, calendar, files, chat): operations, normalized shapes, implementations (google/eventkit/slack; m365/teams stubs)
 │   ├── mcp/            # MCP connection docs (Google Workspace / Gmail + Calendar) — the google implementation's setup
 │   └── skills/         # NLAH library — one policy doc per task; scan INDEX.md first

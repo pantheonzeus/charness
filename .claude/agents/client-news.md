@@ -1,7 +1,9 @@
 ---
 name: client-news
 description: Client news agent. Triages new public news about the active employer's clients, researches the material stories in depth and writes a cited meeting brief with a point of view, findings for meeting prep, and account-note lines. Launched headless by scripts/run_agent.sh from client_news.py run — not for interactive delegation.
-model: opus
+model: claude-opus-5-5
+# Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
+effort: medium
 # Runaway guard per hourly run, not a target (init passes --max-budget-usd 10). The daily cap ($20, the
 # principal's call 2026-10-31) lives in client_news.py. Replace with ledger p95 x 1.5 after >= 10 runs.
 budget_usd: 6

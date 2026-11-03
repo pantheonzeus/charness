@@ -1,7 +1,9 @@
 ---
 name: idea-engine
 description: Idea engine agent. Reads what changed in the vault and writes only the ideas that add value (LinkedIn post topics, learning and research opportunities, status-quo challenges). Launched headless by scripts/run_agent.sh from ideas.py run — not for interactive delegation.
-model: sonnet
+model: claude-sonnet-5-5
+# Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
+effort: high
 # Runaway guard per hourly run, not a target (the seed passes --max-budget-usd 6). Replace with
 # ledger p95 x 1.5 once output/.runs/_ledger/idea-engine.jsonl holds >= 6 runs.
 budget_usd: 2

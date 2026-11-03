@@ -25,6 +25,7 @@ import sys
 import tempfile
 import threading
 import time
+import traceback
 from pathlib import Path
 
 import numpy as np
@@ -64,6 +65,7 @@ LEDGER = REPO / "output" / ".runs" / "_ledger"
 FORENSICS_RUNS = REPO / "output" / ".runs" / "_forensics" / "runs.jsonl"
 FORENSICS_ISSUES = REPO / "output" / "run-forensics" / "issues.json"
 FORENSICS_AUTH = REPO / "output" / ".runs" / "_forensics" / "auth-alarm.json"
+FORENSICS_MODELS = REPO / "output" / ".runs" / "_forensics" / "model-alarm.json"
 LAUNCH_AGENTS = Path.home() / "Library" / "LaunchAgents"
 SELF_EMAIL = employer.get("employer.work_email") or subprocess.run(
     ["git", "config", "--get", "charness.selfEmail"], cwd=REPO, capture_output=True, text=True).stdout.strip()
@@ -121,6 +123,7 @@ for _h in filter(None, os.environ.get("CBRAIN_REMOTE_HOSTS", "").split(",")):
 # Strip API credentials so the CLI falls back to the claude.ai subscription login.
 CLI_ENV = {k: v for k, v in os.environ.items() if k not in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")}
 CONVERSATION_LOG = STATE / "conversation.log"
+STALL_LOG = STATE / "loop-stalls.log"
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 app.include_router(tasks.router)
@@ -129,9 +132,24 @@ app.include_router(library.router)
 app.include_router(jarvis.router)
 
 
+def _loop_watchdog(loop, thread, limit=1.0):
+    """Log every stall of the event loop with what held it: a stall freezes speech, the page and
+    every conversation, and one past 5 s broke Conversation.close()."""
+    while True:
+        beat, t0 = threading.Event(), time.time()
+        loop.call_soon_threadsafe(beat.set)
+        if not beat.wait(limit):
+            stack = "".join(traceback.format_stack(sys._current_frames()[thread])[-8:])
+            beat.wait()
+            with STALL_LOG.open("a") as f:
+                f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} event loop stalled {time.time() - t0:.1f} s; at {limit:.0f} s it was in:\n{stack}\n")
+        time.sleep(1)
+
+
 @app.on_event("startup")
 async def _start_task_watcher():
     MAC["loop"] = asyncio.get_running_loop()
+    threading.Thread(target=_loop_watchdog, args=(MAC["loop"], threading.get_ident()), daemon=True).start()
     asyncio.create_task(tasks.watch(CLI_ENV))
     presence.listeners.append(on_presence)
     presence.hotkey_listeners.append(lambda down, cancel: HOTKEYS.put((down, cancel)))
@@ -1098,11 +1116,16 @@ class Conversation:
         for t in self.tasks:
             t.cancel()
         if self.proc and self.proc.returncode is None:
-            self.proc.terminate()
             try:
+                self.proc.terminate()
                 await asyncio.wait_for(self.proc.wait(), 5)
             except asyncio.TimeoutError:
-                self.proc.kill()
+                try:
+                    self.proc.kill()
+                except ProcessLookupError:    # exited between the timeout and the kill
+                    pass
+            except ProcessLookupError:        # already gone before the terminate
+                pass
 
 
 @app.websocket("/ws/conversation")
@@ -1276,7 +1299,11 @@ def loops():
         auth = json.loads(FORENSICS_AUTH.read_text())
     except (OSError, ValueError):
         auth = None
-    return {"launchd": jobs, "agents": agents, "issues": issues, "auth": auth}
+    try:   # written by forensics.py models: a job's model has no passing regression suite yet
+        models = json.loads(FORENSICS_MODELS.read_text())
+    except (OSError, ValueError):
+        models = None
+    return {"launchd": jobs, "agents": agents, "issues": issues, "auth": auth, "models": models}
 
 
 # ---------- daily intel briefing ----------

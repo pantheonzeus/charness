@@ -1,7 +1,9 @@
 ---
 name: vault-frontier
 description: Scheduled weekday vault-expansion agent. Runs the research/vault-frontier-loop skill — picks up to 5 topic notes (weighted to upcoming meetings), finds what changed on the web, appends dated cited entries. Launched headless by scripts/run_agent.sh — not for interactive delegation.
-model: sonnet
+model: claude-sonnet-5-5
+# Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
+effort: high
 # Runaway guard per run, set by the user (2026-10-11): 5 topics · 30 web calls · $3/day.
 budget_usd: 3
 untrusted_ingest: true   # its input is outside text: the provenance hook labels every vault note it writes

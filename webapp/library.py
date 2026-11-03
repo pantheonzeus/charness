@@ -16,6 +16,7 @@ import tempfile
 import threading
 from pathlib import Path
 
+from llmjson import last_json
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse
 
@@ -164,7 +165,7 @@ def ask(q: str):
                            input=ASK_PROMPT.format(q=q, cat=cat), capture_output=True, text=True,
                            timeout=120, cwd=tempfile.gettempdir(), env=CLI_ENV)
         out = json.loads(r.stdout)["result"]
-        hits = json.loads(re.search(r"\{.*\}", out, re.S).group(0))["hits"]
+        hits = last_json(out)["hits"]
     except (subprocess.TimeoutExpired, ValueError, KeyError, AttributeError, TypeError) as e:
         raise HTTPException(502, f"ask failed: {type(e).__name__}")
     return {"hits": [{"id": h["id"], "why": str(h.get("why", ""))[:200]} for h in hits if h.get("id") in st["by_id"]][:8]}

@@ -20,13 +20,14 @@ opened tab before a click. Nothing here sends anything: a mail reply still needs
 exception is push.py: away from the Mac, a knock also goes to your own phone as count and kind only.
 """
 import json
-import re
 import subprocess
 import tempfile
 import threading
 import time
 from datetime import datetime
 from pathlib import Path
+
+from llmjson import last_json
 
 from fastapi import APIRouter, HTTPException, Request
 
@@ -217,7 +218,7 @@ def classify(items):
                             "--setting-sources", "user", "--strict-mcp-config", "--no-session-persistence"],
                            input=PROMPT.format(examples=ex, items=rows), capture_output=True, text=True,
                            timeout=120, cwd=tempfile.gettempdir(), env=H["env"])
-        out = json.loads(re.search(r"\{.*\}", json.loads(r.stdout)["result"], re.S).group(0))["items"]
+        out = last_json(json.loads(r.stdout)["result"])["items"]
     except (subprocess.TimeoutExpired, ValueError, KeyError, AttributeError, TypeError) as e:
         print(f"jarvis: classify failed: {type(e).__name__}", flush=True)
         S["failed_at"] = time.time()

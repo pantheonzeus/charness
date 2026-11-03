@@ -6,8 +6,9 @@
 #   3. appends one line to output/.runs/_ledger/<job>.jsonl (cost, duration, turns, outcome)
 #      and classifies it (failure codes from the transcript) via workflow-ops/run-forensics
 #   4. exits with claude's own exit code, so callers' `set -e` behaves as before
-# If .claude/agents/<job>.md exists, the run uses it (--agent: model + scope) and its
-# `budget_usd:` frontmatter becomes --max-budget-usd. CBRAIN_JOB is exported so the
+# If .claude/agents/<job>.md exists, the run uses it (--agent: model + scope), its
+# `budget_usd:` frontmatter becomes --max-budget-usd and its `effort:` becomes --effort. The model
+# family's addendum (resources/models/<family>.md) is appended to the system prompt. CBRAIN_JOB is exported so the
 # write-boundary hook can hold the run to that file's `write_scopes:`.
 # The vault is snapshotted into its private history (scripts/vault_history.sh) before the run
 # (as "unattributed") and after it (as <job>), so every vault change is attributable and undoable.
@@ -39,6 +40,10 @@ if [ -f "$AGENT_FILE" ]; then
   AGENT_ARGS=(--agent "$JOB")
   BUDGET="$(sed -n 's/^budget_usd:[[:space:]]*\([0-9.]*\).*/\1/p' "$AGENT_FILE" | head -1)"
   [ -n "$BUDGET" ] && AGENT_ARGS+=(--max-budget-usd "$BUDGET")
+  # Effort is the main per-model control and its levels mean different amounts of thinking on each model
+  # (Anthropic, Prompting Claude Sonnet 5.5 / Opus 5.5), so each job pins it next to its pinned model.
+  EFFORT="$(sed -n 's/^effort:[[:space:]]*\([a-z]*\).*/\1/p' "$AGENT_FILE" | head -1)"
+  [ -n "$EFFORT" ] && AGENT_ARGS+=(--effort "$EFFORT")
   # Bash sandbox (G4b), opt-in per job: `sandbox: true` in the agent file's frontmatter, plus an
   # optional `network:` list of extra domains. Bash and its children may then write only inside the
   # repo (and uv's cache) and reach only pypi + the listed domains; no unsandboxed fallback, and the
@@ -69,6 +74,17 @@ PY
 )"
   [ -n "$SANDBOX_JSON" ] && AGENT_ARGS+=(--settings "$SANDBOX_JSON")
 fi
+
+# Model addendum: Anthropic's tested fixes for one model family (resources/models/README.md), appended to
+# the system prompt. A --model passed by the caller wins over the agent file's, as it does in claude.
+MODEL=""; prev=""
+for a in "$@"; do [ "$prev" = "--model" ] && MODEL="$a"; prev="$a"; done
+[ -z "$MODEL" ] && [ -f "$AGENT_FILE" ] && MODEL="$(sed -n 's/^model:[[:space:]]*\([^[:space:]]*\).*/\1/p' "$AGENT_FILE" | head -1)"
+ADDENDUM=""
+for fam in opus sonnet haiku fable; do
+  case "$MODEL" in *"$fam"*) [ -f "$REPO_ROOT/resources/models/$fam.md" ] && ADDENDUM="resources/models/$fam.md"; break ;; esac
+done
+[ -n "$ADDENDUM" ] && AGENT_ARGS+=(--append-system-prompt-file "$REPO_ROOT/$ADDENDUM")
 
 # Circuit breaker (G8): three runs in a row that end in API pressure (HTTP 429/529/5xx) open the
 # circuit for every job, so a backlog loop stops hammering a rate-limited login (2026-10-23:
@@ -185,9 +201,10 @@ META="$(printf '%s' "$OUT" | jq -c '{is_error, subtype, terminal_reason,
 [ -n "$META" ] || META='{}'
 jq -cn --arg ts "$START" --arg job "$JOB" --arg sha "$GIT_SHA" --argjson rc "$RC" \
   --argjson handoff "$handoff_present" --arg budget "$BUDGET" --argjson meta "$META" --argjson auth "$auth_failed" \
-  --argjson files "${FILES_WRITTEN:-0}" \
+  --argjson files "${FILES_WRITTEN:-0}" --arg effort "${EFFORT:-}" --arg addendum "$ADDENDUM" \
   '{ts: $ts, job: $job, git_sha: $sha, exit_code: $rc, handoff_present: $handoff, auth_failed: $auth,
-    budget_usd: (if $budget == "" then null else ($budget | tonumber) end), files_written: $files} + $meta' \
+    budget_usd: (if $budget == "" then null else ($budget | tonumber) end), files_written: $files,
+    effort: (if $effort == "" then null else $effort end), addendum: (if $addendum == "" then null else $addendum end)} + $meta' \
   >> "$LEDGER_DIR/$JOB.jsonl"
 
 # Circuit bookkeeping: API pressure counts toward opening; any other outcome closes it.

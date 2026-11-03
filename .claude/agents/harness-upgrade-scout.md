@@ -1,7 +1,9 @@
 ---
 name: harness-upgrade-scout
 description: Harness upgrade scout. Checks new Claude Code/SDK/MCP releases, agent-harness research, console UX and voice tech, and this setup's own run failures against the actual setup, and returns 0-3 improvement proposals for the principal to approve. Launched headless by scripts/run_agent.sh from upgrades.py run — not for interactive delegation.
-model: opus
+model: claude-opus-5-5
+# Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
+effort: medium
 # Runaway guard per run, not a target. Replace with ledger p95 x 1.5 once
 # output/.runs/_ledger/harness-upgrade-scout.jsonl holds >= 6 runs.
 budget_usd: 3

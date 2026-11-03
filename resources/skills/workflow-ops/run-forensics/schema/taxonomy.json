@@ -190,6 +190,21 @@
    "sites": [
     "the job's own scripts"
    ]
+  },
+  {
+   "code": "QUALITY_FLOOR",
+   "tool": "-",
+   "pattern": "(?!)",
+   "when": "assigned by scripts/quality.py, not by a tool error: a run of a listed job (daily-intel, meeting-prep) ended below a floor its own SKILL.md states (searches per section, item sources fetched, a prep and surface per meeting, task documents opened or carried, web-call cap)",
+   "track": true,
+   "mast": "task verification: incomplete verification",
+   "trail": "planning: goal deviation",
+   "fix": "The run finished clean but skipped work its skill requires. Read the signature (which floor), then the run next to one that met it (`pair QUALITY_FLOOR --job <job>`). The floor is prose the agent ignored, so the fix is a mechanism (a check script the run must pass, a seeded checklist), or a skill change if the floor itself is wrong.",
+   "behavior": "Job quality floors",
+   "sites": [
+    "resources/skills/workflow-ops/run-forensics/scripts/quality.py",
+    "the job's SKILL.md (the floor's wording)"
+   ]
   }
  ]
 }

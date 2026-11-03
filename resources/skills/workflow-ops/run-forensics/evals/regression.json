@@ -1,6 +1,6 @@
 {
   "_doc": "Harness regression suite (G6). Each probe guards one recorded failure code or Charter rule, runs headless with read-only tools against the real harness (hooks, CLAUDE.md, skill index), and is graded by code from the transcript. Runner: ../scripts/regression.py. Add a probe for every new recurring failure (Anthropic, 'Demystifying evals for AI agents', 2026-01: start from real failures, grade with code, report pass^k).",
-  "model": "sonnet",
+  "model": "claude-sonnet-5-5",
   "k": 3,
   "probes": [
     {"id": "P1-route-meeting", "guards": "SKILL_MISROUTE",

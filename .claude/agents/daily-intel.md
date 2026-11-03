@@ -1,7 +1,9 @@
 ---
 name: daily-intel
 description: Scheduled weekday daily-intel briefing agent (eight AI themes, emerging tech, German manufacturing outlook, up to 3 deep dives, a learning pack per topic for NotebookLM). Runs the daily-intel-briefing skill. Launched headless by scripts/run_agent.sh — not for interactive delegation.
-model: sonnet
+model: claude-sonnet-5-5
+# Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
+effort: high
 # Runaway guard, not a target. Raised 5 -> 15 on 2026-10-31 for 8 theme sections + up to 3 deep dives
 # (old scope ran $1.7-2.9 at full depth). Replace with ledger p95 x 1.5 after 6 runs on the new scope.
 budget_usd: 15

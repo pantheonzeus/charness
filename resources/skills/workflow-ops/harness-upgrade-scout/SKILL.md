@@ -8,9 +8,9 @@ triggers: [improve jarvis, improve my setup, harness upgrades, upgrade proposals
 tags: [workflow-ops, harness, self-improvement, launchd, console, plans, git, loop]
 related: ["[[daily-intel-briefing]]", "[[living-plan]]", "[[run-forensics]]", "[[skill-library-maintenance]]", "[[agent-architecture]]"]
 status: active
-version: 1
+version: 2
 created: 2026-10-31
-updated: 2026-10-31
+updated: 2026-11-01
 modules: [file-backed-state, file-backed-handoff, evidence-backed-answering, decision-observability]
 scripts: [scripts/upgrades.py]
 schema: [schema/com.cbrain.harness-upgrade-scout.plist]
@@ -62,7 +62,7 @@ Two agents, one approval in between. The **scout** proposes; you decide in the c
 
 1. **Read the packet and the setup.** Open TASK.json, the briefings it names (only `agentic-ops`, `self-improvement`, `llm-enterprise` and radar items matter here), the forensics report, and the `setup` files. You can't judge "new to us" without knowing what we have: grep the repo for a candidate's key term before keeping it.
 2. **Scan the four scopes, primary sources first** (≤ 10 web calls, and at least 4 entries in `searched` across the scopes, so "nothing found" means something):
-   - `cc-releases` — the Claude Code changelog and release notes, Agent SDK and MCP spec changes since the last run. A new hook event, setting, subagent or skill feature that replaces something this repo hand-built is the best kind of find.
+   - `cc-releases` — the Claude Code changelog and release notes, Agent SDK and MCP spec changes since the last run. A new hook event, setting, subagent or skill feature that replaces something this repo hand-built is the best kind of find. A new Claude model (models overview, its per-model prompting page) is a proposal to move the jobs' pinned `model:` (and `effort:`) to it: its steps run `regression.py --model <id>` and hold only on pass^3, and they check `resources/models/<family>.md` against the new model's prompting page (drop a fix the page no longer lists, add one it now gives).
    - `harness-research` — arXiv and lab posts on agent harnesses: memory, routing, self-evolution, evals, injection defence. Keep a paper only with a measured effect and a mechanism we can copy at our size.
    - `console-ux` — interaction patterns, on-device speech and voice models, macOS/PWA capabilities that would make the Jarvis console (`webapp/`) faster or calmer to use.
    - `run-failures` — the `failing_codes` and the report's over-budget jobs. A proposal here pairs a failure with a fix, ideally one an outside source supports. Its `source.url` may be the forensics report path.

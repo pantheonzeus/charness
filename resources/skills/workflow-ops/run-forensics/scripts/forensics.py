@@ -11,6 +11,11 @@ closed taxonomy (../schema/taxonomy.json), and tracks recurring codes as issues 
   fixed CODE --note   start a fix's verification window (after the harness edit is made)
   pair CODE [--job J] a failing run next to the nearest clean run of the same job and model (fix step 1)
   status              JSON summary for the console (open/regressed issues)
+  models              each job's current model against the regression suite (report runs it too): a model no
+                      finished suite covers gets one started in the background, and output/.runs/_forensics/
+                      model-alarm.json raises the console's model pill until a suite passes on it
+  quality             measure past runs of the jobs quality.py lists (backfill), then print their quality per
+                      model; a run below its skill's floor carries QUALITY_FLOOR (ingest does this for new runs)
 
 Files: output/.runs/_forensics/runs.jsonl (one line per classified run), output/run-forensics/issues.json,
 output/.runs/_forensics/hooks.jsonl (block/deny decisions written by the .claude/hooks scripts).
@@ -24,8 +29,11 @@ import json
 import math
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
+
+import quality
 
 REPO = Path(__file__).resolve().parents[5]
 LEDGER = REPO / "output" / ".runs" / "_ledger"
@@ -41,6 +49,10 @@ VERIFY_RUNS = 5       # floor: a fix needs at least 5 clean post-fix runs
 MAX_VERIFY_RUNS = 30  # above this a code is too rare to verify by recurrence; judge it from the traces
 FALSE_VERIFY = 0.10   # accept at most a 10% chance that the clean runs were luck, not the fix
 WINDOW_DAYS = 7
+REGRESSION = REPO / "output" / "regression"
+SUITE = Path(__file__).resolve().parents[1] / "evals" / "regression.json"
+MODEL_ALARM = REPO / "output" / ".runs" / "_forensics" / "model-alarm.json"
+MODEL_DAYS = 14       # a job counts for the model check while it has run in the last 14 days
 
 
 def now():
@@ -142,11 +154,21 @@ def classify(r, hooks=None):
                 steps[code] += 1
                 sigs[f"{code} · {tool} · {normalize(text)}"] += 1
     run = run_codes(r)
+    # A clean run can still skip work its skill requires; a failed run is judged by its root failure instead.
+    try:
+        q = quality.measure(r.get("job"), path) if path and not run else None
+    except Exception as e:   # a parser bug must never stop ingest, which runs after every job
+        q = {"metrics": {"error": f"{type(e).__name__}: {e}"[:200]}, "below": []}
+    for miss in (q or {}).get("below", []):
+        steps["QUALITY_FLOOR"] += 1
+        sigs[f"QUALITY_FLOOR · {r.get('job')} · {normalize(miss)}"] += 1
     tracked = {x["code"] for x in TAXONOMY["step_rules"] if x["track"]} | {"UNCLASSIFIED"}
     outcome = "failed" if run else "degraded" if any(c in tracked for c in steps) else "clean"
     out = {"key": r.get("session_id") or f'{r.get("job")}@{r.get("ts")}', "ts": r.get("ts"), "job": r.get("job"),
            "session_id": r.get("session_id"), "transcript": bool(path), "outcome": outcome, "run_codes": run,
            "step_codes": dict(steps), "signatures": dict(sigs.most_common(12)), "cost_usd": r.get("cost_usd")}
+    if q:
+        out["quality"] = q["metrics"]
     events = (hooks or {}).get(r.get("session_id"), [])
     if events:   # joined now: the transcript needed for after_block expires, the classification doesn't
         out["hooks"] = hook_summary(events, tools if path else None)
@@ -400,6 +422,125 @@ def pair(args):
             print(f"{n:>4}  {tool:<9} {arg}{mark}")
 
 
+def addendum_name(model):
+    """The addendum file run_agent.sh appends for this model's family, as regression.py records it."""
+    fam = next((f for f in ("opus", "sonnet", "haiku", "fable") if f in (model or "")), None)
+    return f"{fam}.md" if fam and (REPO / "resources" / "models" / f"{fam}.md").exists() else "none"
+
+
+def suite_verdicts():
+    """(model, addendum) -> pass | fail, from finished regression TSVs that record their model; newest wins.
+    A TSV that lacks a probe or a run (--only, interrupted, still running) decides nothing."""
+    suite = json.loads(SUITE.read_text())
+    ids, k, out = {p["id"] for p in suite["probes"]}, suite["k"], {}
+    for tsv in sorted(REGRESSION.glob("*.tsv")):
+        lines = tsv.read_text(errors="replace").splitlines()
+        head = lines[0].split("\t") if lines else []
+        if "model" not in head:
+            continue
+        rows = [dict(zip(head, l.split("\t"))) for l in lines[1:]]
+        runs = collections.defaultdict(list)
+        for r in rows:
+            runs[r.get("probe")].append(r.get("ok") == "1")
+        if not rows or set(runs) != ids or any(len(v) < k for v in runs.values()):
+            continue
+        key = (rows[0]["model"], rows[0].get("addendum", "none"))
+        out[key] = ("pass" if all(all(v) for v in runs.values()) else "fail", str(tsv.relative_to(REPO)))
+    return out
+
+
+def agent_field(job, key):
+    f = REPO / ".claude" / "agents" / f"{job}.md"
+    m = re.search(rf"^{key}:\s*(\S+)", f.read_text(), re.M) if f.exists() else None
+    return m.group(1) if m else None
+
+
+def check_models():
+    """The model-swap test, run when it is due rather than when someone remembers (SKILL.md, Regression suite).
+    Returns report lines; at most one automatic suite per model and addendum, ever: a failed one waits for you."""
+    cutoff = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=MODEL_DAYS)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    current = collections.defaultdict(list)
+    for p in sorted(LEDGER.glob("*.jsonl")):
+        # Harness runs only (run_agent.sh stamps git_sha); bare `claude -p` calls outside the harness don't count.
+        rows = [r for r in read_jsonl(p) if r.get("models") and r.get("git_sha") and r.get("ts", "") >= cutoff]
+        if rows:
+            # A pinned model is what the next run uses; the last run's model covers jobs without a pin.
+            pin = agent_field(p.stem, "model")
+            current[pin if pin and pin.startswith("claude-") else main_model(rows[-1]["models"])].append(p.stem)
+    verdicts, alarm = suite_verdicts(), {}
+    for model, jobs in sorted(current.items()):
+        add = addendum_name(model)
+        verdict, tsv = verdicts.get((model, add), (None, None))
+        if verdict == "pass":
+            continue
+        running = subprocess.run(["pgrep", "-f", f"regression.py --model {re.escape(model)}( |$)"],
+                                 capture_output=True).returncode == 0
+        state = "failed" if verdict == "fail" else "running" if running else "started"
+        if state == "started":
+            effort = next((e for e in (agent_field(j, "effort") for j in jobs) if e), None)
+            env = dict(os.environ, PATH=f"{Path.home()}/.local/bin:/opt/homebrew/bin:/usr/local/bin:" + os.environ.get("PATH", ""))
+            REGRESSION.mkdir(parents=True, exist_ok=True)
+            log = open(REGRESSION / f"auto-{model}.log", "a")
+            subprocess.Popen([sys.executable, str(Path(__file__).with_name("regression.py")), "--model", model]
+                             + (["--effort", effort] if effort else []),
+                             cwd=REPO, env=env, stdout=log, stderr=log, stdin=subprocess.DEVNULL, start_new_session=True)
+        alarm[model] = {"jobs": jobs, "addendum": add, "suite": state, "tsv": tsv}
+    if alarm:
+        old = json.loads(MODEL_ALARM.read_text()) if MODEL_ALARM.exists() else {}
+        MODEL_ALARM.parent.mkdir(parents=True, exist_ok=True)
+        MODEL_ALARM.write_text(json.dumps({"since": old.get("since") or now(), "models": alarm}, indent=2))
+    elif MODEL_ALARM.exists():
+        MODEL_ALARM.unlink()
+    L = ["\n## Models (regression suite per job model)\n"]
+    for model, jobs in sorted(current.items()):
+        a = alarm.get(model)
+        L.append(f"- {model} ({addendum_name(model)}): {'suite ' + a['suite'] + (' · ' + a['tsv'] if a['tsv'] else '') if a else 'suite passed'}"
+                 f" · jobs: {', '.join(jobs)}")
+    return L
+
+
+def models(_args):
+    print("\n".join(check_models()).strip())
+
+
+def quality_table(runs):
+    """Each measured job's quality per model, all runs: a model change shows up as a step in these medians.
+    Volume (items, domains) is context, not a floor: a quiet day may be short."""
+    rows = collections.defaultdict(list)
+    for r in runs:
+        if r.get("quality") and "error" not in r["quality"]:
+            rows[(r["job"], r["model"] or "none")].append(r)
+    L = ["\n## Quality (per job and model, all measured runs)\n"]
+    if not rows:
+        return L + ["_No measured runs yet (`forensics.py quality` backfills them)._"]
+    L += ["| Job | Model | Runs | Below a floor | Median per run |", "|---|---|---|---|---|"]
+    for (job, model), rs in sorted(rows.items(), key=lambda kv: (kv[0][0], min(r["ts"] or "" for r in kv[1]))):
+        below = sum("QUALITY_FLOOR" in r["step_codes"] for r in rs)
+        keys = list(dict.fromkeys(k for r in rs for k in r["quality"]))
+        med = lambda k: sorted(r["quality"].get(k, 0) for r in rs)[len(rs) // 2]
+        L.append(f"| {job} | {model} | {len(rs)} | {below} ({below / len(rs):.0%}) | " + " · ".join(f"{k} {med(k)}" for k in keys) + " |")
+    return L
+
+
+def quality_cmd(_args):
+    """Backfill: re-classify runs of measured jobs that predate quality.py, while their transcripts last."""
+    ledger = {}
+    for p in LEDGER.glob("*.jsonl"):
+        for r in read_jsonl(p):
+            ledger[r.get("session_id") or f'{r.get("job")}@{r.get("ts")}'] = r
+    hooks, lines, n = hook_events(), read_jsonl(RUNS), 0
+    for i, x in enumerate(lines):
+        if x.get("job") in quality.JOBS and "quality" not in x and x["key"] in ledger and x.get("session_id") and transcript(x["session_id"]):
+            lines[i] = classify(ledger[x["key"]], hooks)
+            n += 1
+    if n:
+        tmp = RUNS.with_suffix(".tmp")
+        tmp.write_text("".join(json.dumps(x) + "\n" for x in lines))
+        os.replace(tmp, RUNS)
+    print(f"forensics: measured {n} earlier run(s)")
+    print("\n".join(quality_table(load_runs())).strip())
+
+
 def report(args):
     ingest(args)
     runs = load_runs()
@@ -420,6 +561,8 @@ def report(args):
         flag = " ⚠ over budget (> 10%)" if c["failed"] / tot > 0.1 else ""
         L.append(f"| {job} | {tot} | {c['clean']} | {c['degraded']} | {c['failed']} | {rate:.0%}{flag} |")
     L.extend(harness_decisions(runs))
+    L.extend(check_models())
+    L.extend(quality_table(runs))
     L.append("\n## Issues\n")
     for i in live:
         L.append(f"### {i['code']} — {i['state']}")
@@ -487,6 +630,8 @@ def main():
     p.add_argument("--job")
     p.set_defaults(fn=pair)
     sub.add_parser("status").set_defaults(fn=status)
+    sub.add_parser("models").set_defaults(fn=models)
+    sub.add_parser("quality").set_defaults(fn=quality_cmd)
     a = ap.parse_args()
     a.fn(a)
 

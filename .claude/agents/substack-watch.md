@@ -1,7 +1,9 @@
 ---
 name: substack-watch
 description: Substack newsletter briefing agent. Reads one new newsletter issue in the vault, researches its claims, writes a cited briefing on top of the issue note and links it into the topic notes it touches. Launched headless by scripts/run_agent.sh from substack_watch.py — not for interactive delegation.
-model: sonnet
+model: claude-sonnet-5-5
+# Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
+effort: high
 # Runaway guard per run, not a target. Replace with ledger p95 x 1.5 once
 # output/.runs/_ledger/substack-watch.jsonl holds >= 6 runs.
 budget_usd: 3

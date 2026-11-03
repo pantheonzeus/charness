@@ -1,7 +1,9 @@
 ---
 name: plan-runner
 description: Executes a living plan delegated from the console (outcome → editable plan → checkpointed steps). Runs the workflow-ops/living-plan skill. Launched headless by the console via scripts/run_agent.sh — not for interactive delegation.
-model: sonnet
+model: claude-sonnet-5-5
+# Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
+effort: high
 # webapp/tasks.py overrides this to --model opus for the interrogate + plan-preview invocations
 # (before PLAN.json exists) — CLI --model beats this frontmatter value. Execution-phase
 # invocations (PLAN.json already exists) keep this default.

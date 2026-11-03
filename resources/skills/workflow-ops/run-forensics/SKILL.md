@@ -1,27 +1,27 @@
 ---
 id: run-forensics
 aliases: [run-forensics, failure-taxonomy]
-name: "Run Forensics — Failure Codes, Recurrence, Verified Fixes & Regression Suite"
+name: "Run Forensics — Failure Codes, Quality Floors, Recurrence, Verified Fixes & Regression Suite"
 category: workflow-ops
-description: Classify why every headless agent run failed or degraded (closed taxonomy, from the run's own transcript plus the hooks' logged decisions), detect failure codes that recur across runs and jobs, and close the loop with a human-approved harness fix (diagnosed against a clean run of the same job, revised against what the harness can see and already does, designed from a precedent) that is verified automatically on the next runs — over a window scaled to how often the code hit, per model.
-triggers: [why did the run fail, run failed, recurring failure, failure mode, same failure again, fix the recurring failures, fix PERM_BLOCKED, fix SKILL_MISROUTE, run forensics, agent errors, ops failures, harness self-improvement, error analysis, flipping runs, compare a failing run with a clean one]
+description: Classify why every headless agent run failed or degraded (closed taxonomy, from the run's own transcript plus the hooks' logged decisions; for daily-intel and meeting-prep also whether the run did the work its skill requires), detect failure codes that recur across runs and jobs, and close the loop with a human-approved harness fix (diagnosed against a clean run of the same job, revised against what the harness can see and already does, designed from a precedent) that is verified automatically on the next runs — over a window scaled to how often the code hit, per model.
+triggers: [why did the run fail, job quality, quality floor, is the briefing getting worse, did the model change hurt quality, run failed, recurring failure, failure mode, same failure again, fix the recurring failures, fix PERM_BLOCKED, fix SKILL_MISROUTE, run forensics, agent errors, ops failures, harness self-improvement, error analysis, flipping runs, compare a failing run with a clean one]
 tags: [harness, ops, observability, self-improvement, error-analysis]
 related: []
 modules: [file-backed-state, decision-observability, self-evolution]
 status: active
-version: 6
+version: 8
 created: 2026-10-20
-updated: 2026-10-23
+updated: 2026-11-01
 ---
 
-# Run Forensics — Failure Codes, Recurrence, Verified Fixes & Regression Suite
+# Run Forensics — Failure Codes, Quality Floors, Recurrence, Verified Fixes & Regression Suite
 
 **The problem it solves.** `run_agent.sh`'s ledger records exit codes, and nearly every run exits 0 with `subtype: success`. The transcript underneath tells a different story: on 2026-10-20, 113 of 186 ledgered runs were *degraded* — ~215 blocked shell commands, 46 repo skills called through the Skill tool, 38 guessed paths — and nothing grouped them or noticed they came back every day.
 
 **Contract**
 - **Input:** `output/.runs/_ledger/*.jsonl` (one line per run, incl. `models` and `git_sha`), each run's transcript `~/.claude/projects/*/<session_id>.jsonl`, and the hooks' decision log `output/.runs/_forensics/hooks.jsonl` (written by `.claude/hooks/write-boundary.sh` and `control-spine-gate.sh`).
 - **Output:** `output/.runs/_forensics/runs.jsonl` (per-run outcome + codes + normalized signatures + `hooks` summary), `output/run-forensics/issues.json` (issue state machine), `output/run-forensics/report-<YYYYMMDD>.md` (daily), Jarvis Ops panel + island pill.
-- **Allowed tools/artifacts:** `scripts/forensics.py` (stdlib, deterministic — no LLM in the hot path); `references/handbook.md` (which harness behavior owns each code, and where its code lives); for the fix step, edits to `.claude/agents/*.md`, a job's `--allowedTools`, a skill's `SKILL.md`, a hook, or `schema/taxonomy.json`.
+- **Allowed tools/artifacts:** `scripts/forensics.py` and `scripts/quality.py` (stdlib, deterministic — no LLM in the hot path); `references/handbook.md` (which harness behavior owns each code, and where its code lives); for the fix step, edits to `.claude/agents/*.md`, a job's `--allowedTools`, a skill's `SKILL.md`, a hook, or `schema/taxonomy.json`.
 - **Done when:** (detection) every ledgered run is classified and the unclassified share is < 5%; (fix) the issue is `verified`: `needs` clean post-fix runs of the affected jobs on their current model, zero recurrences.
 
 **Triggers/Context**
@@ -44,7 +44,7 @@ principal: "fix <CODE>" → this skill's fix step (below) → forensics.py fixed
 ## Taxonomy (closed; `schema/taxonomy.json`)
 **Run level → `failed`** (first/root failure only — an API outage also loses the handoff, the outage is the cause): `AUTH_EXPIRED` · `INFRA` · `BUDGET` · `GATE` · `NO_HANDOFF`.
 **Auth alarm:** `AUTH_EXPIRED` does not wait for the daily report or a second run. `run_agent.sh` matches the auth error on the first failed run, writes `output/.runs/_forensics/auth-alarm.json`, sends one macOS notification and Jarvis shows a red pill until the next good run removes the file. The fix is always the same: run `claude` and log in.
-**Step level → `degraded`:** `PERM_BLOCKED` · `BOUNDARY_BLOCKED` · `SKILL_MISROUTE` · `STALE_EDIT` · `PATH_MISS` · `ENV_MISSING` · `BAD_INPUT`. Recorded but never an issue (`track: false`): `NET_FAIL`, `CMD_FAIL` (exploration noise). Anything else → `UNCLASSIFIED`, which *is* tracked — a recurring unclassified signature means the taxonomy needs a rule.
+**Step level → `degraded`:** `PERM_BLOCKED` · `BOUNDARY_BLOCKED` · `SKILL_MISROUTE` · `STALE_EDIT` · `PATH_MISS` · `ENV_MISSING` · `BAD_INPUT` · `QUALITY_FLOOR` (no tool error: the run skipped work its skill requires, section D). Recorded but never an issue (`track: false`): `NET_FAIL`, `CMD_FAIL` (exploration noise). Anything else → `UNCLASSIFIED`, which *is* tracked — a recurring unclassified signature means the taxonomy needs a rule.
 Each code carries its MAST and TRAIL mapping and a fix hint.
 
 ## Core Blueprint
@@ -76,13 +76,28 @@ Each code carries its MAST and TRAIL mapping and a fix hint.
 
 ### C. Regression suite (harness evals, added 2026-10-23)
 Forensics reacts to failures in production runs; the suite tests the harness on purpose. `evals/regression.json` holds one probe per recorded failure code or Charter rule (SKILL_MISROUTE, PERM_BLOCKED, capability check, untrusted ingest). Each probe is a headless `claude -p` in the repo with read-only tools, graded by code from the transcript, run k = 3 times and reported as **pass^3** (Anthropic, "Demystifying evals for AI agents", 2026-01: start from real failures, code graders, consistency over pass@1).
-- Run: `python3 resources/skills/workflow-ops/run-forensics/scripts/regression.py [--only P1,P4] [--model haiku]`; results in `output/regression/<stamp>.tsv`.
-- **When:** before and after any harness edit (hook, Charter, `_shared`, agent file), and on every model change: `--model <candidate>` is the model-swap test, and a job's `model:` changes only when the candidate holds pass^3 on that job's probes.
+- Run: `python3 resources/skills/workflow-ops/run-forensics/scripts/regression.py [--only P1,P4] [--model claude-sonnet-5-5] [--effort high] [--addendum FILE | --no-addendum]`; results in `output/regression/<stamp>.tsv`, each row with its model, effort and addendum. A probe runs with its model family's addendum (`resources/models/<family>.md`), as the jobs do.
+- **When:** before and after any harness edit (hook, Charter, `_shared`, agent file, model addendum), and on every model change: `--model <candidate>` is the model-swap test, and a job's `model:` changes only when the candidate holds pass^3 on that job's probes.
+- **Models are pinned, and the check is automatic (2026-11-01).** Agent files carry full model IDs and an `effort:`, never an alias, so no model changes under a job unannounced (the `sonnet` alias moved Sonnet 5 → 5.5 on 2026-10-25 and no suite ran). `forensics.py models`, run by the daily report, maps each harness job to its pinned model (else its last run's). A model and addendum with no finished pass^3 suite gets one suite started in the background, and `output/.runs/_forensics/model-alarm.json` shows an Ops pill in the console until a suite passes. A failed suite is never retried on its own: read the TSV, fix or roll back the pin, rerun by hand.
+- **Addenda change like hooks.** A new or edited `resources/models/<family>.md` runs the suite with `--addendum <candidate>` before it goes into `resources/models/`, where every job on that family picks it up at its next run.
 - **Grow it from failures:** when a code recurs (step B), add a probe that reproduces it before fixing; the fix is verified when the probe passes pass^3 and stays green.
 - Probes never write to the vault or send: keep their tools read-only or one allowlisted helper, and put fixtures under `output/regression/fixtures/`, never in a run's STATE_ROOT (the Stop gate would claim it).
 
+### D. Quality floors (per job, added 2026-11-01)
+A run can be clean by every code above and still under-deliver. On Sonnet 5.5, daily-intel got 75% cheaper by searching a third as much and shipping 1–3 items (2026-10-26..30); a person noticed, nothing measured it. `scripts/quality.py` measures each run of a listed job from its transcript (subagents included, each call id once) and the files that run wrote, against floors quoted from that job's own SKILL.md. A run below one gets `QUALITY_FLOOR` (tracked, degraded), so recurrence, the island pill, `pair` and fix verification work as for any code. A failed run is judged by its root failure, not its floors.
+
+| Job | Floors (from its SKILL.md) | Reported per model, never a floor |
+|---|---|---|
+| daily-intel | a briefing JSON written; WebSearch ≥ 2 × sections; every item has ≥ 1 source fetched (WebFetch URL = a source URL) | searches, fetches, items, source domains, deep dives |
+| meeting-prep | a prep per meeting unless `needs` is `surface`, a surface per meeting once the launch prompt asks for one (an existing file the run read and kept counts); every task document opened (Read or Grep) or listed in the prep; ≤ 4 web calls | docs read vs only grepped, participants, talking points, `new_insight` |
+
+- **Volume is never a floor.** A quiet news day may be short ("Never pad"). The report's **Quality** table shows each job's medians per model, so a model change shows up as a step in them; read it next to the model-swap test.
+- **Run:** ingest measures new runs automatically. `forensics.py quality` backfills earlier runs while their transcripts last and prints the table.
+- **Add a job:** one function in `quality.py` (`JOBS`), each floor quoted from the job's SKILL.md in its docstring. A floor the skill doesn't state is not a floor. Change the skill first, with the principal.
+- **A floor that fires on most runs** is either prose the agent ignores (fix: a mechanism, step B) or a rule the skill should drop. That decision belongs to the principal, never to the measurement. *(meeting-prep 2026-11-01: 59 of 80 Sonnet 5.5 runs left task documents neither opened nor listed; strict "read the file" would flag 65.)*
+
 ## Optimizations/Gotchas
-- **Rules before judges.** All codes are assigned by regex/fields. TRAIL found the best model locates only ~11% of trace errors — an LLM label is a hypothesis, not a classification. Add an LLM `QUALITY` judge only when output-quality failures (which this cannot see) become the bottleneck.
+- **Rules before judges.** All codes are assigned by regex/fields. TRAIL found the best model locates only ~11% of trace errors — an LLM label is a hypothesis, not a classification. Output quality is first measured as effort floors and counts (section D). An LLM judge of the content itself comes only when those floors hold and quality still slips.
 - **Degraded ≠ broken.** A degraded run usually still delivered; the cost is wasted turns and money and the risk of a silent workaround. The Job-health table flags only *failed* > 10% (14 d) as an error-budget breach (Google SRE error-budget policy).
 - **Transcripts expire** (Claude Code cleans old sessions). Classification is persisted at run end for that reason; never rely on re-reading old transcripts.
 - **The ledger stays append-only.** Forensics writes its own sidecar keyed by `session_id`; `run_agent.sh` additionally records `api_error_status`, `error` and `startup_failure_reason` for root-causing `INFRA`.

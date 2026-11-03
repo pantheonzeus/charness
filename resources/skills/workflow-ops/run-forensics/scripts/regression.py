@@ -16,7 +16,9 @@ code over the run's JSON result and transcript, never a model:
   max_denials     permission denials <= N
   file_absent     this repo path does not exist afterwards
 
-  python3 regression.py [--only P1,P4] [--k 3] [--model sonnet] [--dry-run]
+  python3 regression.py [--only P1,P4] [--k 3] [--model claude-sonnet-5-5] [--effort high] [--no-addendum] [--dry-run]
+                  A probe runs with the model family's addendum (resources/models/<family>.md), as
+                  scripts/run_agent.sh does for the jobs, unless --no-addendum; --addendum FILE tests a candidate.
   python3 regression.py --regrade output/regression/<stamp>.tsv   re-score finished runs from their
                   transcripts with the current graders (after a logged grader change; no reruns)
 Writes output/regression/<YYYYMMDD-HHMMSS>.tsv (one row per run) and prints pass^k per probe.
@@ -38,6 +40,14 @@ OUT = REPO / "output" / "regression"
 TRANSCRIPTS = Path.home() / ".claude" / "projects" / str(REPO).replace("/", "-")
 CIRCUIT = REPO / "output" / ".runs" / "_ledger" / "_circuit.json"
 CLI_ENV = {k: v for k, v in os.environ.items() if k not in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")}
+ADDENDA = REPO / "resources" / "models"
+
+
+def addendum(model):
+    """The model family's prompt addendum, the same file run_agent.sh appends to a job on that model."""
+    fam = next((f for f in ("opus", "sonnet", "haiku", "fable") if f in (model or "")), None)
+    f = ADDENDA / f"{fam}.md" if fam else None
+    return f if f and f.exists() else None
 
 
 def tool_uses(session):
@@ -69,7 +79,7 @@ def grade(spec, result, uses, denials):
     if "read_or_names" in spec:
         ro = spec["read_or_names"]
         if not (any(r.endswith(p) for r in reads for p in ro["read"])
-                or any(n.lower() in result.lower() for n in ro["names"])):
+                or any(n.lower() in re.sub(r"[`*_]", "", result).lower() for n in ro["names"])):  # "`notebooklm` skill" names it
             fails.append(f"neither read {ro['read']} nor named {ro['names']}")
     if "tools_only" in spec:
         other = sorted({u.get("name") for u in uses} - set(spec["tools_only"]))
@@ -92,7 +102,7 @@ def grade(spec, result, uses, denials):
     return fails
 
 
-def run_probe(p, model, dry):
+def run_probe(p, model, dry, effort=None, add=None):
     if "fixture" in p:
         f = REPO / p["fixture"]["path"]
         f.parent.mkdir(parents=True, exist_ok=True)
@@ -103,6 +113,10 @@ def run_probe(p, model, dry):
            "--max-turns", str(p.get("max_turns", 8)), "--allowedTools", *p["tools"]]
     if p.get("agent"):
         cmd[3:3] = ["--agent", p["agent"]]
+    if effort:
+        cmd += ["--effort", effort]
+    if add:
+        cmd += ["--append-system-prompt-file", str(add)]
     if dry:
         print("would run:", " ".join(cmd[:3]), "…", " ".join(cmd[4:]))
         return None
@@ -155,6 +169,9 @@ def main():
     ap.add_argument("--only")
     ap.add_argument("--k", type=int)
     ap.add_argument("--model")
+    ap.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"])
+    ap.add_argument("--no-addendum", action="store_true")
+    ap.add_argument("--addendum", type=Path)
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--regrade")
     a = ap.parse_args()
@@ -162,11 +179,12 @@ def main():
     if a.regrade:
         return regrade(Path(a.regrade), suite)
     k, model = a.k or suite["k"], a.model or suite["model"]
+    add = None if a.no_addendum else (a.addendum or addendum(model))
     probes = [p for p in suite["probes"] if not a.only or p["id"].split("-")[0] in a.only.split(",") or p["id"] in a.only.split(",")]
     OUT.mkdir(parents=True, exist_ok=True)
     tsv = OUT / f"{time.strftime('%Y%m%d-%H%M%S')}.tsv"
     if not a.dry_run:
-        tsv.write_text("probe\tguards\trun\tok\tsecs\tcost_usd\ttools\tsession\tfails\n")
+        tsv.write_text("probe\tguards\trun\tok\tsecs\tcost_usd\ttools\tsession\tfails\tmodel\teffort\taddendum\n")
     summary = {}
     for p in probes:
         for i in range(1, k + 1):
@@ -176,7 +194,7 @@ def main():
                     return 75
             except (OSError, ValueError):
                 pass
-            res = run_probe(p, model, a.dry_run)
+            res = run_probe(p, model, a.dry_run, a.effort, add)
             if res is None:
                 break
             summary.setdefault(p["id"], []).append(res["ok"])
@@ -184,7 +202,8 @@ def main():
                   + ("" if res["ok"] else "  — " + "; ".join(res["fails"])), flush=True)
             with tsv.open("a") as f:
                 f.write(f"{p['id']}\t{p['guards']}\t{i}\t{int(res['ok'])}\t{res['secs']}\t{res['cost']}\t{res['tools']}\t"
-                        f"{res['session']}\t{'; '.join(res['fails'])}\n")
+                        f"{res['session']}\t{'; '.join(res['fails'])}\t{model}\t{a.effort or 'default'}\t"
+                        f"{add.name if add else 'none'}\n")
             time.sleep(5)
     if a.dry_run:
         return 0
@@ -192,7 +211,8 @@ def main():
     for pid, oks in summary.items():
         print(f"  {pid:<22} {'PASS' if all(oks) and len(oks) == k else 'FAIL'}  ({sum(oks)}/{len(oks)} runs)")
     total = sum(all(o) and len(o) == k for o in summary.values())
-    print(f"suite: {total}/{len(summary)} probes pass^{k} · results {tsv.relative_to(REPO)}")
+    print(f"suite: {total}/{len(summary)} probes pass^{k} on {model} (effort {a.effort or 'default'}, "
+          f"addendum {add.name if add else 'none'}) · results {tsv.relative_to(REPO)}")
     return 0 if total == len(summary) else 1
 
 

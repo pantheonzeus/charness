@@ -1,7 +1,9 @@
 ---
 name: ng-letters
 description: Andrew Ng letters briefing agent. Reads each new letter from The Batch, researches its claims, writes a cited briefing page and updates the Andrew Ng - Thinking anchor. Launched headless by scripts/run_agent.sh from ng_letters.py run — not for interactive delegation.
-model: sonnet
+model: claude-sonnet-5-5
+# Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
+effort: high
 # Runaway guard per run, not a target. Replace with ledger p95 x 1.5 once
 # output/.runs/_ledger/ng-letters.jsonl holds >= 6 runs.
 budget_usd: 3

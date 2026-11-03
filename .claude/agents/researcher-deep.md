@@ -1,7 +1,9 @@
 ---
 name: researcher-deep
 description: Background Researcher for console-delegated tasks (deep: parallel sub-researchers). Runs the research/deep-research skill. Launched headless by the console via scripts/run_agent.sh — not for interactive delegation.
-model: sonnet
+model: claude-sonnet-5-5
+# Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
+effort: high
 # Runaway guard per run (one run = until the next pause or the end), not a target. Replace with
 # ledger p95 x 1.5 once output/.runs/_ledger/researcher-deep.jsonl holds >= 6 runs.
 budget_usd: 15

@@ -1,7 +1,9 @@
 ---
 name: harness-upgrader
 description: Builds one harness upgrade the principal approved in the console, on its own branch in a git worktree; verifies, commits and writes a review page. Never merges or applies. Runs the Build section of the workflow-ops/harness-upgrade-scout skill. Launched headless by the console via scripts/run_agent.sh — not for interactive delegation.
-model: opus
+model: claude-opus-5-5
+# Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
+effort: medium
 # Runaway guard per run (one run = until done or the next pause), not a target. Replace with
 # ledger p95 x 1.5 once output/.runs/_ledger/harness-upgrader.jsonl holds >= 6 runs.
 budget_usd: 6

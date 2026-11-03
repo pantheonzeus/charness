@@ -984,6 +984,9 @@ function decisions() {
   const L = D.loops, failing = (L?.launchd || []).filter((j) => !j.pid && j.last_exit && j.last_exit !== "0");
   if (L?.auth) out.unshift({k: "ops", text: `Claude login expired · ${L.auth.runs} run${L.auth.runs > 1 ? "s" : ""} failed · run claude to log in`, alarm: true});
   if (failing.length) out.push({k: "ops", text: `Ops: ${failing.map((j) => j.label.replace("com.cbrain.", "")).join(", ")} stopped`, alarm: true});
+  for (const [m, v] of Object.entries(L?.models?.models || {})) out.push({k: "ops", alarm: v.suite === "failed",
+    text: v.suite === "failed" ? `Ops: ${m} failed the regression suite · ${v.jobs.length} job${v.jobs.length > 1 ? "s" : ""} on it`
+      : `Ops: testing ${m} on the regression suite · ${v.jobs.length} job${v.jobs.length > 1 ? "s" : ""}`});
   const hot = hotIssues(L?.issues || []), reg = hot.filter((i) => i.state === "regressed");
   if (hot.length) out.push({k: "ops", alarm: !!reg.length, text: reg.length ? `Ops: fix for ${reg.map((i) => i.code).join(", ")} didn't hold`
     : `Ops: ${hot.length} recurring failure${hot.length > 1 ? "s" : ""} · top ${hot[0].code} (${hot[0].runs} runs)`});

@@ -1,7 +1,9 @@
 ---
 name: mail-triage
 description: Mail triage agent. Sorts a batch of new mail into know / action / answer with summaries and reply drafts. Launched headless by scripts/run_agent.sh from triage.py poll — not for interactive delegation.
-model: sonnet
+model: claude-sonnet-5-5
+# Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
+effort: high
 # Runaway guard per run (≤ 12 mails), not a target. Replace with ledger p95 x 1.5
 # once output/.runs/_ledger/mail-triage.jsonl holds >= 6 runs.
 budget_usd: 2

@@ -884,3 +884,86 @@ One entry per edit made under the [[change-manifest]] module. Newest first. Verd
 - **Matched baseline:** none: client news reached prep only through vault-frontier's daily topic scan (projects/ notes, not accounts).
 - **Risk flagged:** the harvest's company match adds candidates to every meeting with a participant from a watched client; prep still picks at most one. Google News coverage of non-English local press is thin.
 - **Verdict:** pending — 10 working days from 2026-11-02.
+
+## 2026-11-01 — Model-aware harness: pinned models + effort, automatic model-swap test, per-family addenda
+- **Trigger:** research run `output/20261101-model-specific-prompting.md`. The `sonnet`/`opus` aliases moved Sonnet 5 → 5.5 and Opus 5 → 5.5 around 2026-10-25 with no regression suite run (last suite 2026-10-24, on Sonnet 5), though run-forensics C says to run it "on every model change". Mean cost per run fell 40–75% after the switch with no quality measure. No job set an effort level; Anthropic now calls effort the main per-model control and recalibrated its levels on 5.5. The webapp parsed Haiku JSON first-`{`-to-last-`}`, which the Sonnet 5.5 prompting page says not to do.
+- **Touched:**
+  - All 19 `.claude/agents/*.md`: `model:` pinned to `claude-sonnet-5-5` (15) / `claude-opus-5-5` (4), plus `effort: high` / `effort: medium`.
+  - `scripts/run_agent.sh`: `effort:` → `--effort`; appends `resources/models/<family>.md` by the job's model (a caller's `--model` wins); ledger gains `effort`, `addendum`.
+  - New `resources/models/` with `opus.md` (Anthropic's unattended-run block, Opus 5.5 page) and `sonnet.md` (the search line, Sonnet 5.5 page), both verbatim, plus a README with the rule; CLAUDE.md layout line.
+  - `run-forensics` v7: `regression.py` gets `--effort`, `--addendum`/`--no-addendum`, family addendum by default, and model/effort/addendum TSV columns. It also gets a grader correction: `read_or_names` ignores markdown emphasis ("The `notebooklm` skill" names it; a correct answer had failed P3). `forensics.py models` (also run by the daily report) checks each harness job's pinned model + addendum against finished pass^3 suites. An uncovered model gets one suite started in the background and `output/.runs/_forensics/model-alarm.json`, and `webapp/server.py` + `static/index.html` show it as an Ops pill. `evals/regression.json` model pinned.
+  - `harness-upgrade-scout` v2: a new Claude model is a pin-bump proposal gated on pass^3 and an addendum re-read. INDEX row for run-forensics.
+  - `webapp/tasks.py`: plan drafting pinned to `claude-opus-5-5`.
+  - `webapp/llmjson.py` `last_json` used by `jarvis.py` and `library.py`.
+- **Verified:**
+  - Suites, pass^3, $16 in total:
+    - Sonnet 5.5, default effort, no addendum: 5/5.
+    - Sonnet 5.5, medium: 5/5.
+    - Sonnet 5.5, high: 4/5, then 5/5 after the grader correction, by regrade.
+    - Sonnet 5.5, high + sonnet.md: 5/5.
+    - Opus 5.5, default: 5/5.
+    - Opus 5.5, medium + opus.md: 5/5.
+  - Other checks:
+    - Append-file A/B with `--agent`: PELICAN-7 vs NONE.
+    - Launcher stub test in a fake repo: real client-news → `--effort medium` + opus.md; mail-triage → `--effort high` + sonnet.md.
+    - A real one-turn run on the pinned mail-triage agent lands on claude-sonnet-5-5.
+    - `forensics.py models` dry test caught and fixed a pgrep substring match and a stale-model and non-harness-job miss. The live check reports both models passed, with no alarm.
+    - Hook tests are all green.
+    - `last_json`: 4 cases pass; the old regex fails draft-then-final.
+- **Expected to fix (falsifiable):**
+  - (a) The next model change is tested within one daily report, before or alongside its first runs.
+  - (b) No job's ledger `models` shows an ID other than its pin, apart from plan drafting on Opus.
+  - (c) Opus jobs: run-forensics shows no rise in runs that end with work still owed (open spine boxes at stop, gate blocks) over 14 days.
+  - (d) Sonnet jobs: `tokens.web_search` per run rises modestly, with cost per run within +25% of the 2026-10-26..31 mean.
+- **Refuted if:**
+  - An auto-started suite fails to launch under launchd. `output/regression/auto-<model>.log` shows `claude: not found`, or no TSV appears.
+  - Sonnet jobs' mean cost per run rises > 25% in the week from 2026-11-02, from pinned `high` (if Claude Code's default was lower) or from extra searches. Then sweep `medium` on the costliest jobs.
+  - The control-spine gate blocks more often on Opus jobs (the addendum backfired).
+- **Fires on stable:**
+  - The model check runs daily inside the report and costs nothing while every model passes.
+  - A new model costs one suite: about $2 on Sonnet, $4 on Opus.
+  - Every headless job carries about 300 more words of system prompt.
+- **Matched baseline:** ledger means per job on claude-sonnet-5-5 2026-10-26..31 (e.g. daily-intel $0.60/29 turns, mail-triage $0.22/8, meeting-prep $0.58/30); suite 20261101-120556 (no addendum, default effort).
+- **Risk flagged:** the effort sweep ran on the regression probes, which are short and did not separate effort levels (cost and pass rate within noise), not on real jobs (side effects). The pins are Anthropic's starting points for long unattended runs, not measured per job. Per-job quality probes are still missing.
+- **Verdict:** pending — run-forensics report and ledger 2026-11-08.
+
+## 2026-11-01 — Per-job quality floors: daily-intel and meeting-prep measured against their own skills
+- **Trigger:** the model-aware-harness entry above flagged "per-job quality probes are still missing". After the Sonnet 5 → 5.5 switch, mean cost per run fell 40–75%, and nothing measured whether the jobs still did their work. A person had already caught daily-intel shipping 1-item briefings (floor prose added 2026-10-31).
+- **Touched:**
+  - New `run-forensics/scripts/quality.py`. It measures each run of daily-intel and meeting-prep from its transcript, subagents included, counting each call id once, and from the files that run wrote. It checks the run against floors quoted from that job's SKILL.md:
+    - daily-intel: a briefing JSON was written; at least 2 searches per section; every item has a fetched source.
+    - meeting-prep: a prep and a surface per meeting, where a file the run read and kept counts; every task document was opened or listed in the prep; at most 4 web calls.
+  - `forensics.py`:
+    - `classify` adds the tracked step code `QUALITY_FLOOR` and a `quality` metrics block. A failed run is judged by its root failure; a parser error is recorded and never stops ingest.
+    - New `quality` subcommand: backfills earlier runs and prints the table.
+    - The report gains a per-job, per-model Quality table.
+  - Docs:
+    - `schema/taxonomy.json`: QUALITY_FLOOR added.
+    - `references/handbook.md`: a "Job quality floors" row.
+    - SKILL.md v8: section D, a taxonomy line, and the rules-before-judges line.
+    - INDEX row updated.
+- **Verification:**
+  - Backfill over 161 surviving transcripts. runs.jsonl keys are unchanged. Other jobs' lines are identical. Measured lines differ only by the quality fields, and the outcome flips clean→degraded on 39 meeting-prep runs and 2 daily-intel runs.
+  - Two classes of false positive were found by reading transcripts and removed before go-live:
+    - read-and-kept surfaces had counted as missing;
+    - the TASK path had been taken from the first file the run touched.
+  - The report renders, and QUALITY_FLOOR opens: 62 runs in 7 days. Tested under /usr/bin/python3 3.9.6. Evidence: `output/.runs/20261101-job-quality/EVIDENCE.md`.
+- **Measured (direct observation), medians per run:**
+
+  | Job | Model | Searches | Items | Source domains |
+  |---|---|---|---|---|
+  | daily-intel | Sonnet 5 | 28 | 6 | 10 |
+  | daily-intel | Sonnet 5.5 | 9 | 3 | 3 |
+
+  - daily-intel on 2026-10-31, after the floor prose: 29 searches, 44 fetches and 9 items, all fetched.
+  - meeting-prep on Sonnet 5.5: 59 of 80 runs left task documents neither opened nor listed; 283 per-meeting document slots in total.
+- **Expected to fix (falsifiable):** the next under-delivering model or harness change shows within one daily report, as a QUALITY_FLOOR issue or a step in the Quality table, instead of being found by reading briefings.
+- **Refuted if:** a run a person judges under-delivered (a thin briefing, a prep that ignores an attached deck) passes every floor; or QUALITY_FLOOR flags a run whose transcript shows the work was done (a false positive). Then fix the measurement before trusting the issue.
+- **Fires on stable:**
+  - Ingest reads one transcript per run plus its subagent files, which takes milliseconds and costs nothing.
+  - Clean runs of other jobs are untouched: they have no `JOBS` entry.
+- **Risk flagged:**
+  - QUALITY_FLOOR is one issue for both jobs. A fix scoped with `--jobs` is judged on that job only, and the other job's hits stay in the issue's counts.
+  - The daily-intel Sonnet 5.5 medians mix the old 3-section scope with one run on the new 10-section scope.
+  - Transcripts log most tool calls twice, so forensics' own step-code occurrence counts and `pair` timelines are inflated. That is flagged, not fixed here.
+- **Verdict:** pending. Read the run-forensics report on 2026-11-08: daily-intel holds its floors on the new scope, and the meeting-prep document floor gets the principal's call (mechanism, or the skill drops "read the file").

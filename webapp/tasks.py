@@ -93,9 +93,14 @@ def frontmatter(text):
     return dict(re.findall(r"^(\w+):\s*(.+?)\s*$", m.group(1), re.M)) if m else {}
 
 
-def alive(meta):
+def processes():
+    """Every process's command line: one `ps` per listing, not a `pgrep` per task (128 tasks took 3.5 s)."""
+    return subprocess.run(["ps", "-axww", "-o", "command="], capture_output=True, text=True).stdout
+
+
+def alive(meta, procs=None):
     sid = (meta or {}).get("session_id")
-    return bool(sid) and subprocess.run(["pgrep", "-f", sid], capture_output=True).returncode == 0
+    return bool(sid) and sid in (processes() if procs is None else procs)
 
 
 def notify(title, subtitle, message):
@@ -130,10 +135,10 @@ def launch(d, meta, env, answer=None):
     spine.parent.mkdir(parents=True, exist_ok=True)
     # Planning phase (interrogate + plan preview, before PLAN.json exists) runs on Opus — the
     # highest-leverage, hardest-reasoning part of a plan. CLI --model beats the plan-runner
-    # agent file's `model: sonnet`, which still governs once execution starts (PLAN.json exists).
+    # agent file's Sonnet `model:`, which still governs once execution starts (PLAN.json exists).
     # opusplan's own Opus/Sonnet auto-switch never fires here: it triggers on interactive plan
     # mode, which headless `claude -p` runs never enter.
-    model_args = ["--model", "opus"] if kind == "plan" and not (d / "PLAN.json").exists() else []
+    model_args = ["--model", "claude-opus-5-5"] if kind == "plan" and not (d / "PLAN.json").exists() else []
     tools = PLAN_TOOLS if kind == "plan" else TOOLS
     if runner == "upgrade":   # the builder works in the proposal's worktree, outside the repo
         try:
@@ -149,14 +154,14 @@ def launch(d, meta, env, answer=None):
     meta.setdefault("launches", []).append(time.time())
 
 
-def state_of(d, meta, status):
+def state_of(d, meta, status, procs=None):
     if meta is None:
         return "queued"
     if meta.get("cancelled"):
         return "cancelled"
     if meta.get("error"):
         return "failed"
-    if alive(meta):  # a live process is working, even if STATUS still shows the question it just got answered
+    if alive(meta, procs):  # a live process is working, even if STATUS still shows the question it just got answered
         return "working" if status.get("state") in (None, "needs_input") else status["state"]
     if status.get("state") == "needs_input" and unconsumed(d, meta):
         return "resuming"
@@ -173,7 +178,8 @@ def tick(env):
     if not TASKS.exists():
         return
     dirs = sorted(x for x in TASKS.iterdir() if x.is_dir() and (x / "TASK.md").exists())
-    running = sum(1 for d in dirs if alive(load(d / "meta.json", None)))
+    procs = processes()
+    running = sum(1 for d in dirs if alive(load(d / "meta.json", None), procs))
     for d in dirs:
         meta, status = load(d / "meta.json", None), load(d / "STATUS.json", {})
         fm = frontmatter((d / "TASK.md").read_text())
@@ -195,7 +201,7 @@ def tick(env):
             continue
         if meta.get("cancelled") or meta.get("error"):
             continue
-        is_alive = alive(meta)
+        is_alive = alive(meta, procs)
         if status.get("state") == "needs_input" and not is_alive and running < MAX_RUNNING:
             fresh = unconsumed(d, meta)
             if fresh:
@@ -214,7 +220,7 @@ def tick(env):
                 running += 1
                 save(d / "meta.json", meta)
                 continue
-        st = state_of(d, meta, status)
+        st = state_of(d, meta, status, procs)
         key = f"{st}:{status.get('updated')}"
         if st in ("needs_input", "done", "failed", "lost") and meta.get("notified") != key:
             msg = {"needs_input": f"Needs your input: {status.get('question', '')}",
@@ -250,7 +256,7 @@ def task_dir(tid):
 
 @router.get("/api/tasks")
 def list_tasks():
-    out = []
+    out, procs = [], processes()
     for d in sorted(TASKS.glob("*/TASK.md"), reverse=True) if TASKS.exists() else []:
         d = d.parent
         meta, status = load(d / "meta.json", None), load(d / "STATUS.json", {})
@@ -270,7 +276,7 @@ def list_tasks():
                     r["flag"] = flags.get(r.get("ref"))
         out.append({"id": d.name, "kind": fm.get("kind", "research"), "doc": plan,
                     "title": fm.get("title", d.name), "depth": fm.get("depth", "standard"),
-                    "requested": fm.get("requested"), "state": state_of(d, meta, status),
+                    "requested": fm.get("requested"), "state": state_of(d, meta, status, procs),
                     **{k: status.get(k) for k in ("stage", "plan", "question", "options", "questions", "summary", "report", "topic", "updated", "error")},
                     "error": (meta or {}).get("error") or status.get("error")})
     return out
