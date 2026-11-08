@@ -2,6 +2,30 @@
 
 One entry per edit made under the [[change-manifest]] module. Newest first. Verdict fills in on the edit's next real use — never delete a disconfirmed entry.
 
+## 2026-11-08 — Commit guard: nothing sensitive reaches GitHub, enforced by git hooks and a Bash hook
+- **Trigger:** the principal asked for "a bulletproof commit skill that checks everything that should never be on github", with "very strict guidelines". The same day's audit had found client names, prices and a job-search mention in uncommitted public-branch text that `outbound_gate.py` had missed.
+- **Touched:**
+  - **New** `scripts/commit_guard.py` (stdlib). Modes: `staged`, `push`, `range`, `hook`. It scans added lines and commit messages. Rules:
+    - secrets: 15 provider and generic patterns, plus high entropy next to a key word;
+    - secret-bearing files and force-added gitignored paths; files > 5 MB;
+    - personal e-mail, phone, IBAN and home paths;
+    - outbound_gate names, plus the real classification tag;
+    - bidi and zero-width Unicode; conflict markers;
+    - an author or committer that isn't the noreply address;
+    - force push, branch deletion, `archive/*` refs.
+
+    Output is masked. Exceptions live only in the local `.git/commit-guard-allow`. The guard fails closed on error.
+  - **New** `scripts/git-hooks/pre-commit` and `pre-push`; `core.hooksPath scripts/git-hooks` set for this clone.
+  - `.claude/settings.json`: PreToolUse `Bash` → `commit_guard.py hook`. It denies `--no-verify`, `commit -n`, `--force`, `--force-with-lease`, `+refspec`, `--delete`, `:branch`, pushes of `archive/*`, and any `core.hooksPath` change but the install value.
+  - **New** skill `workflow-ops/commit-guard` (v1): the never-on-GitHub list and the commit/push blueprint. INDEX row, header 152, `_category.md`, CLAUDE.md scripts line.
+  - **New** test `.claude/hooks/tests/commit-guard.test.sh` (54 assertions, throwaway repo + bare remote, fixtures assembled at run time, no vacuous passes).
+- **Expected to fix (falsifiable):** no commit pushed from this clone carries a secret, a personal address, a vault account or contact name, or a force-added ignored file. A session that tries `--no-verify` or a force push is denied.
+- **Refuted if:** a pushed commit is later found with one of those, the guard blocks a clean commit more than once a week (false positives push people to bypass it), or a bypass route outside the denied list turns up in a transcript.
+- **Preserves:** hook suites 256/256 (10 suites incl. the new 54). Frontmatter lint errors=0. Spec export errors=1 = baseline; warnings 8, the new one from run-forensics v10. Router eval unchanged. Regression suite 5/5 pass^3 on Sonnet 5.5 after every edit of the day (`output/regression/20261108-135616.tsv`). The dry run over all pending work found 11 issues, all fixed at the source except one public-figure name, which went to the local allow file on the principal's "commit everything".
+- **Fires on stable:** every Bash call starts one Python process (≈ 0.1 s). Each commit and push runs the scan (seconds; the vault name list is cached per run).
+- **Matched baseline:** n/a (deterministic, tested).
+- **Verdict:** pending. Check at the next five pushes, and at any guard block that the principal judges a false positive.
+
 ## 2026-11-08 — Vault links repaired at the generators; P3 grader narrowed to real denials
 - **Trigger:** the vault ratchet regressed (missing link targets 25 → 34 since 2026-11-02) and regression probe P3 failed a correct answer. The principal said "fix the open stuff".
 - **Touched:**

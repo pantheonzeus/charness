@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Commit guard (scripts/commit_guard.py): scans every commit a push sends; blocks force pushes, deletions and archive/* refs.
+exec python3 "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/commit_guard.py" push "$@"

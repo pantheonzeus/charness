@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Commit guard (scripts/commit_guard.py): blocks a commit that adds secrets, personal data, client names or ignored files.
+# Installed per clone with: git config core.hooksPath scripts/git-hooks
+exec python3 "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/commit_guard.py" staged

@@ -61,6 +61,16 @@
             "statusMessage": "Checking send approval"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/commit_guard.py\" hook",
+            "statusMessage": "Checking git safety"
+          }
+        ]
       }
     ],
     "PostToolUse": [
