@@ -23,11 +23,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
       - name: Build (strict)
         run: uv run --no-project --python 3.12 --with-requirements docs/requirements.txt mkdocs build --strict -f docs/mkdocs.yml
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
@@ -36,6 +36,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     permissions:
+      actions: read      # deploy-pages fetches the artifact by id
       pages: write
       id-token: write
     environment:
@@ -43,4 +44,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
