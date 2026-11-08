@@ -296,7 +296,6 @@ def cmd_list(args):
         time_str = s['start_time'].strftime('%H:%M')
         size_str = format_size(s['file_size'])
         title = s['title'][:60]
-        sid_short = s['session_id'][:8]
         print(f" {i:2}  {time_str}  {s['user_msg_count']:4}  {size_str:>6}  {title}")
 
     print(f"\n{len(sessions)} sessions", end="")
@@ -305,7 +304,7 @@ def cmd_list(args):
     print()
 
     # Print session IDs for expand
-    print(f"\nSession IDs (for expand):")
+    print("\nSession IDs (for expand):")
     for i, s in enumerate(sessions, 1):
         print(f"  {i:2}. {s['session_id'][:8]}")
 

@@ -262,10 +262,8 @@ def main():
 
     # ---- pass 2: Conversations index ----
     lines = ["---\ntype: index\nstatus: active\ntags: [index, mail]\n---",
-             f"# Conversations\n",
+             "# Conversations\n",
              f"*{len(messages)} messages · {len(threads)} conversations · from {data.get('query','')}*\n"]
-    # map email->display name for participant links
-    email_name = {e: n for (e, n) in {p for s in thread_people.values() for p in s}}
     for tid in thread_order:
         msgs = threads[tid]
         subj = thread_subject[tid]

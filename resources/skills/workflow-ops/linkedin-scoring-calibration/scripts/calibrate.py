@@ -340,7 +340,6 @@ def cmd_report(args):
     rows = load_data(args.data)
     n = len(rows)
     blend = blended_outcome(rows)
-    truth = terciles(blend)
     base_cfg = load_config(args.baseline_config)
     final_cfg = load_config(args.config)
     train_files = read_list(args.train) if os.path.isfile(os.path.normpath(args.train)) else None

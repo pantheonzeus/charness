@@ -18,7 +18,6 @@ import os
 import random
 import tempfile
 import time
-import uuid
 from pathlib import Path
 
 import uvicorn

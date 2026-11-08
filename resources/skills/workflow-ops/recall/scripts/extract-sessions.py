@@ -158,7 +158,7 @@ def format_timestamp(ts_str: str) -> str:
     try:
         dt = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
         return dt.strftime('%H:%M')
-    except:
+    except Exception:
         return ''
 
 
@@ -169,7 +169,7 @@ def write_session_md(session: dict, output_dir: str) -> str:
         dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
         date_str = dt.strftime('%Y-%m-%d')
         time_str = dt.strftime('%H%M')
-    except:
+    except Exception:
         date_str = 'unknown'
         time_str = '0000'
 
@@ -183,7 +183,7 @@ def write_session_md(session: dict, output_dir: str) -> str:
     lines.append(f'date: {date_str}')
     lines.append(f'session_id: {session["session_id"]}')
     lines.append(f'title: "{title}"')
-    lines.append(f'type: session-log')
+    lines.append('type: session-log')
     lines.append(f'messages: {len(session["messages"])}')
     lines.append('---')
     lines.append('')
@@ -245,10 +245,10 @@ def main():
                 if dt < cutoff:
                     skipped += 1
                     continue
-            except:
+            except Exception:
                 pass
 
-        outpath = write_session_md(session, args.output)
+        write_session_md(session, args.output)
         extracted += 1
         total_messages += len(session['messages'])
 

@@ -16,7 +16,7 @@ would raise the score without repairing the graph. Stub creation needs the princ
 Usage: python3 ratchet.py [--log PATH]   (default log: output/vault-ratchet/results.tsv)
 Exit 0 on HOLD, 1 on REGRESS.
 """
-import argparse, datetime, importlib.util, io, json, pathlib, subprocess, sys
+import argparse, datetime, importlib.util, io, json, pathlib, re, subprocess, sys
 from collections import Counter
 from contextlib import redirect_stdout
 
@@ -38,7 +38,6 @@ SKILL_IDS = {q.parent.name for q in (REPO / "resources/skills").glob("*/*/SKILL.
 OUTPUT_STEMS = {q.stem for q in (REPO / "output").rglob("*") if q.is_file() and ".runs" not in q.parts}
 MEMORY_STEMS = {q.stem for q in (pathlib.Path.home() / ".claude/projects" /
                 str(REPO).replace("/", "-") / "memory").glob("*.md")}
-import re
 def category(t):
     if t in SKILL_IDS: return "skill-ref"
     if t in MEMORY_STEMS: return "memory-ref"

@@ -79,7 +79,6 @@ def parse_workbook(path):
     post["post_url"] = ""
     post["date"] = ""
     demo = {"seniority": [], "industry": [], "company size": [], "location": []}
-    section = None
 
     for row in ws.iter_rows(values_only=True):
         cells = [("" if c is None else str(c).strip()) for c in row]
@@ -105,9 +104,6 @@ def parse_workbook(path):
                     demo[head].append((val, float(pct.rstrip("%"))))
                 except ValueError:
                     pass
-        elif head in ("discovery", "engagement", "profile activity",
-                      "post viewer demographics"):
-            section = head
 
     return post, demo
 

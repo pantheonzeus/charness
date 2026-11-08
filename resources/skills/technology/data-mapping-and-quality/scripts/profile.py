@@ -85,13 +85,13 @@ def main():
         top = q(con, f"SELECT {c}::VARCHAR, count(*) n FROM src GROUP BY 1 ORDER BY n DESC, 1 LIMIT {a.top}")
         tops.append((name, top))
 
-    out += ["", f"**Candidate single-column keys** (no nulls, all distinct): "
+    out += ["", "**Candidate single-column keys** (no nulls, all distinct): "
             + (", ".join(f"`{k}`" for k in candidate_keys) if candidate_keys else "none"), ""]
 
     if a.key:
         keys = [k.strip() for k in a.key.split(",")]
         kc = ", ".join(ident(k) for k in keys)
-        null_keys = q(con, f"SELECT count(*) FROM src WHERE " + " OR ".join(f"{ident(k)} IS NULL" for k in keys))[0][0]
+        null_keys = q(con, "SELECT count(*) FROM src WHERE " + " OR ".join(f"{ident(k)} IS NULL" for k in keys))[0][0]
         dup_groups, dup_rows = q(con, f"SELECT count(*), coalesce(sum(n), 0) FROM (SELECT count(*) n FROM src GROUP BY {kc} HAVING n > 1)")[0]
         out += [f"## Key check — ({', '.join(keys)})", "", f"- Rows with a NULL key part: **{null_keys:,}**",
                 f"- Duplicate key groups: **{dup_groups:,}** covering **{dup_rows:,}** rows"]

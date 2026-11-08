@@ -11,7 +11,6 @@ import argparse
 import json
 import re
 import subprocess
-import sys
 from pathlib import Path
 
 VAULT = Path.cwd()  # Expected to run from vault root
@@ -105,7 +104,7 @@ def main():
                     guide_text += "\n\n### Topics\n\n" + ", ".join(topics)
                 print(f"    OK: {len(summary)} chars, {len(keywords)} keywords")
             else:
-                print(f"    WARN: no guide returned")
+                print("    WARN: no guide returned")
 
         # Build topics frontmatter. A keyword becomes a [[link]] only when a vault note of that name
         # exists (matched case-insensitively, linked by its real name); otherwise it stays a plain string.
@@ -150,9 +149,9 @@ date: {date}
         created += 1
 
     print(f"\nDone: {created} created, {skipped} skipped")
-    print(f"\nNEXT (mandatory): wire every source note to a topic anchor, then verify:")
+    print("\nNEXT (mandatory): wire every source note to a topic anchor, then verify:")
     print(f"  bash resources/skills/research/notebooklm/scripts/link_audit.sh {args.slug}")
-    print(f"  A sync is NOT complete until link_audit exits 0.")
+    print("  A sync is NOT complete until link_audit exits 0.")
 
 
 if __name__ == "__main__":

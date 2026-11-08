@@ -198,7 +198,7 @@ async def load_videos(videos_file: str, notebook_id: str, count: int, concurrenc
     if errors:
         with open("/tmp/channel-load-errors.json", "w") as f:
             json.dump(errors, f, indent=2)
-        print(f"Errors saved to /tmp/channel-load-errors.json")
+        print("Errors saved to /tmp/channel-load-errors.json")
 
 
 # =============================================================================

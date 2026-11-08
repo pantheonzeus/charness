@@ -1,0 +1,9 @@
+# Lint rules for scripts/check.sh and CI: pyflakes and the core pycodestyle errors, pinned here rather
+# than left to ruff's changing default set. Five rules are off because they would flag the repo's
+# deliberate compact style: `import a, b`, one-line `if x: y` and `a; b`, named lambdas, and short
+# names like `l`. No formatter is enforced.
+target-version = "py39"   # macOS system python3, which the hooks and launchd jobs run on
+
+[lint]
+select = ["E4", "E7", "E9", "F"]
+ignore = ["E401", "E701", "E702", "E731", "E741"]
