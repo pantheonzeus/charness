@@ -50,7 +50,8 @@ KEEP_RATIO = 0.35    # rows scoring under this share of the best one are dropped
 MIN_TERMS = 2        # distinct prompt words a row's INDEX fields must share, absent a phrase or slug hit
 WEIGHTS = {"triggers": 3.0, "name": 2.0, "slug": 2.0, "description": 1.0, "body": 2.0}
 # Harness text wrapped around the person's words: reminders, and the console's meeting context block.
-SYSTEM_TEXT = re.compile(r"<system-reminder>.*?</system-reminder>|<context refreshed[^>]*>.*?</context>", re.S)
+SYSTEM_TEXT = re.compile(r"<system-reminder>.*?</system-reminder>|<context refreshed[^>]*>.*?</context>"
+                         r"|<on-stage>.*?</on-stage>", re.S)   # on-stage: the console's stage tag, metadata
 STOP = set("""a an and are as at be by can do for from have how i if in into is it its me my of on or our please
 should so that the their them then there these this to us we what when where which who why will with you your
 der die das und ist ein eine einen einem einer zu mit für von auf im in den dem des ich du er sie es wir ihr

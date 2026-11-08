@@ -43,10 +43,11 @@ TASKS = REPO / "output" / "tasks"
 PLANS = REPO / "output" / "plans"
 BRIEFINGS = REPO / "output" / "briefings"
 FORENSICS = REPO / "output" / "run-forensics"
+SESSIONS_PY = "resources/skills/workflow-ops/run-forensics/scripts/sessions.py"   # lessons ledger (run-forensics §E)
 WORKTREES = Path.home() / "GitHub" / "cbrain-upgrades"
 RUN_AGENT = REPO / "scripts" / "run_agent.sh"
 MAX_NEW, MAX_OPEN, MIN_SEARCHED, DEFER_DAYS = 3, 5, 4, 7
-SCOPES = ("cc-releases", "harness-research", "console-ux", "run-failures")
+SCOPES = ("cc-releases", "harness-research", "console-ux", "run-failures", "session-lessons")
 FIELDS = ("title", "scope", "source", "finding", "current", "change", "files", "steps",
           "predicted_effect", "refuted_if", "effort", "risk", "confidence")
 FORBIDDEN = ("IDENTITY.md", "employers/", "cbrain/", "output/", ".mcp.json")   # private or generated: never a proposal's target
@@ -55,6 +56,8 @@ SETUP = ["HARNESSCARD.md", "Charter.md", "resources/skills/_shared/CHANGE_LOG.md
 CLI_ENV = {k: v for k, v in os.environ.items() if k not in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")}
 REL = lambda p: str(Path(p).relative_to(REPO))
 TOOLS = ["Read", "Glob", "Grep", "Write", "WebSearch", "WebFetch", "Bash(date:*)",
+         "Bash(python3 scripts/session_archive.py show:*)", "Bash(python3 scripts/session_archive.py find:*)",
+         f"Bash(python3 {SESSIONS_PY} lesson:*)", f"Bash(python3 {SESSIONS_PY} lessons:*)",
          f"Bash(uv run {REL(__file__)}:*)", f"Bash(uv run {__file__}:*)"]
 TRAILER = "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
@@ -155,6 +158,7 @@ def check(root):
     if len(result["proposals"]) > cap:
         errs.append(f"at most {cap} proposals this run, found {len(result['proposals'])}")
     seen = {slug(t) for t in task.get("closed_titles", [])}
+    ready = {l["id"] for l in task.get("ready_lessons", [])}
     for i, p in enumerate(result["proposals"]):
         miss = [k for k in FIELDS if not p.get(k)]
         if miss:
@@ -176,8 +180,12 @@ def check(root):
             f = str(f)
             if f.startswith(FORBIDDEN) or ".." in f or f.startswith("/"):
                 errs.append(f"proposals[{i}]: {f} is off limits (private, generated or outside the repo)")
-            elif not (REPO / f).exists() and not (REPO / f).parent.is_dir():
+            elif not (REPO / f).exists() and not (REPO / f).parent.is_dir() and not (
+                    re.fullmatch(r"resources/skills/[a-z-]+/[a-z0-9-]+/SKILL\.md", f) and (REPO / f).parent.parent.is_dir()):
                 errs.append(f"proposals[{i}]: {f} neither exists nor sits in an existing folder")
+        if p["scope"] == "session-lessons" and not (
+                isinstance(p.get("lessons"), list) and p["lessons"] and set(p["lessons"]) <= set(ready)):
+            errs.append(f"proposals[{i}]: a session-lessons proposal lists the ready lesson ids it acts on in 'lessons'")
         if slug(p["title"]) in seen:
             errs.append(f"proposals[{i}]: '{p['title']}' was already proposed and decided; drop it")
     return errs
@@ -203,8 +211,14 @@ def scout_context():
             for i, d in latest().items()]
     closed = [p["title"] for p in past if p["decision"] in ("rejected", "built", "applied", "closed", "discarded", "proposed", "approved")
               or (p["decision"] == "deferred" and (p.get("until") or "") > today)]
+    sessions = sorted(FORENSICS.glob("sessions-*.md"))[-1:] if FORENSICS.exists() else []
+    lessons = load(FORENSICS / "lessons.json", {})
+    ready = [{"id": i, "text": l["text"], "target": l["target"], "sessions": l["sessions"][:5],
+              "helpful": l["helpful"], "harmful": l["harmful"], "provenance": l["provenance"]}
+             for i, l in lessons.items() if l["status"] == "candidate" and len(set(l["sessions"])) >= 2
+             and l["helpful"] - l["harmful"] >= 2]
     return {"briefings": [REL(p) for p in briefings], "forensics_report": [REL(p) for p in reports],
-            "failing_codes": failing, "setup": [f for f in SETUP if (REPO / f).exists()],
+            "failing_codes": failing, "sessions_report": [REL(p) for p in sessions], "ready_lessons": ready, "setup": [f for f in SETUP if (REPO / f).exists()],
             "past_proposals": past, "closed_titles": closed}
 
 
@@ -302,6 +316,8 @@ def stage(root):
                                  "question": f"Build it on branch {branch}? {p['predicted_effect']}"[:400],
                                  "options": ["Go", "Reject", "Defer a week"]})
         decide(tid, "proposed", p["title"])
+        for lid in p.get("lessons") or []:
+            subprocess.run([sys.executable, str(REPO / SESSIONS_PY), "lesson", "mark", lid, "proposed", "--ref", tid], cwd=REPO)
         staged.append(tid)
     return staged
 

@@ -6,7 +6,7 @@ A local web UI for running the harness from the browser. The conversation is one
 uv run webapp/server.py        # → http://127.0.0.1:8765   (CBRAIN_WEB_PORT to change)
 ```
 
-Always on: `webapp/com.cbrain.webapp.plist` runs it under launchd (starts at login, restarts on exit, logs to `output/webapp.log`). Install it with `cp webapp/com.cbrain.webapp.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.cbrain.webapp.plist`. To restart after a code change, run `launchctl kickstart -k gui/$(id -u)/com.cbrain.webapp`.
+Always on: `webapp/com.cbrain.webapp.plist` runs it under launchd (starts at login, restarts on exit, logs to `output/webapp.log`). Install it with `cp webapp/com.cbrain.webapp.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.cbrain.webapp.plist`. To restart after a code change, run `scripts/jarvis.sh restart`; `scripts/jarvis.sh stop|start|status` for the rest (killing the process does nothing: KeepAlive restarts it).
 
 ## What it does: one page, Jarvis and the work
 **One voice page.** On the left is Jarvis: her rings carry the voice state, with what she just said or heard, *what needs you* in her order, and the conversation. On the right is **the stage**: the one thing you two are looking at.

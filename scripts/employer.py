@@ -233,6 +233,10 @@ def exit_report(slug=None):
         print(f"- {d}: {len(files)} files, {sum(x.stat().st_size for x in files) // 1024} KB")
     print("- .vault-history.git: every headless run's vault commit, including the notes above; deleting a note "
           "does not remove it from history")
+    idx = REPO / "output" / ".sessions" / "index.jsonl"
+    n = sum(f'"employer": "{slug}"' in l for l in idx.read_text().splitlines()) if idx.exists() else 0
+    print(f"- output/.sessions: {n} archived session transcripts recorded while this pack was active "
+          "(scripts/session_archive.py; secrets redacted, client content intact)")
     print("\n## Credentials to revoke and delete\n")
     for c in p.get("exit", {}).get("credentials", []):
         print(f"- {c} ({'present' if Path(os.path.expanduser(c)).exists() else 'absent'})")

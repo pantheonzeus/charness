@@ -2,6 +2,25 @@
 
 One entry per edit made under the [[change-manifest]] module. Newest first. Verdict fills in on the edit's next real use — never delete a disconfirmed entry.
 
+## 2026-11-08 — Session archive + session lessons: learn from the principal's own sessions
+- **Trigger:** the principal asked to keep sessions as a record to investigate decisions later, and to learn from them to create and update skills. Research run `output/.runs/20261108-session-learning/` (retention practice, ACE/ExpeL/AWM/GEPA/Meta-Harness, provenance risks). Finding: transcripts were deleted after 30 days (default `cleanupPeriodDays`, oldest left 2026-10-10), and nothing read interactive sessions.
+- **Touched:**
+  - `~/.claude/settings.json` (user, not in repo): `cleanupPeriodDays: 90`.
+  - **New** `scripts/session_archive.py` (`sync`/`verify`/`find`/`show`): every transcript (main + subagents) gzipped to `output/.sessions/`, secrets redacted by pattern, hash-chained index with origin (human · job · automated), job, git sha, employer, taint (`ingest_lint.events`), files written, skills used; a resumed session becomes a new version. Backfill: 1,434 transcripts, 650 MB, `verify` OK. Its 15 redactions were all false positives on review (public page key, placeholders, `${VAR}` references, and 2 "refresh tokens" that were runs inside a base64 attachment); the OAuth pattern now refuses base64-flanked matches (+2 test assertions, 24 total).
+  - **New** `run-forensics/scripts/sessions.py` (`scan`, `lesson add|vote|mark`, `lessons`); run-forensics v10 section E; plist template runs `sync → scan → report` at 07:20.
+  - harness-upgrade-scout v5: `sessions_report` + `ready_lessons` in TASK.json, scope `session-lessons`, `check` requires the lesson ids, new-skill paths allowed, `stage` marks lessons `proposed`; agent file allows the two helpers.
+  - **New** skill `workflow-ops/jarvis-control` (v1) + `scripts/jarvis.sh`: from lesson L1 (15 sessions asked to stop the app; KeepAlive restarted what was killed). INDEX row, `_category.md`, header 151.
+  - `scripts/employer.py exit-report`: counts archived sessions per employer. `scripts/skill_router.py`: strips the console's `<on-stage>` tag like other system text (the new "jarvis" vocabulary otherwise silenced two deep-research prompts tagged "(by jarvis)").
+  - Docs: `CLAUDE.md` scripts line, `webapp/README.md`, `propose-from-sessions.md` step 2.
+  - **New** test `.claude/hooks/tests/session-archive.test.sh` (24 assertions: redaction incl. a base64 negative case, origin, versioning, tamper on index line, removed line, stored file).
+- **Expected to fix (falsifiable):** (a) no transcript is lost again: `session_archive.py verify` stays OK and every session in `~/.claude/projects` older than 2 h has an index entry after the 07:20 run; (b) "stop the jarvis app" is answered with one `scripts/jarvis.sh` call: in the next 10 human sessions that ask it, ≤ 1 other shell call per ask (was ~3); (c) within 30 days the scout stages ≥ 1 `session-lessons` proposal from a lesson it curated itself.
+- **Refuted if:** (a) `verify` fails or a session older than 2 h is missing from the index on a day the job ran; (b) sessions keep improvising `ps`/`kill` for the console; (c) 30 days of scout runs add no lesson, or every lesson it adds is rejected as wrong on review.
+- **Preserves:** hook suites 200/200 (were 178/178; +22 new). Frontmatter lint errors=0. Router eval unchanged after the `<on-stage>` fix (held-out 24/31, 12/15; train 36/49, 8/14; 23/31 and 35/49 before it).
+- **Fires on stable:** the 07:20 job now syncs first (backfill 3 min; daily increment seconds) and scans 7 days of human sessions. The scout reads one more report and may open ≤ 3 archived sessions per run, inside its $3 budget.
+- **Matched baseline:** n/a for the archive (deterministic, tested). Lessons are judged by the principal at Go/Reject.
+- **Not done:** the launchd plist is updated in the repo template only; installing it into `~/Library/LaunchAgents` was blocked by the session's safety classifier and is the principal's one command. Redaction is pattern-based and misses unknown secret formats. HARNESSCARD not updated.
+- **Verdict:** pending. Check (a) after the first 07:20 run, (b) at the next ten stop requests, (c) on 2026-12-08.
+
 ## 2026-11-08 — Health-audit fixes: public-branch scrub, citation corrections, memory verifier tokens, gate legal-form match
 - **Trigger:** the health audit `output/.runs/20261108-harness-health-audit/` (REPORT.md, EVIDENCE.md, three citation verifiers under `children/`). The principal said "do the recommendation" (items 1–3 and 7; slack-intel skipped).
 - **Touched:**
