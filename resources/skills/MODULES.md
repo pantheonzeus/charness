@@ -46,6 +46,7 @@ Distinct from both tables above: this contract was written from this repo's own 
 - `vault-hygiene/skill-library-maintenance` — `autoresearch-loop` (frontmatter lint fix-loop; routing eval on INDEX triggers, 42 real prompts, train/held-out split).
 - `vault-hygiene/progressive-disclosure` — `autoresearch-loop` (recall benchmark as the standing guard, not a target).
 - `vault-hygiene/vault-maintenance` — `autoresearch-loop` (weekly ratchet: missing targets by category, recall-gated, no auto-fix).
+- `vault-hygiene/memory-consolidation` — `file-backed-state` (base/proposed/backup copies in a STATE_ROOT, hash-checked before apply), `verifier-separation` (`memory_dream.py check` judges coverage, preservation and faithfulness, not the consolidator).
 - `sales/audience-of-one-report` — `file-backed-state`, `evidence-backed-answering`, `verifier-separation`, `self-evolution` (the maximal worked example of the full stack).
 - `sales/competitive-porter-teardown` — `file-backed-state`, `file-backed-handoff`, `evidence-backed-answering` (per-BU fan-out via task-packet files, evidence-gated synthesis).
 - `content/linkedin-comment-engagement` — `evidence-backed-answering`.

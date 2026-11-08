@@ -7,6 +7,20 @@ A memory is a claim that was true when written. This lists the ones to re-check:
                  dated by metadata.last_verified, else metadata.modified, else the file's mtime
   - unindexed:   a memory file MEMORY.md does not list (it is never injected)
   - dangling:    a MEMORY.md line pointing at a file that does not exist
+  - superseded:  a file with metadata.superseded_by that MEMORY.md still lists, or whose target is missing
+  - unconsolidated: a body that still carries an inline revision (**Correction**, **Update**, **Outcome**,
+                 **Resolved**, "supersedes"/"superseded") above its `## Superseded` section
+  - unscoped:    a feedback memory with no `**How to apply:**` line saying which tasks the rule governs
+
+Supersession convention (Memora, arXiv 2604.20006: agents keep reusing invalidated memories):
+  - The body states only what is true now. A retired claim moves to a closing `## Superseded` section as
+    `- YYYY-MM-DD: <old claim> → <what replaced it>`, so it stays auditable but never reads as current.
+  - A whole memory replaced by another gets `superseded_by: <name>` under `metadata:` and leaves MEMORY.md.
+  - A feedback rule names its scope in `**How to apply:**`. A preference given for one kind of task (skip a
+    confirmation, relax a check) never widens to others. (The Memory Trap, arXiv 2611.07554: memories from
+    benign low-stakes sessions led agents to skip confirmation and weaken tests on high-stakes tasks.)
+  - The consolidation pass (resources/skills/vault-hygiene/memory-consolidation, scripts/memory_dream.py)
+    clears both flags.
 
   python3 scripts/memory_sweep.py           full report
   python3 scripts/memory_sweep.py --brief   one line, or nothing when clean (the SessionStart hook)
@@ -24,6 +38,8 @@ PROJECT = os.environ.get("CLAUDE_PROJECT_DIR") or str(Path(__file__).resolve().p
 MEMORY = Path.home() / ".claude" / "projects" / PROJECT.replace("/", "-") / "memory"
 WINDOW = {"project": 30}
 DEFAULT_WINDOW = 180
+HOW_TO_APPLY = re.compile(r"^\*\*How to apply:?\*\*", re.M)
+REVISION = re.compile(r"^[ \t]*\*\*(Correction|Update|Outcome|Resolved)\b|\bsupersed(es|ed)\b", re.I | re.M)
 
 
 def frontmatter(text):
@@ -38,15 +54,36 @@ def day(value):
         return None
 
 
-def sweep(today=None):
-    today = today or dt.date.today()
-    index = (MEMORY / "MEMORY.md").read_text() if (MEMORY / "MEMORY.md").exists() else ""
+def unconsolidated(text):
+    """Inline revisions in the body above `## Superseded` (frontmatter and that section excluded)."""
+    body = re.sub(r"\A---\n.*?\n---\n", "", text, flags=re.S)
+    current = re.split(r"^## Superseded\b", body, maxsplit=1, flags=re.M)[0]
+    return sorted({m.group(0).strip("* \t").lower() for m in REVISION.finditer(current)})
+
+
+def sweep(today=None, memory=None):
+    today, memory = today or dt.date.today(), memory or MEMORY
+    index = (memory / "MEMORY.md").read_text() if (memory / "MEMORY.md").exists() else ""
     linked = set(re.findall(r"\]\(([^)]+\.md)\)", index))
-    found = {"expired": [], "unverified": [], "unindexed": [], "dangling": sorted(l for l in linked if not (MEMORY / l).exists())}
-    for f in sorted(MEMORY.glob("*.md")):
+    found = {"expired": [], "unverified": [], "unindexed": [], "dangling": sorted(l for l in linked if not (memory / l).exists()),
+             "superseded": [], "unconsolidated": [], "unscoped": []}
+    for f in sorted(memory.glob("*.md")):
         if f.name == "MEMORY.md":
             continue
-        fm = frontmatter(f.read_text())
+        text = f.read_text()
+        fm = frontmatter(text)
+        by = fm.get("superseded_by", "")
+        if by:
+            if not (memory / f"{by.removesuffix('.md')}.md").exists():
+                found["superseded"].append(f"{f.name} (superseded_by {by}: no such memory)")
+            if f.name in linked:
+                found["superseded"].append(f"{f.name} (superseded by {by}, still in MEMORY.md)")
+            continue
+        marks = unconsolidated(text)
+        if marks:
+            found["unconsolidated"].append(f"{f.name} ({', '.join(marks)})")
+        if fm.get("type") == "feedback" and not HOW_TO_APPLY.search(text):
+            found["unscoped"].append(f.name)
         until = day(fm.get("valid_until", ""))
         if until and until < today:
             found["expired"].append(f"{f.name} (valid until {until})")
@@ -66,7 +103,9 @@ def main(argv):
     if "--brief" in argv:
         if any(n.values()):
             print("Memory sweep: " + ", ".join(f"{v} {k}" for k, v in n.items() if v) +
-                  ". Re-check before relying on them: python3 scripts/memory_sweep.py")
+                  ". Re-check before relying on them: python3 scripts/memory_sweep.py" +
+                  ("; consolidate: resources/skills/vault-hygiene/memory-consolidation"
+                   if n["superseded"] or n["unconsolidated"] else ""))
         return 0
     print(f"# Memory sweep — {MEMORY}\n")
     for k, items in found.items():

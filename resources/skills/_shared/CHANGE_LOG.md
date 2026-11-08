@@ -2,6 +2,22 @@
 
 One entry per edit made under the [[change-manifest]] module. Newest first. Verdict fills in on the edit's next real use — never delete a disconfirmed entry.
 
+## 2026-11-08 — Memory supersession convention + reviewed consolidation ("dream") pass
+- **Trigger:** the second-brain frontier scan (`output/research/20261108-second-brain-frontier.md`) named two gaps: nothing merges or supersedes memories, and superseded facts are handled by hand. The principal said "close gap 1, close gap 2". Live evidence: 4 of 20 memories carry inline Correction/Update/Outcome/Resolved/"supersedes" lines, and one description still states a status that a later outcome had overtaken.
+- **Touched:**
+  - `scripts/memory_sweep.py`: the convention in its docstring; new flags `superseded` and `unconsolidated`; the `--brief` line points to the skill.
+  - **New** `scripts/memory_dream.py`: `stage`, `check`, `diff`, `apply`.
+  - **New** skill `vault-hygiene/memory-consolidation` (v1); the INDEX row; `_category.md`; `MODULES.md` declared list.
+  - Charter §4: one sentence.
+  - **New** test `.claude/hooks/tests/memory-dream.test.sh` (26 assertions).
+- **Expected to fix (falsifiable):** after one consolidation and apply, `memory_sweep.py` shows 0 unconsolidated, and no session acts on a superseded claim (an old offer price, an overtaken status) as current. New inline revisions get flagged at the next SessionStart instead of piling up.
+- **Refuted if:** (a) a session after apply quotes a claim from a `## Superseded` section as current; or (b) `check` passes a consolidation that the principal finds lost or changed a fact on review. If (b), the token rule is too coarse: a reworded claim keeps its tokens and still passes.
+- **Fires on stable:** the sweep runs at every SessionStart (stdlib, < 50 ms). It now adds "N unconsolidated" for files that are already in that state. That line is expected to show until the first apply. No LLM in the check. Router: the bare "dream" trigger was dropped after it caught "I had a weird dream last night". The eval shows no miss attributed to the new skill; train/held-out move within the ±2 noise seen across repeated runs (with the row 50–52/41–42, without it 53/42 on one run).
+- **Matched baseline:** n/a. The verifier is deterministic; the consolidation itself is reviewed by the principal.
+- **Risk flagged:** the regex for revision markers is English and bold-led. A German "Korrektur" or an unbolded "Update:" slips through. Widen it only when a real miss shows up.
+- **First apply (2026-11-08):** confirmed on two clauses. (1) Sweep after apply: 0 unconsolidated, 0 superseded. (2) Both guards fired for real. `check` failed the first charness rewrite because a concurrent session had added facts after the audit read. `apply` refused once on live drift (the same session, 12:28) and passed after re-staging.
+- **Verdict:** partial. The mechanism is confirmed. The behavioural clause (no session acts on a superseded claim) is still pending: check the next sessions that touch the two memories that motivated it.
+
 ## 2026-11-08 — PostToolUseFailure hook answers a missed path with what exists
 - **Trigger:** principal approved scout proposal 20261102-0837-upgrade-1. The headless build stopped on 2026-11-02 because Claude Code refuses writes under `.claude/` in a headless run; the builder's drafts were installed in an interactive session.
 - **Evidence:** PATH_MISS regressed to 35 hits in 14 runs across 7 jobs (forensics report 2026-11-02); the 2026-10-20 prose fix still let 7 of 135 runs hit it.
