@@ -28,6 +28,7 @@ First tagged release of the public harness.
 ### Changed
 - Harness research applied: NLAH v2 numbers, the authority rule for ingested text, frozen safety text.
 - 14 citations corrected against the papers (3 wrong, 11 simplified).
+- README opens with what you get and a four-line quickstart.
 - README and harness card refreshed; Lean Service Creation skills carry their CC BY-SA 4.0 licence (`NOTICE`).
 - `linkedin-viral-scheduler` description shortened to the Agent Skills spec limit.
 

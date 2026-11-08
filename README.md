@@ -5,6 +5,25 @@
 
 A configuration-as-code workspace for [Claude Code](https://claude.com/claude-code). It turns a general-purpose agent into a consistent, opinionated operator with a fixed identity, a set of operating rules, and a reusable **skill library** — tuned for research, high-signal content, and automated knowledge-work.
 
+## What you get
+
+- **A skill library in ten categories**: research, content, sales, strategy, technology, service and business design, knowledge graph, vault hygiene and workflow ops. Each skill is one editable Markdown policy, and the agent picks the matching one for each task ([`INDEX.md`](resources/skills/INDEX.md)).
+- **Guardrails in code, not in prompts.** Hooks check every write, web call and send: headless jobs write only inside their declared scopes, nothing is sent without your explicit yes and a confidentiality scan, and a commit guard keeps secrets and client names out of git.
+- **Memory that stays true.** An Obsidian vault holds long-term knowledge; a one-file-per-fact memory marks retired facts as superseded instead of reusing them.
+- **Scheduled agents**: briefings, mail triage and research loops run under launchd with pinned models, budgets and a run ledger.
+- **A local console** for voice and chat, running on your Claude subscription.
+
+**Quickstart** (built and tested on macOS; needs [Claude Code](https://claude.com/claude-code), Python 3.9+, [`uv`](https://docs.astral.sh/uv/) and `jq`):
+
+```bash
+git clone https://github.com/pantheonzeus/charness.git && cd charness
+cp IDENTITY.example.md IDENTITY.md   # make the persona yours
+scripts/check.sh                     # every test and lint, under a minute
+claude                               # CLAUDE.md loads the harness
+```
+
+Then see [Getting started](#getting-started).
+
 > **Note on scope.** The private knowledge vault (`cbrain/`), the `autoresearch/` scratch area, the `input/` artifacts folder, the `output/` deliverables folder, and your private `IDENTITY.md` persona are git-ignored and **not** part of this repository. What's tracked here is the *operating system* — the voice mechanics, rules, skills, and integration setup — not the data or the specific persona it operates with.
 
 ## Foundation
