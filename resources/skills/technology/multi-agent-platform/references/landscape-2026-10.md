@@ -35,8 +35,8 @@
 - OTel GenAI semantic conventions define agent spans (`create_agent`, `invoke_agent`, `execute_tool`) but are still at **Development** stability. Pin the version. [S] https://www.dash0.com/knowledge/opentelemetry-genai-semantic-conventions-explained
 
 ## 5. Research on harnesses and failures
-- **MAST** (NeurIPS 2025): 1,642 traces, 14 failure modes. System design 43.7% (step repetition 15.7%, unaware of termination 12.4%, task-spec disobedience 11.8%). Inter-agent misalignment 45.3%. Verification 11.0%. Prompt and role fixes gained only +9–16%. [D] https://arxiv.org/html/2503.13657v3
-- **NLAH** (arXiv 2603.25723) module ablation on SWE-bench Verified: self-evolution +4.8, file-backed state +1.6, evidence-backed answering +1.6, dynamic orchestration 0.0, verifier −0.8, multi-candidate search −2.4. [D] https://arxiv.org/html/2603.25723v1
+- **MAST** (NeurIPS 2025 D&B): 1,642 traces, 14 failure modes. System design 44.2% (step repetition 15.7%, unaware of termination 12.4%, task-spec disobedience 11.8%). Inter-agent misalignment 32.3%. Task verification 23.5%. Role-spec and workflow fixes gained only +9.4% to +15.6%. [D] https://arxiv.org/html/2503.13657v3
+- **NLAH** (arXiv 2603.25723 v2, Table 5) module ablation on SWE-bench Verified: self-evolution +5.8, evidence-backed answering +2.8, file-backed state +2.6, dynamic orchestration +1.6, verifier +0.2, multi-candidate search −1.6, context compression −1.0, markdown memory −2.8. [D] https://arxiv.org/html/2603.25723v2
 - **AHE** (arXiv 2604.25850): observability-driven harness evolution took Terminal-Bench 2 from 69.7% to 77.0% in 10 iterations. [D] https://arxiv.org/abs/2604.25850
 - **τ-bench:** pass^k consistency; gpt-4o scored under 25% pass^8 in retail. [D-snippet] https://arxiv.org/abs/2406.12045
 
@@ -55,5 +55,5 @@ Source: [D] https://www.gibsondunn.com/eu-ai-act-omnibus-agreement-postponed-hig
 
 ## Contested
 - Whether to go multi-agent at all: Anthropic vs Cognition. It depends on task shape.
-- Verifiers: MAST favours them, NLAH measured −0.8. Align any verifier with the real acceptance criterion.
+- Verifiers: MAST favours them, NLAH v2 measured only +0.2 on SWE-bench Verified (+8.4 on OSWorld; v1 had −0.8). Align any verifier with the real acceptance criterion.
 - These are secondary-source only: the OpenAI guide's split criteria, A2A v1.0 details, the Microsoft Agent Framework GA date and the final Omnibus text.

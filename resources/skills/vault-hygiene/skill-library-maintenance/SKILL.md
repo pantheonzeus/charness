@@ -11,9 +11,9 @@ scripts: [scripts/lint_frontmatter.py, scripts/routing_eval.py, scripts/lean_ind
 workflows: [workflows/propose-from-sessions.md]
 modules: [autoresearch-loop]
 status: active
-version: 7
+version: 8
 created: 2026-07-05
-updated: 2026-11-02
+updated: 2026-11-08
 ---
 
 # Skill Library Maintenance
@@ -45,7 +45,7 @@ The meta-skill for `resources/skills/`. Governs importing external skills, keepi
   - Mapping: `id`→`name`; triggers folded into the description ("Use when: …") while it fits; `environment`→`compatibility` when ≤500 chars; `allowed-tools` stays top level; the display `name` becomes `metadata.title`; every other key moves under `metadata` with its name and YAML type unchanged. Common angle forms are rewritten (`>=`→`≥`, `<path>`→`{path}`).
   - `export SLUG… --out DIR` writes a complete skill folder per slug: the converted SKILL.md, the body and all bundled files byte-identical.
   - **In-place migration is not decided.** Pilot run on 5 skills (`output/.runs/20261102-skill-spec-export/`): export only, sources unchanged, awaiting the principal's decision.
-- **Preselector eval (in-session routing hint):** `python3 scripts/skill_router.py eval` prints recall@5 per split. Baseline 2026-10-23: train 17/25, held-out 11/17. Trigger edits (German and email vocabulary are the main misses) are judged on **both** evals: `routing_eval.py` measures an explicit dispatcher reading the whole INDEX, which arXiv:2610.18522 shows stays robust at scale; the preselector measures what an in-session prompt actually gets shown.
+- **Preselector eval (in-session routing hint):** `python3 scripts/skill_router.py eval` prints recall@5 per split. Baseline 2026-10-23: train 17/25, held-out 11/17. Trigger edits (German and email vocabulary are the main misses) are judged on **both** evals: `routing_eval.py` measures an explicit dispatcher reading the whole INDEX, which arXiv:2610.18522 shows degrades far less than implicit routing (98.4% → 73.9% recall at 1,000 added skills, vs 27.4% implicit); the preselector measures what an in-session prompt actually gets shown.
   - One headless dispatcher call reads only INDEX.md and routes 42 real past prompts. The golden set lives at `resources/skills/_evals/routing.tsv` (gitignored: real prompts carry client names), split 28 train / 14 held-out.
   - **Loop card** (per `_shared/autoresearch-loop.md`): mutate one trigger or description cell per candidate and keep the SKILL.md `triggers:` in sync. Guards: held-out mean must not drop, and INDEX may grow at most +5%.
   - **Noise is ±3 train prompts between identical runs**, so score each candidate on the mean of 2 runs or more. Never tune toward a held-out miss.

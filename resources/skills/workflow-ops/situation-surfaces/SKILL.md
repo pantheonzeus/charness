@@ -8,9 +8,9 @@ triggers: [show me the situation, map the stakeholders, risk sheet, show it as a
 tags: [workflow-ops, console, generative-ui, a2ui, evidence]
 related: ["[[meeting-prep-loop]]", "[[living-plan]]"]
 status: active
-version: 1
+version: 2
 created: 2026-10-11
-updated: 2026-10-11
+updated: 2026-11-08
 modules: [evidence-backed-answering]
 scripts: [scripts/surface.py]
 ---
@@ -25,7 +25,7 @@ scripts: [scripts/surface.py]
 - **Allowed:** only the component types below. No HTML, no markup and no code in any string; the desk escapes everything anyway.
 - **Done when:** `surface.py check` prints `OK`.
 
-**Why a catalog and not generated code.** This follows Google's A2UI pattern (agent JSON rendered from a client-owned catalog of pre-approved components). The desk owns the look and what each component can do; the agent only chooses and fills. It's safe, consistent and local. Polished layouts raise perceived credibility even when the content is no better (Chen et al., arXiv 2508.19227: 86.5% of relevant comments), so **every block declares its confidence, and the renderer makes `unsure` look rougher**.
+**Why a catalog and not generated code.** This follows Google's A2UI pattern (agent JSON rendered from a client-owned catalog of pre-approved components). The desk owns the look and what each component can do; the agent only chooses and fills. It's safe, consistent and local. Polished layouts read as more credible, and not only because of the content (Chen et al., arXiv 2508.19227: 86.5% of credibility-related comments favoured the generative UI, §4.3, Table 4), so **every block declares its confidence, and the renderer makes `unsure` look rougher**.
 
 **Envelope**
 ```json

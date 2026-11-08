@@ -1,6 +1,6 @@
 # Harness Patterns — the parts no framework ships
 
-Distilled from a 2026 industrial agent engagement: a framework-free reference agent with eight gates, ported 1:1 to a graph framework. These are client-agnostic patterns. Research basis: NLAH (arXiv 2603.25723), where file-backed state and evidence-backed answering were the modules that reliably helped, and MAST (arXiv 2503.13657), where most failures came from system design and coordination rather than model capability. Sources are in [landscape-2026-10.md](../../multi-agent-platform/references/landscape-2026-10.md).
+Distilled from a 2026 industrial agent engagement: a framework-free reference agent with eight gates, ported 1:1 to a graph framework. These are client-agnostic patterns. Research basis: NLAH (arXiv 2603.25723), where self-evolution, file-backed state and evidence-backed answering were the modules that helped on both benchmarks, and MAST (arXiv 2503.13657), where most failures came from system design and coordination rather than model capability. Sources are in [landscape-2026-10.md](../../multi-agent-platform/references/landscape-2026-10.md).
 
 ## The layer map
 

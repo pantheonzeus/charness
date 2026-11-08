@@ -2,7 +2,7 @@
 
 The fix step reads this before designing a fix (SKILL.md §B, step 2). Each failure code in `schema/taxonomy.json` names one behavior below (`behavior`) and the files that implement it (`sites`). A trace says what happened; this page says which part of the harness was responsible and where its code is.
 
-*Pattern: Harness Handbook (arXiv:2607.13285), used by RiseHarness (arXiv:2610.27435 §3.2) to connect execution evidence to behavior and code. Removing the harness traces and the Handbook cost 7 points of Pass@1 in its ablation.*
+*Pattern: Harness Handbook (arXiv:2607.13285), used by RiseHarness (arXiv:2610.27435 §3.2) to connect execution evidence to behavior and code. Removing the harness traces and the Handbook cost 7 points of Pass@1 on TBH (3.1 on TB2.1) in its ablation (App. D.3, Table 5).*
 
 **Where evidence shows up**
 - **Transcript:** what the agent asked for, and the errors it got back. Expires after a while.

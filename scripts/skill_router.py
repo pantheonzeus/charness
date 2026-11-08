@@ -2,7 +2,7 @@
 """Skill preselector: the top few INDEX.md rows for one prompt, by keyword match (G5).
 
 Why: with 143+ skills, letting the model pick from the whole registry loses recall (implicit routing
-53% at +100 skills, 27% of prompts load nothing; explicit preselection of <= 5 holds up:
+53% at +100 skills, 28% of runs load nothing; explicit preselection of <= 5 holds up:
 arXiv:2610.18522). And the full INDEX (95 KB) exceeds the 10,000-character cap on hook context, so
 SessionStart gets a compact slug list (`compact`) and every prompt gets the likely rows (`hook`).
 

@@ -28,7 +28,7 @@ Plain code → code + one model call → workflow → workflow with one agentic 
 
 ## 4. How it scales
 **Evidence:**
-- Google Research + MIT, 180 configurations (arXiv 2512.08296): on sequential tasks every multi-agent variant did 39–70% worse; on parallelisable tasks central coordination did up to ~81% better.
+- Google Research + MIT, 180 configurations (arXiv 2512.08296v1): on sequential tasks every multi-agent variant did 39–70% worse; on parallelisable tasks central coordination did up to ~81% better.
 - Independent agents amplified errors 17.2×, versus 4.4× with central coordination.
 - **Counter-position:** Cognition, "Don't Build Multi-Agents". Land on *it depends on the task shape.*
 
@@ -60,7 +60,7 @@ Add a workflow engine only when 2 of these 4 hold: shared state that outlives th
 
 **Task packet:** objective · inputs by reference · output structure · allowed tools · boundaries · budget · when to stop. The specialist starts fresh and writes back to the record.
 
-**Why:** MAST (1,642 traces, arXiv 2503.13657): 43.7% of failures came from system design and 45.3% from inter-agent misalignment; prompt and role fixes recovered only +9–16%. Line: *"The contract is the quality lever, not the prompt."*
+**Why:** MAST (1,642 traces, arXiv 2503.13657): 44.2% of failures came from system design and 32.3% from inter-agent misalignment (23.5% task verification); role-specification and workflow fixes on the same model gained only +9.4% to +15.6%. Line: *"The contract is the quality lever, not the prompt."*
 
 ## 6. Trust levels
 | Level | May do | Required |

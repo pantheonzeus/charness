@@ -10,8 +10,8 @@ Autonomy is a **design decision separate from capability**. A capable agent can 
 | L1 Operator | directs and decides | executes the instructed action | staff tool: "draft this reply" |
 | L2 Collaborator | plans and executes with the agent | shares the work, both edit | caseworker + agent co-building a case file |
 | L3 Consultant | consulted for expertise or preference | leads; asks before key choices | agent prepares a decision; human chooses |
-| L4 Approver | approves risky or pre-specified actions only | acts; pauses at gates | agent resolves routine cases; payments over a threshold need approval |
-| L5 Observer | monitors, can interrupt | acts fully autonomously | low-risk, reversible, high-volume tasks with monitoring |
+| L4 Approver | unblocks the agent and signs off on consequential actions only | runs the workflow; asks only when blocked or when approval is required | agent resolves routine cases; payments over a threshold need approval |
+| L5 Observer | monitors via logs; no input except an emergency off-switch | plans, executes and decides fully autonomously | low-risk, reversible, high-volume tasks with monitoring |
 
 **House default ceiling:** L3 for any task that is customer-impacting **and** irreversible, until `agentic-service-evaluation` promotion criteria are met. L5 only for reversible tasks with low harm and automated detection.
 

@@ -8,9 +8,9 @@ triggers: [look like it is from the future, next gen interaction, next-gen UI, c
 tags: [research, design, ux, ui, interaction, frontier, delegation, mockup]
 related: ["[[deep-research]]", "[[service-concept-prototyping]]", "[[app-architecture]]", "[[agentic-service-blueprint]]"]
 status: active
-version: 1
+version: 2
 created: 2026-10-11
-updated: 2026-10-11
+updated: 2026-11-08
 modules: [file-backed-state, file-backed-handoff, evidence-backed-answering]
 references: [references/task-packets.md]
 ---
@@ -51,7 +51,7 @@ references: [references/task-packets.md]
 7. Open the page, run the deliverable index, tick the synthesis box.
 
 **Optimizations/Gotchas**
-- **Polish raises trust more than it should.** Generative or polished UI raised perceived credibility in 86.5% of comments, even when the content was no better (Chen et al., arXiv 2508.19227). Longer explanations raise confidence without raising accuracy (Steyvers et al., 2025). Any direction that adds polish must also add visible confidence (rougher when unsure).
+- **Polish raises trust more than it should.** Generative, polished UI read as more credible: of the user comments about credibility and professionalism (3.3% of all coded comments), 86.5% favoured the generative interface, and the authors attribute this to layout and formatting rather than content alone (Chen et al., arXiv 2508.19227, §4.3, Table 4). Longer explanations raise confidence without raising accuracy (Steyvers et al., 2025). Any direction that adds polish must also add visible confidence (rougher when unsure).
 - **Clichés to name and reject up front:** the central pulsing orb, HUD wireframes, gesture-flinging, glass under body text, and "a dashboard dressed up as agents" (kanban, KPI tiles).
 - **Mockups on real data persuade more than lorem ipsum.** They stay local (`output/` is git-ignored). Never publish them.
 - **The visual lane's citations rest most often on secondary sources** (design-system critiques, platform guidelines behind digests). Carry those flags into the page's grounding notes.

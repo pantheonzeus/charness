@@ -11,8 +11,9 @@ Ingest paths (whole notes are outside text): see INGEST below. Ingest sections: 
 appended to topic and person notes).
 
 Derived notes: an agent that rewrites outside text into the vault launders it unless the label survives
-the rewrite (arXiv:2607.29167; memory poisoning on Claude Code persisted across sessions in 81.7% of
-attempts, arXiv:2609.13889). So the label is kept by mechanism, not by the writer's say-so: after every
+the rewrite (arXiv:2607.29167; memory poisoning on Claude Code succeeded in a later session in 81.7%
+of cross-session trials on average, arXiv:2609.13889). So the label is kept by mechanism, not by the
+writer's say-so: after every
 Write/Edit to a vault note, the PostToolUse hook checks the session's transcript (and its subagents')
 for outside text taken in so far: web tools, mail/chat/calendar/file MCP tools, pasted content, curl,
 a subagent's hand-back, a Read of an ingest or derived note, or a job whose agent file declares

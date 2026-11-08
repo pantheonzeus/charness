@@ -35,10 +35,10 @@ T=1000 impressions** as a *chronological sequence* with causal attention (posts 
 embeddings), late-fuses count/affinity features, and heads into an MMoE. Online A/B: **+2.10% time
 spent.**
 
-**What the ranker is trained to predict — the actual label set, verbatim (T1, arXiv 2602.12354):**
+**What the ranker is trained to predict — the actual label set, verbatim (T1, arXiv 2602.12354 v1 §3.2; the passive/active split is absent from v3):**
 - **Passive:** `click`, `skip`, `long-dwell`
 - **Active:** `like`, `comment`, `share`
-- `Long Dwell` = "dwelling on a post longer than a specified threshold" (threshold unpublished).
+- `Long Dwell` = "dwelling on a post longer than a specified threshold of time, depending on the post-type" (threshold unpublished).
 - `Contribution` = "a like, comment, or share."
 
 **360Brew is not this.** 360Brew (150B decoder-only, >30 consolidated predictive tasks) is the

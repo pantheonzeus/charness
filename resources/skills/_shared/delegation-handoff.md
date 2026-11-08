@@ -2,7 +2,7 @@
 
 Cross-skill procedure invoked by Charter §5. Any skill that hands work to a child agent (the Agent/Task tools, or a headless `claude -p` job) follows this contract.
 
-*Source: the NLAH research (Pan et al., arXiv:2603.25723, Tables 4 & E.1). Parent→child handoff is the single documented failure point of natural-language orchestration — Information Handoff Recall fell to 0.32–0.55 under naive delegation. Files, not inline replies, are the fix.*
+*Source: the NLAH research (Pan et al., arXiv:2603.25723 v2, Table 4 and §5.2). Handoff is the paper's named main mechanism weakness: Information Handoff Recall fell from 1.00 under direct-context prompting to 0.32 (Live-SWE) and 0.55 (MHTBA) under the runtime's parent-child handoff. Files, not inline replies, are the fix.*
 
 ## Why file-backed
 An inline reply from a child is lossy and unauditable: the parent paraphrases it back into its own context and detail is dropped. A file on disk is the durable carrier of record — the parent reopens exactly what the child wrote.
