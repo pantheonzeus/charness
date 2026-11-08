@@ -34,6 +34,7 @@ from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconn
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+import foreground
 import library
 import mail
 import push
@@ -863,6 +864,9 @@ class Conversation:
         self.directives = Directives()
         self.tone = "calm"        # how the next sentences are said ([[tone: …]], voice.TONES)
         self.tts = asyncio.Queue()
+        self.fg = foreground.Foreground(CLI_ENV)
+        self.acked = -1           # the turn the foreground voice already acknowledged
+        self.said = -1            # the turn whose main reply has started to be said
         self.proc, self.tasks = None, []
         self.digest = day_digest()
 
@@ -878,7 +882,7 @@ class Conversation:
             *cmd, cwd=REPO, env=CLI_ENV, stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
             stderr=CONVERSATION_LOG.open("a"),  # a file, not a pipe: an unread pipe would eventually block the CLI
             limit=32 * 1024 * 1024)
-        self.tasks = [asyncio.create_task(self.read()), asyncio.create_task(self.speak())]
+        self.tasks = [asyncio.create_task(self.read()), asyncio.create_task(self.speak()), asyncio.create_task(self.fg.warm())]
 
     async def write(self, obj):
         self.proc.stdin.write((json.dumps(obj) + "\n").encode())
@@ -902,6 +906,22 @@ class Conversation:
             self.digest = digest
             content.insert(0, {"type": "text", "text": f"<context refreshed {time.strftime('%H:%M')}>\n{digest}\n</context>"})
         await self.write({"type": "user", "message": {"role": "user", "content": content}})
+        if self.voice and self.voice_turn and shown is None:   # your own words, not a prompt the console wrote
+            asyncio.create_task(self.acknowledge(self.turn, text))
+
+    async def acknowledge(self, turn, text):
+        """The foreground voice says a few words while the main session thinks, unless its answer has started."""
+        ack = await self.fg.ack(text)
+        if ack and turn == self.turn and self.said != turn:
+            self.acked = turn
+            self.tts.put_nowait((turn, ack, "calm"))
+
+    def queue(self, sentence):
+        """One sentence of the main reply to speech; its "One moment." goes when the foreground voice already spoke."""
+        self.said = self.turn
+        if self.acked == self.turn and sentence.strip().lower().rstrip(".!") == "one moment":
+            return
+        self.tts.put_nowait((self.turn, sentence, self.tone))
 
     def hush(self):
         """Stop speaking now: what's playing is cut and what's synthesized ahead is dropped."""
@@ -922,7 +942,7 @@ class Conversation:
         at = 0
         for pos, tone in [*tones, (len(text), None)]:
             for s in self.sentences.feed(text[at:pos]):
-                self.tts.put_nowait((self.turn, s, self.tone))
+                self.queue(s)
             at = pos
             if tone:
                 self.tone = tone
@@ -977,7 +997,7 @@ class Conversation:
                         await self.out({"t": "text", "d": rest, "muted": False})
                 if ev["t"] == "tool" and not muted and self.voice:
                     for s in self.sentences.flush():  # say "One moment." now, not after the lookup
-                        self.tts.put_nowait((self.turn, s, self.tone))
+                        self.queue(s)
                 if ev["t"] == "result":
                     self.pending -= 1
                     if not muted and (cb := self.after.pop(self.turn, None)):
@@ -987,7 +1007,7 @@ class Conversation:
                         ev["interrupted"] = True
                     elif self.voice:
                         for s in self.sentences.flush():
-                            self.tts.put_nowait((self.turn, s, self.tone))
+                            self.queue(s)
                         self.result_turn = self.turn
                         self.maybe_followup()
                     save_session(self.sid, add_cost=ev.get("cost_usd"))
@@ -1116,6 +1136,7 @@ class Conversation:
     async def close(self):
         for t in self.tasks:
             t.cancel()
+        await self.fg.close()
         if self.proc and self.proc.returncode is None:
             try:
                 self.proc.terminate()
