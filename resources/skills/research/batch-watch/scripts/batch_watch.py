@@ -131,8 +131,11 @@ class Body(HTMLParser):
         elif tag == "li":
             self.buf.append("\n" + "  " * (len(self.lists) - 1) + ("1. " if self.lists[-1:] == ["ol"] else "- "))
         elif tag == "a":
-            self.hrefs.append(a.get("href") or "")
-            self.buf.append("[")
+            h = a.get("href") or ""
+            hidden = h.startswith("/cdn-cgi/l/email-protection")   # Cloudflare-masked address: plain text, no link
+            self.hrefs.append(None if hidden else h)
+            if not hidden:
+                self.buf.append("[")
         elif tag in ("strong", "b"):
             self.buf.append("**")
         elif tag in ("em", "i"):
@@ -175,7 +178,8 @@ class Body(HTMLParser):
             self.buf.append("\n")
         elif t == "a":
             h = self.hrefs.pop() if self.hrefs else ""
-            self.buf.append(f"]({h})" if h else "]")
+            if h is not None:
+                self.buf.append(f"]({h})" if h else "]")
         elif t in ("strong", "b"):
             self.buf.append("**")
         elif t in ("em", "i"):

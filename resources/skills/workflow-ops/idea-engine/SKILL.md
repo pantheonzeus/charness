@@ -8,9 +8,9 @@ triggers: [idea podcast, podcast from idea, ideas, idea engine, post ideas, link
 tags: [workflow-ops, ideas, linkedin, learning, research, launchd, console, loop, vault]
 related: ["[[slack-intel]]", "[[linkedin-authentic-storytelling]]", "[[deep-research]]", "[[living-plan]]", "[[opportunity-framing]]", "[[vault-frontier-loop]]"]
 status: active
-version: 5
+version: 6
 created: 2026-10-18
-updated: 2026-10-28
+updated: 2026-11-08
 modules: [file-backed-state, file-backed-handoff, evidence-backed-answering]
 scripts: [scripts/ideas.py, scripts/podcast.py]
 schema: [schema/com.cbrain.idea-engine.plist]

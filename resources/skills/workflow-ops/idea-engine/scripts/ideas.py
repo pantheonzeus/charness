@@ -123,6 +123,9 @@ def check(root):
         built = text.split("## Built from", 1)[-1]
         if "[[" not in built:
             errs.append(f"{f.name}: Built from needs ≥ 1 [[vault link]]")
+        for link in re.findall(r"\[\[([^\]|#]+)", built):   # a path link must name an existing note
+            if not ((VAULT / f"{link}.md").exists() or any(VAULT.rglob(f"{Path(link).name}.md"))):
+                errs.append(f"{f.name}: Built from link [[{link}]] matches no vault note (paths start at the vault root)")
     for t in TYPES:
         if task["seed"] and per[t] != 5:
             errs.append(f"seed needs exactly 5 {t} ideas, found {per[t]}")

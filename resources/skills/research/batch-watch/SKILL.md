@@ -8,9 +8,9 @@ triggers: [the batch, deeplearning.ai, batch article, batch issue, data points, 
 tags: [research, launchd, loop, newsletter, sources]
 related: ["[[ng-letters-watch]]", "[[substack-watch]]", "[[source-distillation-topic-note]]", "[[vault-frontier-loop]]"]
 status: active
-version: 1
+version: 2
 created: 2026-10-23
-updated: 2026-10-23
+updated: 2026-11-08
 modules: [file-backed-state]
 scripts: [scripts/batch_watch.py]
 requires:

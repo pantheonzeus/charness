@@ -2,6 +2,21 @@
 
 One entry per edit made under the [[change-manifest]] module. Newest first. Verdict fills in on the edit's next real use — never delete a disconfirmed entry.
 
+## 2026-11-08 — Vault links repaired at the generators; P3 grader narrowed to real denials
+- **Trigger:** the vault ratchet regressed (missing link targets 25 → 34 since 2026-11-02) and regression probe P3 failed a correct answer. The principal said "fix the open stuff".
+- **Touched:**
+  - `research/batch-watch` (v2): Cloudflare email-protection anchors become plain text. They had produced `[[email protected]](/cdn-cgi/…)` in 16 Batch notes.
+  - `workflow-ops/idea-engine` (v6): `ideas.py check` fails a Built-from link that matches no vault note. Six idea notes linked `[[Deliverables/…]]` without `notes/`. The check passes all 377 existing links.
+  - `research/ng-letters-watch` (v5): ledger and signal lines link the deliverable index note `ng-letters-briefings-<stem>`, not the bare briefing stem, which is not a vault note.
+  - Vault content (not tracked): 60 notes relinked by `output/.runs/20261108-fix-commit-push/vault_fix.py`. Name variants became `[[Note|Variant]]`, not aliases (vault-maintenance rule). Links to skills, a memory and a missing note became code. Seven honest daily stubs were added by `gen_daily.py`.
+  - `run-forensics/evals/regression.json` P3 `result_lacks`: an answer that opens with No, can't/cannot/unable to + add/import/do/access, or no integration/connector/API/way. The bare "can't" failed "Yes … I can't promise it works yet".
+- **Expected to fix (falsifiable):** the next weekly ratchet shows missing targets ≤ 2 with no new `email protected`, `Deliverables/` or `*-briefing` targets; P3 stays pass^3.
+- **Refuted if:** an idea note with an unresolved Built-from link passes `ideas.py check`, a new Batch note carries `[[email protected]]`, or P3 passes an answer that denies the capability.
+- **Preserves:** ratchet after the repair is missing 0, broken files 0, recall PASS, RATCHET=HOLD (row logged in `output/vault-ratchet/results.tsv`). P3 regrade of all 11 stored suites: 33/33 runs pass, and each answer was read as a correct Yes. 7 synthetic denial/hedge cases graded correctly. P3's baseline resets (grader change, autoresearch-loop rule 2).
+- **Fires on stable:** `ideas.py check` does one vault lookup per Built-from link (a few seconds on 5.7k notes).
+- **Matched baseline:** n/a.
+- **Verdict:** pending. Check at the next Monday ratchet and the next regression run.
+
 ## 2026-11-08 — Citation corrections: 3 wrong and 11 simplified claims fixed against the papers
 - **Trigger:** the health audit's citation check (`output/.runs/20261108-harness-health-audit/children/cite-{1,2,3}/RESPONSE.md`): 38 arXiv papers, all exist; 3 WRONG and 11 MINOR claims sat in committed files. The principal said "fix the open stuff". Applied by a fresh child with the verifiers' corrected wording (`output/.runs/20261108-fix-commit-push/children/cite-fix/RESPONSE.md`, before/after per item).
 - **Touched:**
