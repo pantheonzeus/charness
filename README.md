@@ -1,5 +1,7 @@
 # charness — Unified AI Agent Workspace
 
+[![Sponsored](https://img.shields.io/badge/chilicorn-sponsored-brightgreen.svg)](http://spiceprogram.org/)
+
 A configuration-as-code workspace for [Claude Code](https://claude.com/claude-code). It turns a general-purpose agent into a consistent, opinionated operator with a fixed identity, a set of operating rules, and a reusable **skill library** — tuned for research, high-signal content, and automated knowledge-work.
 
 > **Note on scope.** The private knowledge vault (`cbrain/`), the `autoresearch/` scratch area, the `input/` artifacts folder, the `output/` deliverables folder, and your private `IDENTITY.md` persona are git-ignored and **not** part of this repository. What's tracked here is the *operating system* — the voice mechanics, rules, skills, and integration setup — not the data or the specific persona it operates with.
