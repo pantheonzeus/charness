@@ -99,6 +99,8 @@ script on every push to `main` and every pull request; a red check blocks the me
 - **One logical change per commit.** A bugfix and a new skill are two commits, not one.
 - **PRs** state what changed, which layer, and how you verified it. Link the skill path.
 - Keep gitignored personal artifacts out of the diff — check `git status` before you commit.
+- **`main` is protected** by [`.github/rulesets/main.json`](.github/rulesets/main.json): no deletion, no force
+  push, and the CI `check` job must pass. Repository admins can bypass it; GitHub logs each bypass.
 
 Questions or a design you're unsure about? Open an issue first and describe the outcome you want,
 not just the code — this repo leads with the problem, then the mechanism.
