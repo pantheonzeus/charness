@@ -6,6 +6,15 @@ GitHub release (`.github/workflows/release.yml`); the release fails if the secti
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-11-08
+
+The documentation site.
+
+### Added
+- **Documentation site** at `pantheonzeus.github.io/charness`: landing page, guides, concepts, governance and a
+  skill catalog generated from `INDEX.md` at build time. Material for MkDocs, pinned and locked in `docs/`;
+  `.github/workflows/pages.yml` builds it with `--strict` on pull requests and deploys it from `main`.
+
 ## [0.1.0] — 2026-11-08
 
 First tagged release of the public harness.
@@ -37,5 +46,6 @@ First tagged release of the public harness.
 - The outbound gate catches short account names; the skill router counts skills only.
 - 21 lint findings (unused code, bare excepts, a late import), with no behaviour change.
 
-[Unreleased]: https://github.com/pantheonzeus/charness/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/pantheonzeus/charness/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/pantheonzeus/charness/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/pantheonzeus/charness/releases/tag/v0.1.0
