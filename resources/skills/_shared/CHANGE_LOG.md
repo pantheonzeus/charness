@@ -2,6 +2,22 @@
 
 One entry per edit made under the [[change-manifest]] module. Newest first. Verdict fills in on the edit's next real use — never delete a disconfirmed entry.
 
+## 2026-11-08 — Health-audit fixes: public-branch scrub, citation corrections, memory verifier tokens, gate legal-form match
+- **Trigger:** the health audit `output/.runs/20261108-harness-health-audit/` (REPORT.md, EVIDENCE.md, three citation verifiers under `children/`). The principal said "do the recommendation" (items 1–3 and 7; slack-intel skipped).
+- **Touched:**
+  - `memory-consolidation/SKILL.md`, this log's two entries above, `memory-dream.test.sh`: client, price and job-search references replaced with neutral wording and fixture figures.
+  - `scripts/outbound_gate.py`: an account note also matches by its name without the legal form ("Acme AG" → "Acme"). The old gate passed a bare client short name. `send-gate.test.sh` +2 tests.
+  - Citation wording from the verifiers: `Charter.md` §2 ("cut … to 2.4%") and §4 (file-backed state strongest on OSWorld only; self-evolution leads SWE at +5.8); `_shared/autoresearch-loop.md` rule 2 (four safeguards per environment; the "six" are loops); `scripts/ingest_lint.py` docstring (tampering usually reads as a claim; 12.1% under detection-and-removal).
+  - `scripts/memory_dream.py`: preservation tokens add bare git hashes and single digits; list markers are stripped first. `memory-dream.test.sh` +4 assertions.
+  - Counters: INDEX header 150; `skill_router.py compact` counts only `SKILL.md` rows (was 151, the `_shared` row included). Charter §3 router baseline → 2026-11-08.
+- **Expected to fix (falsifiable):** (a) `outbound_gate.py check --public` flags a draft naming a client by short name; (b) `memory_dream.py check` fails a consolidation that drops a single-digit count or a bare commit hash; (c) the SessionStart registry reads 150.
+- **Refuted if:** (a) a public draft or commit names a vault account by its short name and the gate passes it; (b) the next real consolidation loses a single-digit fact or a hash and `check` says OK, or flags list renumbering as a lost fact.
+- **Preserves:** hook suites 178/178 (were 172/172; +6 new). Frontmatter lint errors=0, spec_export errors=1 = baseline, router eval unchanged (24/31, 12/15; 36/49, 8/14). Regression suite before 5/5 (`output/regression/20261108-122913.tsv`), after 4/5 (`20261108-131045.tsv`). The one miss is P3 run 2: the answer was correct ("Yes", after a skill lookup) but contained "I can't promise it works yet", which P3's denial regex counts. P3 has scored 2/3 in 4 of 11 suites since 2026-10-24: a grader false positive, not a behaviour change. The gate change adds no finding to the 18 skill files that already failed `--public` (public names and the policy term only).
+- **Fires on stable:** the gate does one extra regex per account (14) per scan. The memory verifier sees more tokens, so a faithful rewrite that rephrases "eight" as "8" now raises a WARN.
+- **Matched baseline:** n/a (deterministic checks, wording).
+- **Not done:** slack-intel (down since 2026-10-30, needs a different subscription, per the principal); 11 MINOR and 3 WRONG citations in committed files (MAST shares ×2, design-frontier-scan 86.5%); vault ratchet REGRESS (7 daily stubs, 27 person/topic targets); P3 grader regex.
+- **Verdict:** pending. Check at the next public commit scan and the next memory consolidation.
+
 ## 2026-11-08 — Harness research applied: NLAH v2 numbers, preservation check, frozen safety text, authority rule, memory scope
 - **Trigger:** the research run `output/research/20261108-harness-nlah-newest.md` found NLAH v2 (2603.25723, 18 May 2026) reversed numbers Charter §4 cited, and a cluster of Oct–Nov papers on harness evolution forgetting tasks, score gates deleting safeguards, decision-tampering injection and benign-memory overgeneralisation. The principal said "the recommendations. do them". Run state: `output/.runs/20261108-harness-recs-apply/`.
 - **Touched:**

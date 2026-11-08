@@ -66,5 +66,12 @@ out="$(printf 'garbage' | CLAUDE_PROJECT_DIR="$T/repo" bash "$HOOK")"
 printf '%s' "$out" | grep -q deny && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL: garbage input must deny (fail-closed)"; }
 grep -q '"hook": "send-gate"' "$T/repo/output/.runs/_forensics/hooks.jsonl" && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL: decision trace missing"; }
 
+# An account note named with its legal form ("… AG") is also caught by its short name in a public draft.
+mkdir -p "$T/clients"; printf -- '---\ntype: account\n---\n' > "$T/clients/Acme Widgets AG.md"
+legal() { python3 -c 'import sys, pathlib; sys.path.insert(0, sys.argv[1]); import outbound_gate as g
+g.CLIENTS = pathlib.Path(sys.argv[2]); print(len(g.scan(sys.argv[3], public=True)))' "$T/repo/scripts" "$T/clients" "$1"; }
+[ "$(legal 'We did the same for Acme Widgets last month.')" -ge 1 ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL: short name without legal form must be flagged"; }
+[ "$(legal 'We did the same for a widget maker last month.')" -eq 0 ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL: clean public text must pass"; }
+
 echo "send-gate: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

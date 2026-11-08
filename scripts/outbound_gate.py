@@ -91,6 +91,15 @@ def mentions(name, text):
     return re.search(r"(?<![\w-])" + re.escape(name.lower()) + r"(?![\w-])", text.lower()) is not None
 
 
+LEGAL = re.compile(r"\s+(AG|SE|GmbH|KGaA|KG|Inc\.?|Ltd\.?|LLC|plc|Oyj|Oy|AB|S\.?A\.?|N\.?V\.?|B\.?V\.?|Corp\.?)$", re.I)
+
+
+def named(account, text):
+    """An account note is named by its full title or by that title without the legal form ("Acme AG" → "Acme")."""
+    short = LEGAL.sub("", account)
+    return mentions(account, text) or (short != account and mentions(short, text))
+
+
 def related(a, b):
     a, b = a.lower().strip(), b.lower().strip()
     return bool(a and b) and (a in b or b in a)
@@ -112,7 +121,7 @@ def scan(text, recipients=(), public=False, allow=()):
             or (not public and any(related(company, rc) for rc in rcpt_companies))
 
     for a in accounts if not internal else []:
-        if mentions(a, text) and not exempt(a):
+        if named(a, text) and not exempt(a):
             findings.append(f"names an account: {a}" + ("" if public else " (not the recipient's company, not ours)"))
     for person, company in people if not internal else []:
         if person.lower() in allowed or not mentions(person, text):

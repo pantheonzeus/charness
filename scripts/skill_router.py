@@ -206,7 +206,7 @@ def compact():
     by_cat = {}
     for r in rows:
         by_cat.setdefault(r["category"], []).append(r["slug"])
-    out = [f"### Repo skill registry — {len(rows)} skills, compact. Full rows (triggers, descriptions): "
+    out = [f"### Repo skill registry — {sum(r['path'].endswith('/SKILL.md') for r in rows)} skills, compact. Full rows (triggers, descriptions): "
            "resources/skills/INDEX.md. Each prompt also gets its likely skills preselected (UserPromptSubmit). "
            "Before acting on OR declining a task, open the matching resources/skills/<category>/<slug>/SKILL.md; "
            "Grep INDEX.md when nothing listed fits. This is separate from the harness skill list.", ""]
