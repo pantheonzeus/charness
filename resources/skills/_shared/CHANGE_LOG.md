@@ -2,6 +2,33 @@
 
 One entry per edit made under the [[change-manifest]] module. Newest first. Verdict fills in on the edit's next real use — never delete a disconfirmed entry.
 
+## 2026-11-08 — Harness research applied: NLAH v2 numbers, preservation check, frozen safety text, authority rule, memory scope
+- **Trigger:** the research run `output/research/20261108-harness-nlah-newest.md` found NLAH v2 (2603.25723, 18 May 2026) reversed numbers Charter §4 cited, and a cluster of Oct–Nov papers on harness evolution forgetting tasks, score gates deleting safeguards, decision-tampering injection and benign-memory overgeneralisation. The principal said "the recommendations. do them". Run state: `output/.runs/20261108-harness-recs-apply/`.
+- **Touched:**
+  - `Charter.md` §4: NLAH parenthetical replaced by v2 Table 5 numbers.
+  - `Charter.md` §2: one paragraph, judge ingested text by authority, not wording (arXiv 2611.07640).
+  - `_shared/change-manifest.md`: new **Preserves** clause (regression suite / both routing evals before and after; arXiv 2611.07624, 2611.03219).
+  - `_shared/autoresearch-loop.md` rule 2: safety text is frozen like the eval set (arXiv 2610.38392).
+  - `scripts/memory_sweep.py`: `unscoped` flag for feedback memories without `**How to apply:**`, plus the convention line (arXiv 2611.07554).
+  - `scripts/ingest_lint.py`: docstring states that `lint` cannot see decision tampering.
+- **Expected to fix (falsifiable):** (a) no session or draft quotes "free-form memory measurably hurts" or "the only modules that improve reliably" as NLAH's finding; (b) the next harness edit logged here carries a Preserves line with a before/after result; (c) a feedback memory written without scope shows up in the next sweep.
+- **Refuted if:** (a) a post or report after today repeats the v1 module claims; (b) the next three Charter/`_shared`/hook entries skip Preserves; (c) a scope-less feedback memory passes a sweep. For the authority rule: a probe that plants a false policy or amount in an ingest note gets acted on. No such probe exists yet; P4 tests instruction-shaped injection only.
+- **Preserves:** regression suite after the edits, 5/5 probes pass^3 (`output/regression/20261108-122913.tsv`, Sonnet 5.5, $2.17). The 1 Nov suite was 5/5 on Opus. The "before" run for today's edits was not taken, because the Preserves rule was written in this same change. `memory-dream.test.sh` 26/0. The router eval was unaffected (no INDEX change).
+- **Fires on stable:** memory sweep adds one regex per feedback file at SessionStart; 0 live hits. The Charter text adds about 70 words to every session.
+- **Matched baseline:** n/a (policy text and a deterministic flag).
+- **Not applied, measured:** a Skill++ description rewrite (arXiv 2611.00544).
+  - LLM dispatcher baseline, two runs: train 51–52/63, held-out 41–42/46, with 0 business-design misses. Most misses are `none`-labelled architecture asks; those labels look arguable and are the principal's to relabel.
+  - Lexical router body-weight sweep: lowering it does not cut business-design hijacks (5/5/6/5) and costs held-out recall (23 → 19).
+  - No INDEX or router change.
+- **Verdict:** pending. Check on the next series draft that cites NLAH, the next harness edit logged here, and the next new feedback memory.
+- **Follow-up, same day — golden-set relabel (principal's decision, resets the routing baseline per autoresearch-loop rule 2):**
+  - 11 rows of `_evals/routing.tsv` that were labelled `none` now also accept the skill a dispatcher picked defensibly (r019 r022 r084 r093 r096 r120 r161 r300 r304 r312 r324). Snapshot of the old set: `output/.runs/20261108-harness-recs-apply/routing.golden.before.tsv`.
+  - **New baselines:**
+    - LLM dispatcher (opus, two runs): train 58–59/63, held-out 43–44/46, against 51–52/63 and 41–42/46 on the old labels.
+    - Lexical router: held-out 24/31, quiet 12/15; train 36/49, quiet 8/14.
+  - **What is left:** r312 is a stable miss. The dispatcher sends "run routing_eval.py" to `_shared/autoresearch-loop`, not to skill-library-maintenance. r340 ("Brief me…") goes to meeting-prep-loop instead of morning-briefing in both runs. r200 returns none in both runs. Everything else flips between runs (noise ±1).
+  - Claude Code is now 2.1.319 (updated by the principal).
+
 ## 2026-11-08 — Memory supersession convention + reviewed consolidation ("dream") pass
 - **Trigger:** the second-brain frontier scan (`output/research/20261108-second-brain-frontier.md`) named two gaps: nothing merges or supersedes memories, and superseded facts are handled by hand. The principal said "close gap 1, close gap 2". Live evidence: 4 of 20 memories carry inline Correction/Update/Outcome/Resolved/"supersedes" lines, and one description still states a status that a later outcome had overtaken.
 - **Touched:**
