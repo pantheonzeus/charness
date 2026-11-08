@@ -137,7 +137,7 @@ Where a Charter rule comes from a paper, the Charter cites it next to the rule. 
 
 - **It is** a working harness, used every day. It runs scheduled briefings, mail triage, meeting prep and research loops under launchd.
 - **It runs on macOS** (launchd, Calendar.app) with [Claude Code](https://claude.com/claude-code), on your Claude subscription.
-- **It measures harness behaviour**: a regression suite at pass^3, routing recall and hook tests. It does not yet grade the quality of what it writes. [Evaluation →](governance/evaluation.md)
+- **It measures harness behaviour**: a regression suite at pass^3, routing recall and hook tests. Grading the quality of what it writes has started with one job and is not calibrated yet. [Evaluation →](governance/evaluation.md)
 - **It isn't a product.** It is a configuration you fork and make your own.
 
 </div>

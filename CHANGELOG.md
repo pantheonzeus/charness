@@ -6,6 +6,18 @@ GitHub release (`.github/workflows/release.yml`); the release fails if the secti
 
 ## [Unreleased]
 
+### Added
+- **Console: a quick voice in front.** A warm Haiku session says in a few words what is being done with the
+  question at about +1.3 s, while the main session thinks (`webapp/foreground.py`).
+- **Output-quality judge.** `run-forensics/scripts/judge.py` grades daily-intel briefing items against rules
+  quoted from that job's skill. It flags nothing until it agrees with the principal's own labels (TPR and
+  TNR ≥ 0.8 on ≥ 10 pass and 10 fail labels); not yet calibrated.
+- **Repeated-research report.** `quality.py` reports, per job and model, research a run repeated for nothing.
+  Report-only.
+
+### Fixed
+- **Commit guard** accepts GitHub's merge button as committer, so UI merges no longer fail CI on `main`.
+
 ## [0.1.1] — 2026-11-08
 
 The documentation site.
