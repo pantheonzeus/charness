@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/pantheonzeus/charness/actions/workflows/ci.yml/badge.svg)](https://github.com/pantheonzeus/charness/actions/workflows/ci.yml)
 [![Sponsored](https://img.shields.io/badge/chilicorn-sponsored-brightgreen.svg)](http://spiceprogram.org/)
+[![Docs](https://img.shields.io/badge/docs-pantheonzeus.github.io%2Fcharness-0b1220.svg)](https://pantheonzeus.github.io/charness/)
 
 A configuration-as-code workspace for [Claude Code](https://claude.com/claude-code). It turns a general-purpose agent into a consistent, opinionated operator with a fixed identity, a set of operating rules, and a reusable **skill library** — tuned for research, high-signal content, and automated knowledge-work.
 
