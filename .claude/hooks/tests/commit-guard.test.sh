@@ -66,6 +66,17 @@ if [ -n "$ACC" ]; then try "client account name" block a.md "We built this for $
 
 # Identity
 git -c user.email=$RP commit -q --allow-empty -m x >/dev/null 2>&1 && { ok "non-noreply author" block pass; git reset -q --soft HEAD~1; } || ok "non-noreply author" block block
+cm() {   # $1 name, $2 expect, then git commit args: the commit-msg hook judges the message
+  local n="$1" e="$2"; shift 2
+  if git commit -q --allow-empty "$@" >/dev/null 2>&1; then ok "$n" "$e" pass; git reset -q --soft HEAD~1; else ok "$n" "$e" block; fi
+}
+CA="Co-Authored-By: Claude <noreply""@anthropic.com>"
+cm "clean message"                       pass  -m "Fix the router count" -m "Body text."
+cm "co-author trailer"                   block -m "Fix x" -m "$CA"
+cm "lowercase co-authored-by"            block -m "Fix x" -m "co-authored-by: A Person <ap@users.noreply.github.com>"
+cm "generated-with line"                 block -m "Fix x" -m "Generated with [Claude Code](https://claude.com/claude-code)"
+cm "secret in message"                   block -m "Rotate $AWS"
+GIT_AUTHOR_NAME="Someone Else" git commit -q --allow-empty -m x >/dev/null 2>&1 && { ok "author name not the principal" block pass; git reset -q --soft HEAD~1; } || ok "author name not the principal" block block
 
 # Push: clean fast-forward passes; a secret committed past the hook is caught; force push and archive refs blocked.
 printf 'ok\n' > b.md; git add b.md; git commit -qm clean; git push -q origin main 2>/dev/null; ok "clean push" 0 $?
@@ -74,6 +85,9 @@ git push -q origin main 2>/dev/null; ok "secret in outgoing commit blocks push" 
 git reset -q --hard HEAD~1
 git commit -q --no-verify -m "Co-Authored-By: someone <$RP>" --allow-empty
 git push -q origin main 2>/dev/null; ok "personal email in commit message blocks push" 1 $?
+git reset -q --hard HEAD~1
+git commit -q --no-verify --allow-empty -m "Fix y" -m "$CA"
+git push -q origin main 2>/dev/null; ok "co-author trailer blocks push" 1 $?
 git reset -q --hard HEAD~1
 git commit -q --amend -m "rewritten" --no-verify; git push -q --force origin main 2>/dev/null; ok "force push blocked" 1 $?
 git reset -q --hard origin/main; git branch -q archive/x; git push -q origin archive/x 2>/dev/null; ok "archive ref blocked" 1 $?

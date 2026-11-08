@@ -6,13 +6,14 @@ Scans what a commit adds (staged mode) or every commit a push sends (push/range 
             file type (.env, keys, keystores, credential/token JSON, databases, .netrc …), a file over 5 MB
   secret    provider tokens (AWS, GitHub, GitLab, Slack, Google, Anthropic, OpenAI, Stripe), private key blocks, JWTs,
             credentials in URLs, bearer tokens, password/secret/token assignments, high-entropy strings next to a key word
-  personal  e-mail addresses (reserved example domains, the noreply identity and SECURITY.md's contact excepted),
+  personal  e-mail addresses (reserved example domains, GitHub noreply addresses and SECURITY.md's contact excepted),
             phone numbers, IBANs, home-directory paths
   names     client accounts, vault contacts with a company, internal chat channels, the employer-internal tag
             (scripts/outbound_gate.py, public mode)
   unicode   bidirectional controls and zero-width characters (Trojan Source)
   conflict  leftover merge-conflict markers
-  identity  author or committer e-mail other than a GitHub noreply address
+  identity  author or committer other than the principal (git config user.name, a GitHub noreply address), and any
+            Co-Authored-By / On-behalf-of trailer or "Generated with Claude" line: the principal is the only person shown
   push      a force push (remote tip not an ancestor), a branch deletion, any archive/* ref
 
 Only ADDED lines are scanned, so text already public does not block; a line that is touched is scanned again.
@@ -21,6 +22,7 @@ Matches are printed masked. There is no inline opt-out. The one exception channe
 `fp:<fingerprint>` (one exact finding, fingerprint printed with it).
 
   python3 scripts/commit_guard.py staged                      pre-commit hook
+  python3 scripts/commit_guard.py message <file>              commit-msg hook
   python3 scripts/commit_guard.py push <remote> [url] < refs  pre-push hook (git passes the ref lines on stdin)
   python3 scripts/commit_guard.py range <base>..<head>        any range by hand
   python3 scripts/commit_guard.py hook                        Claude PreToolUse on Bash (JSON on stdin)
@@ -42,6 +44,7 @@ import outbound_gate as gate  # noqa: E402
 MAX_BYTES = 5 * 1024 * 1024
 ZERO = "0" * 40
 NOREPLY = re.compile(r"@users\.noreply\.github\.com$", re.I)
+SOLE = re.compile(r"(?im)^[ \t]*(co-authored-by|on-behalf-of)[ \t]*:.*$|^.*generated (with|by) \[?claude.*$")
 
 SECRET_FILE = re.compile(
     r"(^|/)(\.env(\.(?!example$|sample$|template$)[^/]+)?|\.netrc|\.npmrc|\.pypirc|\.git-credentials|\.htpasswd|"
@@ -76,7 +79,7 @@ ENTROPY_TOKEN = re.compile(r"[A-Za-z0-9+/=_-]{32,}")
 
 EMAIL = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 RESERVED = re.compile(r"@([A-Za-z0-9-]+\.)*(example\.(com|org|net)|[A-Za-z0-9-]+\.(example|test|invalid|localhost|local))$"
-                      r"|@users\.noreply\.github\.com$|^noreply@anthropic\.com$", re.I)
+                      r"|@users\.noreply\.github\.com$", re.I)
 PHONE = re.compile(r"(?<![\w.+-])\+\d{1,3}[ -]?\(?\d{2,5}\)?(?:[ -]?\d{2,5}){2,4}(?![\w-])")
 IBAN = re.compile(r"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){3,7}(?: ?[A-Z0-9]{1,3})?\b")
 HOME = re.compile(r"(/Users|/home)/(?!(<|\$|you\b|me\b|user\b|username\b|example|runner\b|shared\b))[A-Za-z0-9._-]+/")
@@ -171,9 +174,20 @@ class Scan:
         if TAG.search(text):
             self.add(where, "names", "employer-internal classification tag")
 
-    def identity(self, where, email):
+    def identity(self, where, email, name=None):
         if not NOREPLY.search(email.strip()):
             self.add(where, "identity:not-noreply", email.strip())
+        expected = git("config", "user.name", check=False).strip()
+        if name is not None and expected and name.strip() != expected:
+            self.add(where, "identity:not-the-principal", name.strip())
+
+    def message(self, where, msg):
+        """The principal is the only person on a commit: no co-author or tool trailers; plus every content rule."""
+        for m in SOLE.finditer(msg):
+            self.add(where, "identity:co-author-or-tool-trailer", m.group(0))
+        for i, l in enumerate(msg.splitlines(), 1):
+            self.line(f"{where}:{i}", l)
+        self.names(where, msg)
 
     def diff(self, label, patch, sizes):
         """Unified diff with -U0: scan every added line, file by file."""
@@ -199,14 +213,11 @@ class Scan:
                 lineno += 1
 
     def commit(self, sha):
-        meta = git("show", "-s", "--format=%ae%n%ce%n%B", sha).split("\n", 2)
+        meta = git("show", "-s", "--format=%ae%n%ce%n%an%n%cn%n%B", sha).split("\n", 4)
         short = sha[:9]
-        self.identity(f"{short} author", meta[0])
-        self.identity(f"{short} committer", meta[1])
-        msg = meta[2] if len(meta) > 2 else ""
-        for i, l in enumerate(msg.splitlines(), 1):
-            self.line(f"{short} message:{i}", l)
-        self.names(f"{short} message", msg)
+        self.identity(f"{short} author", meta[0], meta[2])
+        self.identity(f"{short} committer", meta[1], meta[3])
+        self.message(f"{short} message", meta[4] if len(meta) > 4 else "")
         sizes = {}
         for l in git("ls-tree", "-r", "-l", sha).splitlines():
             meta_, p = l.split("\t", 1)
@@ -230,13 +241,21 @@ class Scan:
 
 def staged():
     s = Scan()
-    ident = git("var", "GIT_AUTHOR_IDENT")
-    s.identity("staged author", re.search(r"<([^>]*)>", ident).group(1))
+    for var in ("GIT_AUTHOR_IDENT", "GIT_COMMITTER_IDENT"):
+        m = re.match(r"(.*?) <([^>]*)>", git("var", var))
+        s.identity(f"staged {var[4:-6].lower()}", m.group(2), m.group(1))
     sizes = {}
     for p in git("diff", "--cached", "--name-only", "--diff-filter=ACMRT").splitlines():
         out = git("cat-file", "-s", f":{p}", check=False).strip()
         sizes[p] = int(out) if out.isdigit() else 0
     s.diff("", git("diff", "--cached", "-U0", "--no-color", "--no-ext-diff", "--diff-filter=ACMRT"), sizes)
+    return s.report()
+
+
+def message(path):
+    """commit-msg hook: the message as git will store it (comment lines dropped)."""
+    s = Scan()
+    s.message("message", "\n".join(l for l in Path(path).read_text(errors="replace").splitlines() if not l.startswith("#")))
     return s.report()
 
 
@@ -313,6 +332,8 @@ def main(argv):
     try:
         if argv[:1] == ["staged"]:
             return staged()
+        if argv[:1] == ["message"] and len(argv) == 2:
+            return message(argv[1])
         if argv[:1] == ["push"]:
             return push(argv[1:])
         if argv[:1] == ["range"] and len(argv) == 2:

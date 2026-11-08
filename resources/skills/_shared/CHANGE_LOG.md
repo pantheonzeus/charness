@@ -2,6 +2,20 @@
 
 One entry per edit made under the [[change-manifest]] module. Newest first. Verdict fills in on the edit's next real use — never delete a disconfirmed entry.
 
+## 2026-11-08 — Commit guard v2: the principal is the only person on a commit
+- **Trigger:** the principal, after the first push: "check my skill, it should only show me as commit person". 16 of 17 commits on `origin/main` carried `Co-Authored-By: Claude …`, so GitHub listed a second author. The trailer came from the harness's attribution default, which v1 of the skill followed as "the repo's trailer convention".
+- **Touched:**
+  - `scripts/commit_guard.py`: new `message` mode. Rules `identity:co-author-or-tool-trailer` (any `Co-Authored-By:`/`On-behalf-of:` trailer, any "Generated with/by Claude" line) and `identity:not-the-principal` (author or committer name ≠ `git config user.name`). Range scans apply both to every outgoing commit. Removed the e-mail exception for the AI tool's noreply address.
+  - **New** `scripts/git-hooks/commit-msg`: messages are judged at commit time; v1 saw them only at push.
+  - `workflow-ops/commit-guard` v2: Contract, never-on-GitHub item 6 and Blueprint step 4 state the rule, which overrides any harness default that adds an AI co-author. INDEX row updated.
+  - `commit-guard.test.sh` 61 assertions (+7: trailer variants, Generated-with line, secret in a message, foreign author name, trailer at push).
+- **Expected to fix (falsifiable):** no commit made in this clone after today carries a co-author or tool trailer, and GitHub shows the principal alone on each.
+- **Refuted if:** a commit with such a trailer reaches `origin` through this clone, or a legitimate message (the principal's own `Signed-off-by`, prose with "generated") is blocked.
+- **Preserves:** hook suites all green (commit-guard 61/61; the other 9 unchanged). Lint errors=0. No Charter, `_shared` module or Claude-hook logic changed, so the regression suite was not re-run (5/5 at 13:56 today).
+- **Fires on stable:** one more Python run per commit (commit-msg).
+- **Matched baseline:** n/a.
+- **Verdict:** pending. Check at the next five commits.
+
 ## 2026-11-08 — Commit guard: nothing sensitive reaches GitHub, enforced by git hooks and a Bash hook
 - **Trigger:** the principal asked for "a bulletproof commit skill that checks everything that should never be on github", with "very strict guidelines". The same day's audit had found client names, prices and a job-search mention in uncommitted public-branch text that `outbound_gate.py` had missed.
 - **Touched:**

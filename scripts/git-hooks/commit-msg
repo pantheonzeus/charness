@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Commit guard (scripts/commit_guard.py): the message carries no co-author or tool trailer, no secret, name or personal data.
+exec python3 "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/commit_guard.py" message "$1"
