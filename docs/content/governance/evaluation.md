@@ -10,6 +10,8 @@ A harness that can't show it still works after a change is a liability. charness
 | **Hook test suites** | Deterministic cases for every guard: allowed and denied writes, egress shapes, send approvals, provenance stamping. | [`.claude/hooks/tests/`](gh:.claude/hooks/tests/), run by `scripts/check.sh` in CI |
 | **Routing recall** | Does the preselector put the right skill in its top five? | `scripts/skill_router.py eval` against your own golden set |
 | **Quality floors** | Did a daily-intel or meeting-prep run meet the floors its own skill states (searches, sources, documents opened)? | `run-forensics/scripts/quality.py` |
+| **Output quality** | Do daily-intel briefing items pass rules quoted from that job's skill? An LLM judge, critique first, with the source text the run fetched. It flags nothing until it agrees with your own labels (TPR and TNR ≥ 0.8 on ≥ 10 pass and 10 fail). | `run-forensics/scripts/judge.py` |
+| **Repeated research** | How much research did a run repeat for nothing (same search, same fetch, unchanged re-read), per job and model? Report-only. | `run-forensics/scripts/quality.py` |
 | **Change manifest** | Each harness edit predicts its effect; the prediction is checked at the next real use. | [`_shared/change-manifest.md`](gh:resources/skills/_shared/change-manifest.md) |
 
 ## pass^3
@@ -22,7 +24,7 @@ A job's model changes only when the candidate model holds pass^3 on that job's p
 
 ## What is not measured yet
 
-There are no output-quality evals for the deliverables themselves (briefings, plans, drafts): nothing grades them mechanically yet. The suite tells you the harness behaves. It doesn't tell you the brief is good. That gap is stated on the [HarnessCard](harnesscard.md) too.
+Output quality is graded for one deliverable only, the daily-intel briefing, and that judge is not calibrated yet. Plans, posts and meeting preps have no output-quality eval. The suite tells you the harness behaves. It doesn't yet tell you the brief is good. That gap is stated on the [HarnessCard](harnesscard.md) too.
 
 ## Golden sets stay private
 
