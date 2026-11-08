@@ -8,9 +8,9 @@ triggers: [next meeting, meeting prep, prep my meetings, who is in my next meeti
 tags: [workflow-ops, calendar, mail, meeting-prep, launchd, console, loop]
 related: ["[[vault-frontier-loop]]", "[[client-follow-through]]", "[[calendar-to-contacts]]", "[[mail-to-conversations]]", "[[person-dossier]]", "[[contact-meeting-capture]]", "[[morning-briefing]]"]
 status: active
-version: 7
+version: 8
 created: 2026-10-11
-updated: 2026-10-29
+updated: 2026-11-03
 modules: [file-backed-state, file-backed-handoff, evidence-backed-answering]
 scripts: [scripts/sync.py, scripts/drive_auth.py, ../../../../scripts/vault_api.py]
 requires:
@@ -49,7 +49,7 @@ vault_writes: ["cbrain/Clients/*", "cbrain/notes/[0-9]*", "cbrain/notes/Transcri
    - Use the mail in TASK.json for open threads. The newest message per thread sets `last_contact`.
    - **Large meetings (> 12 people):** the harvest already reduces internal people without history to one line. Give full notes only to the organizer, external participants and anyone with real vault history.
    - No `HARVEST.md` (harvest failed at launch): gather as before, reading the meeting note and finding participants with `python3 scripts/vault_api.py find <email>...` in one call.
-3. **Read the documents.** For each entry in the meeting's `docs` with a `text` path, read the file. Ranking: attached to the event first, then ones a participant last modified. Find what matters for *this* meeting: a decision, a changed number, an open question, a new section someone just added. Docs without `text` (PDF, Office, too large) are listed by title only. Never claim to know their content.
+3. **Read the documents.** For each entry in the meeting's `docs` with a `text` path, read the file. Ranking: attached to the event first, then ones a participant last modified. Find what matters for *this* meeting: a decision, a changed number, an open question, a new section someone just added. Docs without `text` (PDF, Office, too large) are listed by title only. Never claim to know their content. `sync.py check` refuses a prep that leaves any doc with a `text` path out of `documents`: open it and give it an entry with its link and a one-line insight, even if that line is "not relevant to this meeting".
 3b. **Bring one new thing (the client should feel the prep).** The harvest lists the candidate findings of the last 7 days from `output/frontier/*.json` (written by `research/vault-frontier-loop`) and `output/client-news/findings/*.json` (written hourly by `workflow-ops/client-news-watch`: client news with a point of view, matched also by a participant's company), each with why it matched. Pick **at most one** finding for this meeting: one whose `meetings` lists this uid, or whose `people` include a participant, or whose topic is in this meeting's `shared_themes`. Write it as `new_insight`, and make the first talking point the way to raise it ("Have you seen …? It means … for your …"). Rules:
    - With external participants, only a `client_safe: true` finding qualifies. With internal ones, any finding does.
    - No fitting finding means no `new_insight`. Never stretch a weak one to fill the slot.

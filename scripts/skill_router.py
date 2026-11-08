@@ -14,14 +14,22 @@ the top row must share >= MIN_TERMS distinct prompt words with its INDEX row (th
 match a whole trigger phrase, and so must every row shown. One generic word ("proposal", "post") is
 noise, not a route; on 938 real prompts the old rule injected on 97% at 4.4 rows each.
 
+The same match also delivers memory bodies (`memories`): the memory files' name and description go
+through the same BM25 and floor, and the top 2 bodies follow the skill rows. SessionStart injects only
+the MEMORY.md index, and models rarely open a file on their own (arXiv:2607.20972). Interactive prompts
+only: a headless launch prompt ("Read and follow resources/skills/…, a repo skill") clears the floor on
+its boilerplate words, so jobs (CBRAIN_JOB set by run_agent.sh) get no bodies.
+
   python3 scripts/skill_router.py hook                 UserPromptSubmit hook (JSON on stdin)
   python3 scripts/skill_router.py compact              SessionStart: category → slugs, < 10 K chars
   python3 scripts/skill_router.py route "<prompt>"     print the top rows with scores
   python3 scripts/skill_router.py eval [routing.tsv]   recall@5 on the golden set + quiet rate on `none`
+  python3 scripts/skill_router.py memory-eval [memory.tsv]   right body on topic prompts + quiet rate on `none`
 """
 import csv
 import json
 import math
+import os
 import re
 import sys
 from collections import Counter
@@ -31,6 +39,11 @@ REPO = Path(__file__).resolve().parent.parent
 SKILLS = REPO / "resources" / "skills"
 INDEX = SKILLS / "INDEX.md"
 GOLDEN = SKILLS / "_evals" / "routing.tsv"
+MEMORY_GOLDEN = SKILLS / "_evals" / "memory.tsv"
+# The dir the SessionStart hook reads (.claude/settings.json).
+MEMORY_DIR = Path.home() / ".claude" / "projects" / (os.environ.get("CLAUDE_PROJECT_DIR") or str(REPO)).replace("/", "-") / "memory"
+MEMORY_K = 2
+MEMORY_CAP = 1500    # characters per body
 TOP_K = 5
 MIN_SCORE = 6.0      # below this the best match is noise: inject nothing
 KEEP_RATIO = 0.35    # rows scoring under this share of the best one are dropped
@@ -152,6 +165,42 @@ def render(hits):
     return "\n".join(lines)
 
 
+def front(head, key):
+    m = re.search(rf"^{key}:\s*(.+)$", head, re.M)
+    return m.group(1).strip().strip('"') if m else ""
+
+
+def load_memories():
+    """Memory files as rows route() can score: name and description only, `text` is what gets delivered."""
+    rows = []
+    for p in sorted(MEMORY_DIR.glob("*.md")):
+        if p.name == "MEMORY.md":
+            continue
+        try:
+            text = p.read_text(encoding="utf-8")
+        except (OSError, ValueError):
+            continue
+        m = re.match(r"---\n(.*?)\n---\n", text, re.S)
+        head, rest = (m.group(1), text[m.end():]) if m else ("", text)
+        rows.append({"name": front(head, "name") or p.stem, "triggers": "", "description": front(head, "description"),
+                     "path": p.stem, "slug": p.stem, "body": "", "text": rest.strip()})
+    return rows
+
+
+def memories(prompt):
+    rows = load_memories()
+    return [r for _, r in route(prompt, k=MEMORY_K, rows=rows)] if rows else []
+
+
+def render_memories(mems):
+    lines = ["### Memories for this prompt — matched by keyword from the memory dir",
+             "Point-in-time notes, not live state: verify before asserting anything in them as fact.", ""]
+    for r in mems:
+        t = r["text"] if len(r["text"]) <= MEMORY_CAP else r["text"][:MEMORY_CAP - 1] + "…"
+        lines.append(f"#### {r['slug']}\n{t}\n")
+    return "\n".join(lines).rstrip()
+
+
 def compact():
     rows = load_index()
     by_cat = {}
@@ -176,9 +225,11 @@ def hook():
     if "<task-notification>" in prompt or "SYSTEM NOTIFICATION" in prompt:
         return 0
     hits = route(prompt) if prompt.strip() else []
-    if hits:
+    mems = memories(prompt) if prompt.strip() and not os.environ.get("CBRAIN_JOB") else []
+    parts = ([render(hits)] if hits else []) + ([render_memories(mems)] if mems else [])
+    if parts:
         print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit",
-                                                 "additionalContext": render(hits)[:9500]}}))
+                                                 "additionalContext": "\n\n".join(parts)[:9500]}}))
     return 0
 
 
@@ -205,6 +256,26 @@ def evaluate(path):
     return 0
 
 
+def evaluate_memory(path):
+    hit = n = quiet = none = peak = 0
+    for g in csv.DictReader(open(path, encoding="utf-8"), delimiter="\t"):
+        mems = memories(g["prompt"])
+        got = [r["slug"] for r in mems]
+        peak = max(peak, len(render_memories(mems)) if mems else 0)
+        if g["expected"] == "none":
+            none += 1
+            quiet += not got
+            if got:
+                print(f"NOISE {g['id']} got {got}  — {g['prompt'][:70]}")
+        else:
+            n += 1
+            hit += g["expected"] in got
+            if g["expected"] not in got:
+                print(f"MISS {g['id']} expected {g['expected']} got {got}  — {g['prompt'][:70]}")
+    print(f"right body={hit}/{n} quiet-on-none={quiet}/{none} peak-added={peak} chars")
+    return 0
+
+
 def main(argv):
     cmd = argv[0] if argv else ""
     if cmd == "hook":
@@ -218,6 +289,8 @@ def main(argv):
         return 0
     if cmd == "eval":
         return evaluate(argv[1] if len(argv) > 1 else GOLDEN)
+    if cmd == "memory-eval":
+        return evaluate_memory(argv[1] if len(argv) > 1 else MEMORY_GOLDEN)
     print(__doc__)
     return 64
 

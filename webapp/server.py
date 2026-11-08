@@ -65,6 +65,7 @@ LEDGER = REPO / "output" / ".runs" / "_ledger"
 FORENSICS_RUNS = REPO / "output" / ".runs" / "_forensics" / "runs.jsonl"
 FORENSICS_ISSUES = REPO / "output" / "run-forensics" / "issues.json"
 FORENSICS_AUTH = REPO / "output" / ".runs" / "_forensics" / "auth-alarm.json"
+FORENSICS_EXPIRY = REPO / "output" / ".runs" / "_forensics" / "auth-expiry.json"
 FORENSICS_MODELS = REPO / "output" / ".runs" / "_forensics" / "model-alarm.json"
 LAUNCH_AGENTS = Path.home() / "Library" / "LaunchAgents"
 SELF_EMAIL = employer.get("employer.work_email") or subprocess.run(
@@ -1299,11 +1300,15 @@ def loops():
         auth = json.loads(FORENSICS_AUTH.read_text())
     except (OSError, ValueError):
         auth = None
+    try:   # written by scripts/run_agent.sh when the `claude` login ends within 7 days
+        auth_expiry = json.loads(FORENSICS_EXPIRY.read_text())
+    except (OSError, ValueError):
+        auth_expiry = None
     try:   # written by forensics.py models: a job's model has no passing regression suite yet
         models = json.loads(FORENSICS_MODELS.read_text())
     except (OSError, ValueError):
         models = None
-    return {"launchd": jobs, "agents": agents, "issues": issues, "auth": auth, "models": models}
+    return {"launchd": jobs, "agents": agents, "issues": issues, "auth": auth, "auth_expiry": auth_expiry, "models": models}
 
 
 # ---------- daily intel briefing ----------

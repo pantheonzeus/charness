@@ -2,6 +2,93 @@
 
 One entry per edit made under the [[change-manifest]] module. Newest first. Verdict fills in on the edit's next real use — never delete a disconfirmed entry.
 
+## 2026-11-06 — Harness upgrades: Apply and Discard in the Plans tab
+- **Trigger:** principal approved scout proposal 20261106-0950-upgrade-2. Six upgrades built 2026-11-03 to 2026-11-05 and `decisions.jsonl` held no applied, closed or discarded line, because the last step needed a terminal.
+- **Files touched:**
+  - `upgrades.py`: `finish` pauses on stage `review` instead of `done`; `close` ends that pause; `pause-built` moves earlier builds; the refused-patch message gives the discard command.
+  - `webapp/tasks.py` (launcher): `tick` runs Apply and Discard with no agent, errors land in STATUS `failed`; the Ready notification and vault indexing also fire at the review pause.
+  - `webapp/static/index.html`: **Open the review page** at the pause. Outside the proposal's file list: leaving `done` removed the console's only link to the page.
+  - `webapp/README.md`; skill v3 (Contract output, Build steps 1 and 6, Inputs/Outputs, Acceptance, Failure modes).
+- **Verified:** `upgrades.py verify` (syntax, INDEX). **Not run:** the watcher, `apply` through `tick`, `pause-built` or the button. The builder's shell allows only upgrades.py prepare, verify, commit and finish from the main checkout, so the worktree's copy never executed.
+- **Expected to fix (falsifiable):** `decisions.jsonl` gets its first applied or discarded lines, and upgrades built but neither applied nor discarded drop from 6 to at most 1 within 7 days of this landing.
+- **Refuted if:** seven days after landing, 3 or more built upgrades are still undecided. Then the bottleneck is review time, not the terminal step, and the console change was the wrong fix.
+- **Risk flagged:** one click puts edits into the live checkout, and a hook or `.claude/settings.json` change takes effect for the next session or job. Applying several in a row can conflict; `apply` refuses and names the conflict, and the console then has no Discard button (terminal only).
+- **Verdict:** pending — 7 days after landing.
+
+## 2026-11-06 — Harness Upgrade Scout v3: `upgrades.py stage-claude`, retry of a failed build
+- **Trigger:** approved scout proposal (Claude Code docs, Permission modes, Protected paths). Writes under any `.claude/` are refused in a headless run and allow rules don't lift that, so the 2026-11-02 PostToolUseFailure build ended `failed` with three refused files, and `tick()` ignored the Go that followed. No hook or agent-file upgrade could be built.
+- **Touched:** `upgrades.py` (`stage_claude`, CLI `stage-claude`; the approved name `stage` is the scout's existing command); `webapp/tasks.py` (`answerable()` in `tick`, `state_of` and `edit_plan`; `runner` in the task list; a resumed builder re-reads the Build section); `webapp/static/index.html` (Go · Reject · Defer bar on a failed upgrade, which had no way to answer); `harness-upgrade-scout/SKILL.md` v3 (Build step 4, allowed tools, approval).
+- **Expected to fix (falsifiable):** the blocked 11-02 upgrade reaches a built branch on a single Go, with its 13 hook checks run by verify. Refused `.claude` writes in harness-upgrader runs go from 3 in that build to 0 in the next 3 builds that touch `.claude/`.
+- **Refuted if:** the next build that touches `.claude/` still ends in STATUS failed or needs hand-copied files, or Claude Code also refuses the Bash call to `stage-claude`.
+- **Fires on stable:** only on an upgrade task the principal approved; research and plan tasks keep their `needs_input`-only path. The price is deliberate: this routes around a Claude Code guard by script, so a bad `.claude` change is caught by the principal's review of the diff and by nothing else. Nothing reaches the live checkout before `apply`.
+- **Matched baseline:** n/a (no model in the loop; deterministic copy).
+- **Verdict:** pending. Check on the next build that touches `.claude/`.
+
+## 2026-11-05 — Forensics: `ls` probes leave PATH_MISS, three UNCLASSIFIED families get rules
+- **Trigger:** harness-upgrade-scout proposal, approved with Go. Source `output/run-forensics/report-20261105.md`: PATH_MISS regressed (28 runs, 66 hits, 9 jobs), unclassified share 65/1120 = 5.8% against the 5% bar.
+- **Evidence:**
+  - The Path rule tells agents to `ls` a folder before Read, and the 2026-10-31 change made `ls` the listing tool, so a failed probe counted as a guessed path.
+  - All transcripts in the project dir: about 70% of failed Bash results whose first line starts with a tool name start with `ls:` (hand count, ~125 results, 36 of them not `ls`). All-time figure, not the 7-day window, and it excludes failures with no tool prefix.
+  - The three UNCLASSIFIED signatures are the top examples in the report; the rest of the 53 hits were not read.
+- **Files touched:**
+  - `run-forensics/schema/taxonomy.json`: new `EGRESS_BLOCKED` (tracked) and `PATH_PROBE` (`track: false`) above PATH_MISS; BAD_INPUT += `ripgrep rejected the pattern`; NET_FAIL += `search was cut off before any results`.
+  - `webapp/static/index.html`: PATH_PROBE joins the untracked codes the console hides. `run-forensics/references/handbook.md`: new Egress guard row, PATH_PROBE on Task packet & paths. `run-forensics/SKILL.md`: code list, v9. Those three were not in the proposal; the change leaves them wrong otherwise.
+- **Verified:** rules traced by hand, because the builder's allowlist has no Python. `output/.runs/upgrade-20261105-0838-upgrade-1-forensics-stops-counting-ls-pr/check_samples.py <worktree>` runs them for real.
+- **Rebuild (the principal runs this):** delete `output/.runs/_forensics/runs.jsonl`, run `forensics.py report`, then `forensics.py fixed UNCLASSIFIED --jobs <the jobs that had it>`, because reclassifying empties the issue's `jobs` (`run-forensics/SKILL.md`).
+  - Past verification windows move with the rebuild. PATH_MISS keeps its frozen `share_before` while its post-fix hits drop, so its state can flip with no change in agent behaviour. Read that as a recount, not a fix.
+  - A run whose transcript has expired reclassifies with no step codes. Step data for those runs is lost.
+- **Expected to fix (falsifiable):** after the next `runs.jsonl` rebuild, PATH_PROBE shows at least 10% of the 66 PATH_MISS hits, PATH_MISS falls below 28 runs per 7 days, and the unclassified share falls from 5.8% to under 5%.
+- **Refuted if:** PATH_PROBE takes under 10% of those hits (`ls` probes were not the cause), or the unclassified share stays above 5% after the rebuild.
+- **Verdict:** pending.
+
+## 2026-11-05 — Deliver a memory's body with the prompt that touches it
+- **Trigger:** harness-upgrade-scout proposal, approved in the console. Source: Saha, *Delivery, Not Storage* (arXiv:2607.20972), a single-author preprint on one task, so the effect size here is a bet. Run state `output/.runs/upgrade-20261104-0837-upgrade-3-deliver-a-memory-s-body-with-t/`.
+- **Evidence (baseline):** 0 of 8 session-topic pairs Read the matching memory, under the 80% stop line. Grep proxy over the transcripts (a prompt naming a memory's distinctive word), not the real floor; small sample.
+- **Files touched:** `scripts/skill_router.py`: `load_memories`, `memories`, `render_memories`, `evaluate_memory`, `memory-eval` command. `route()`, `score()` and `evaluate()` are unchanged. The hook appends at most 2 bodies of ≤ 1,500 characters after the skill rows, inside the 9,500 cap. Jobs with `CBRAIN_JOB` set get no bodies: by hand trace their launch prompts clear the floor on boilerplate ("skill", "repo", "tool"), which the proposal expected the floor to stop.
+- **Verified:** not executed at build time; the builder's allowlist refuses `python3`. `upgrades.py verify` covers syntax only. The eval set stays out of the repo: it names private memory topics and `_evals/` is gitignored. It sits in the run state as `memory.tsv`; copy it to `resources/skills/_evals/memory.tsv` and run `python3 scripts/skill_router.py memory-eval`.
+- **Expected to fix (falsifiable):** on the eval set, ≥ 9 of 10 topic prompts get the right body and ≤ 1 of 10 unrelated prompts gets any, with skill recall@5 unchanged and < 3.5 KB added per injecting prompt.
+- **Refuted if:** over 14 days more than 10% of injections are irrelevant on a sample of 30, or a session acts on an injected stale memory without verifying it.
+- **Verdict:** pending.
+
+## 2026-11-05 — Login expiry warned seven days ahead, from credential_expires_at
+- **Trigger:** harness-upgrade-scout proposal, approved with Go. Claude Code 2.1.318 reports when a stored claude.ai sign-in ends: `credential_expires_at` in `claude -p` JSON results (changelog, https://code.claude.com/docs/en/changelog). The auth alarm of 2026-10-20 fires only after a run has failed.
+- **Touched:** `scripts/run_agent.sh` (ledger gains `credential_expires_at`; under 7 days left it writes `output/.runs/_forensics/auth-expiry.json` and sends one notification per expiry date; a date past the window removes the file); `webapp/server.py` (`/api/loops` → `auth_expiry`); `webapp/static/index.html` (amber island pill, hidden while the red expired pill shows).
+- **Expected to fix (falsifiable):** the next login end is flagged at least 3 days ahead by notification and pill, and that expiry produces 0 AUTH_EXPIRED runs, against 13 failed runs and about 28 h on 2026-10-13/14.
+- **Refuted if:** an AUTH_EXPIRED run appears with no auth-expiry.json in the 3 days before it, or the ledger field stays null across 20 runs on CLI 2.1.318 or later with a subscription login.
+- **Risk flagged:** (a) the field's format and position are undocumented in the pages read and were not seen in a real result; the runner assumes top level and reads ISO strings and epoch seconds or milliseconds; a nested field shows up as null in the ledger, an unreadable value as a warning in the job log. (b) If the value turns out to be the short-lived access token's expiry rather than the sign-in's end, the warning fires falsely, at most once per calendar date. (c) Silent logouts and revoked tokens stay possible, so the failure alarm stays. (d) Below 2.1.318 the field is null and nothing fires.
+- **Not verified live:** the stub test was written, not run, because the builder's shell cannot run it (see the build's `NOTES.md`). `bash -n` and `py_compile` via `upgrades.py verify`.
+- **Verdict:** pending — next login expiry.
+
+## 2026-11-05 — client-news stops handing its agent links the egress guard must refuse
+- **Trigger:** harness-upgrade-scout proposal, approved by the principal (task `20261104-0837-upgrade-1-client-news-stops-handing-its`). Source: `output/run-forensics/report-20261104.md`.
+- **Evidence:**
+  - `hooks.jsonl`: 5 egress-guard denials in 3 days (2026-11-02 to 11-04), all WebFetch, all job client-news, all 214-351 character encoded blobs.
+  - 43 stored items carry a `news.google.com` link with an unbroken id of 200+ characters. The hook log has no URL, so the link between the two is an inference.
+  - This passes the 2026-10-24 refuted-if clause "the egress guard … blocks a legitimate action more than once a week". The guard stays as it is: the skill's instruction was at fault, because WebFetch does not follow cross-host redirects, so the fetch would not have reached the publisher even if allowed.
+- **Files touched:**
+  - `client-news-watch/scripts/client_news.py`: `poll()` drops `link` and adds `source_url` from the RSS `<source url=…>` attribute.
+  - `client-news-watch/SKILL.md` v2: field list, and the redirect gotcha is now a publisher lookup by WebSearch.
+  - `run-forensics/schema/taxonomy.json`: `egress guard:` under BOUNDARY_BLOCKED, with a fix line and the hook as a site.
+- **Verified:**
+  - `upgrades.py verify`: syntax of the changed files.
+  - Readers: only the agent reads the item's `link`; no webapp or script reads `output/client-news/items/`.
+  - One live feed fetch shows the publisher's site in `<source url=…>`.
+  - None of the stored summaries holds a Google News link.
+  - **Not run:** `egress-guard.test.sh` and the classifier on the sample denial; the builder's allowlist has neither. `egress-guard.sh` is not in the diff.
+- **Expected to fix (falsifiable):** client-news egress denials fall from 5 in 3 days to 0 in the 14 days after apply, with `egress-guard.sh` unchanged. The egress signature leaves UNCLASSIFIED within 7 days of apply: `forensics.py` classifies a run once at ingest, so the old denials stay there until they age out of the report window.
+- **Refuted if:** `hooks.jsonl` shows 2 or more client-news egress denials in the 14 days after apply, or client-news briefs carry fewer publisher citations per finding than the prior 23 runs.
+- **Matched baseline:** the prior 23 client-news runs (denials, publisher citations per finding).
+- **Risk flagged:** one extra WebSearch per material item. A story with no findable publisher page counts as noise, so a thin local outlet can be missed.
+- **Verdict:** pending — 14 days of `hooks.jsonl` after apply.
+
+## 2026-11-03 — meeting-prep: sync.py check refuses a prep that leaves a task document unlisted
+- **Trigger:** harness-upgrade-scout proposal, approved with Go (task `20261103-0836-upgrade-1-sync-py-check-refuses-a-meetin`). Source: `output/run-forensics/report-20261103.md`, QUALITY_FLOOR open for meeting-prep. This is the "mechanism" option for the 2026-11-08 QUALITY_FLOOR verdict: the floor was prose the agent ignored, now it is a check the run must pass.
+- **Evidence:** meeting-prep on claude-sonnet-5-5 fell below the floor in 69 of 97 runs (71%); median docs 4, docs_read 1, docs_ignored 2. A hand trace on 2026-11-03 data: 3 of 4 current preps list 0 of their 5 text-path docs.
+- **Files touched:** `meeting-prep-loop/scripts/sync.py` (`check()`: every doc in `meetings.json` with a `text` path must have its Drive id in the prep's `documents`, same test as `run-forensics/scripts/quality.py` `listed()`; a uid not in `meetings.json` passes); `meeting-prep-loop/SKILL.md` v8 (step 3 sentence).
+- **Expected to fix (falsifiable):** meeting-prep runs flagged "documents neither opened nor in the prep" fall from 71% of sonnet-5-5 runs to ≤ 10% of the next 20 runs, and median docs_read per run rises from 1 to ≥ 2.
+- **Refuted if:** over the next 20 meeting-prep runs the document floor still fires in > 25%, or docs_ignored drops to 0 while docs_read stays at median 1 (the agent lists documents without opening them: box-ticking, so the skill or the floor needs to change instead).
+- **Verdict:** pending.
+
 ## 2026-10-29 — Knowledge-layer gaps: trust tier, typed commitments, golden-set kinds, transcript capture
 - **Trigger:** principal: "I want to close the gap", after a gap review of cbrain's knowledge layer (trust, commitments, recall, transcripts). Scope chosen: all four items, deterministic checks, full transcripts. Run state `output/.runs/20261029-company-brain-gaps/`.
 - **Evidence:**
@@ -168,7 +255,7 @@ One entry per edit made under the [[change-manifest]] module. Newest first. Verd
 - **Fires on stable:** every prompt pays ~30 ms and ≤ 3.5 KB for the preselector; every WebFetch/WebSearch ~50 ms for the egress check; SessionStart is ~5 KB smaller (compact registry instead of the overflowing INDEX).
 - **Matched baseline:** the regression suite's first run is the baseline later edits must beat; the preselector's baseline is the 2 KB INDEX preview sessions actually received.
 - **Risk flagged:** (a) preselector recall is 65 % held-out; German and email vocabulary are the main misses (routing loop's job); (b) the send gate's approval regex is strict ("yes, but change…" refuses): expect some re-asks; (c) the Bash sandbox is on for 3 jobs only; widen job by job after a canary; (d) OTLP export untested (no collector here); (e) G9 assignment changes are gated on the swap test, not made; (f) the preselector also fired on task notifications until filtered, and the send gate now ignores notifications and subagent reports as approval sources (found live, both fixed with tests).
-- **Verdict:** pending — 30 days of ledger, forensics and hooks.jsonl.
+- **Verdict:** pending — 30 days of ledger, forensics and hooks.jsonl. One clause has fired: the egress guard's false-positive line, 5 denials in 3 days (see the 2026-11-05 entry). The other clauses stay open.
 
 ## 2026-10-23 — Employer packs: general / personal / employer split, provider adapter contracts
 - **Trigger:** principal: "split the harness … I want to interchange and configure things that are unique to my employer"; design reviewed and approved ("go ahead"). Design and research: `output/20261023-harness-modernity-and-employer-split.md`; build state `output/.runs/20261023-employer-split-build/`.

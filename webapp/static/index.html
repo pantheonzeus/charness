@@ -56,6 +56,7 @@
           border: 1px solid color-mix(in srgb, var(--ink) 14%, transparent); max-width: 420px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--res); flex: none; box-shadow: 0 0 10px var(--res); }
   .pill.alarm i { background: var(--err); box-shadow: 0 0 10px var(--err); }
+  .pill.warn i { background: var(--cos); box-shadow: 0 0 10px var(--cos); }
 
   /* ---------- the page: Jarvis + the conversation on the left, the stage (the work you look at together) on the right ---------- */
   #stage { position: fixed; top: 92px; bottom: 206px; left: 0; right: 0; padding: 0 24px; }
@@ -956,7 +957,7 @@ function renderLoops(d) {
 }
 function runOutcome(r) {   // run-forensics: clean / degraded (friction the agent routed around) / failed, with its codes
   if (!r.outcome) return `<span class="${r.exit_code === 0 ? "ok" : "err"}">${r.exit_code === 0 ? "ok" : "exit " + r.exit_code}</span>`;
-  const codes = (r.codes || []).filter((c) => !["CMD_FAIL", "NET_FAIL"].includes(c));
+  const codes = (r.codes || []).filter((c) => !["CMD_FAIL", "NET_FAIL", "PATH_PROBE"].includes(c));
   return `<span class="${r.outcome === "clean" ? "ok" : r.outcome === "failed" ? "err" : "meta"}">${r.outcome}${codes.length ? ": " + esc(codes.join(", ")) : ""}</span>`;
 }
 function hotIssues(issues) { return issues.filter((i) => ["open", "regressed"].includes(i.state)).sort((a, b) => (b.state === "regressed") - (a.state === "regressed") || b.runs - a.runs); }
@@ -983,6 +984,10 @@ function decisions() {
     : {k: "res", text: `Researcher needs you: ${t.title}`, alarm: false});
   const L = D.loops, failing = (L?.launchd || []).filter((j) => !j.pid && j.last_exit && j.last_exit !== "0");
   if (L?.auth) out.unshift({k: "ops", text: `Claude login expired · ${L.auth.runs} run${L.auth.runs > 1 ? "s" : ""} failed · run claude to log in`, alarm: true});
+  else if (L?.auth_expiry) {
+    const days = Math.ceil((L.auth_expiry.expires_epoch * 1000 - Date.now()) / 864e5);
+    out.unshift({k: "ops", text: `Claude login ends ${days > 1 ? `in ${days} days` : days === 1 ? "tomorrow" : "today"} · run claude auth login`, alarm: false, warn: true});
+  }
   if (failing.length) out.push({k: "ops", text: `Ops: ${failing.map((j) => j.label.replace("com.cbrain.", "")).join(", ")} stopped`, alarm: true});
   for (const [m, v] of Object.entries(L?.models?.models || {})) out.push({k: "ops", alarm: v.suite === "failed",
     text: v.suite === "failed" ? `Ops: ${m} failed the regression suite · ${v.jobs.length} job${v.jobs.length > 1 ? "s" : ""} on it`
@@ -996,7 +1001,7 @@ function decisions() {
 function renderIsland() {
   const d = decisions(), shown = d.slice(0, 2);
   document.body.dataset.hudNeeds = d.some((x) => !x.alarm) ? "1" : "";   // the core turns amber: something needs you
-  $("#island").innerHTML = shown.map((x, i) => `<div class="pill ${x.alarm ? "alarm" : ""}" ${x.jarvis ? `data-jarvis="1"` : x.plan ? `data-plan="${esc(x.plan)}"` : `data-star="${x.k}"`}><i></i>${esc(x.text)}${i === 1 && d.length > 2 ? ` · +${d.length - 2}` : ""}</div>`).join("");
+  $("#island").innerHTML = shown.map((x, i) => `<div class="pill ${x.alarm ? "alarm" : x.warn ? "warn" : ""}" ${x.jarvis ? `data-jarvis="1"` : x.plan ? `data-plan="${esc(x.plan)}"` : `data-star="${x.k}"`}><i></i>${esc(x.text)}${i === 1 && d.length > 2 ? ` · +${d.length - 2}` : ""}</div>`).join("");
 }
 $("#island").onclick = (e) => { const p = e.target.closest("[data-star], [data-plan], [data-jarvis]"); if (!p) return; if (p.dataset.jarvis) return void post("/api/jarvis/go"); p.dataset.plan ? openPlan(p.dataset.plan) : openMember(p.dataset.star); };
 
@@ -1354,7 +1359,7 @@ function renderPlan(force) {
   const p = t.doc;
   if (!p) { el.innerHTML = `<div class="kick">Living plan · ${t.state === "needs_input" && STATUS_STAGE(t) === "interrogate" ? "questions first" : "reading your vault"}<a data-plan-close>all plans</a></div><h1>${esc(t.title)}</h1>${t.state === "needs_input" && STATUS_STAGE(t) === "interrogate" ? interrogation(t)
     : `<p class="meta">${t.state === "failed" || t.state === "lost" ? esc(t.error || "Stopped without reporting. Ops has the log.") : "The team is reading your vault and preparing its questions. No research starts until you've answered them."}</p>`}`; return; }
-  const paused = t.state === "needs_input", stage = STATUS_STAGE(t);
+  const paused = t.state === "needs_input", stage = STATUS_STAGE(t), retry = t.state === "failed" && t.runner === "upgrade";
   if (paused && stage === "interrogate") { el.innerHTML = `<div class="kick">Living plan · questions first<a data-plan-close>all plans</a></div><h1>${esc(t.title)}</h1>${interrogation(t)}`; el.dataset.task = t.id; return; }
   const steps = planBuf?.steps || p.steps.map((s) => ({...s}));
   const editable = (s) => paused && ["pending", "waiting"].includes(s.status);
@@ -1377,8 +1382,8 @@ function renderPlan(force) {
   }
   h += `</ol>`;
   if (paused) h += `<div class="row" style="margin-top:10px"><button class="btn" data-add>+ Add a step</button><span class="meta">Edit titles in place, click an owner to reassign, ↑ reorders, ◆ toggles a checkpoint.</span></div>`;
-  if (paused && (stage === "plan" || !steps.some((s) => s.id === stage))) h += `<div class="planbar"><div class="q">${esc(t.question || "Go with this plan?")}</div>
-      <div class="row">${(t.options || ["Go"]).map((o) => `<button class="btn ${/^go/i.test(o) ? "pri" : ""}" data-plan-answer="${esc(o)}">${esc(o)}</button>`).join("")}</div>
+  if (retry || (paused && (stage === "plan" || !steps.some((s) => s.id === stage)))) h += `<div class="planbar"><div class="q">${esc(retry ? "The build stopped (reason below). Go retries it." : t.question || "Go with this plan?")}</div>
+      <div class="row">${stage === "review" && t.report ? `<button class="btn pri" data-task-act="report" data-task-id="${esc(t.id)}">Open the review page</button>` : ""}${(retry ? ["Go", "Reject", "Defer a week"] : t.options || ["Go"]).map((o) => `<button class="btn ${/^go/i.test(o) ? "pri" : ""}" data-plan-answer="${esc(o)}">${esc(o)}</button>`).join("")}</div>
       <input placeholder="Or say what to change, then Enter…" data-plan-text></div>`;
   if (t.state === "done") h += `<div class="planbar"><div class="q">${esc(t.summary || "Done.")}</div><div class="row">
       <button class="btn pri" data-task-act="report" data-task-id="${esc(t.id)}">Open the deliverable</button><button class="btn" data-plan-tell>🎙 Tell me</button></div></div>`;

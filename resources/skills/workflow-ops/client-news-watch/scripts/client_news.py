@@ -97,7 +97,8 @@ def norm_title(title):
 
 
 def poll(client, window):
-    """Google News RSS for each query x locale → [{title, link, source, published, summary}]."""
+    """Google News RSS for each query x locale → [{title, source, source_url, published, summary}].
+    The item's redirect link is left out on purpose: the egress guard refuses it, so the agent must not hold it."""
     got = []
     for q in client["queries"]:
         for loc in client.get("locales", ["en-US"]):
@@ -116,9 +117,10 @@ def poll(client, window):
                     published = email.utils.parsedate_to_datetime(pub).astimezone().isoformat(timespec="minutes")
                 except (TypeError, ValueError):
                     published = ""
+                src = it.find("source")
                 got.append({"title": html.unescape(it.findtext("title") or "").strip(),
-                            "link": (it.findtext("link") or "").strip(),
                             "source": (it.findtext("source") or "").strip(),
+                            "source_url": (src.get("url", "") if src is not None else "").strip(),
                             "published": published,
                             "summary": re.sub(r"<[^>]+>", " ", html.unescape(it.findtext("description") or ""))[:600].strip(),
                             "query": q, "locale": loc})

@@ -9,16 +9,18 @@ improvement proposals as plans in the console, each waiting for your Go. Go buil
   stage <STATE_ROOT>     turn a checked RESULT.json into console plans (run does this)
   prepare <task-id>      create the task's worktree + branch upgrade/<task-id> from the checkout as it is now
                          (HEAD + a snapshot commit of uncommitted work), idempotent; print its path
+  stage-claude <task-id> copy the builder's drafts from output/.runs/upgrade-<task-id>/claude/ into the worktree's .claude/
   verify <task-id>       syntax and test checks on the files the branch changed
   commit <task-id> <msg> commit everything in the worktree to the branch
-  finish <task-id>       write the review page, mark the task done (needs a commit and verify OK)
+  finish <task-id>       write the review page, pause the task on your Apply or Discard (needs a commit and verify OK)
   apply <task-id>        lay the built change onto your checkout as uncommitted edits (you commit)
   close <task-id> [--force]  remove the worktree and branch once applied (--force: discard it unapplied)
+  pause-built            one-off: give builds finished before the review pause their Apply and Discard
   decide <task-id> <rejected|deferred|approved> [note]   record your call (the console does this)
   status                 JSON: proposals by decision, worktrees still open
 
-Nothing here merges or commits to your branch. The built change waits for you: `apply <task-id>`, review
-`git diff`, commit when you like, then `close <task-id>`.
+Nothing here merges or commits to your branch. The built change waits for you: Apply in the console's Plans
+tab (or `apply <task-id>`, then `close <task-id>`), review `git diff`, commit when you like.
 Decisions live in output/harness-upgrades/decisions.jsonl; the scout reads them so a rejected idea
 never comes back and a deferred one waits its week.
 """
@@ -347,7 +349,8 @@ def apply(tid):
     r = subprocess.run(["git", "apply", "--check", "-"], cwd=REPO, input=patch, capture_output=True)
     if r.returncode:
         sys.exit(f"does not apply cleanly (the files changed since the snapshot):\n{r.stderr.decode().strip()}\n"
-                 f"Look at it with: git diff {m['base'][:10]} {m['branch']}")
+                 f"Look at it with: git diff {m['base'][:10]} {m['branch']}\n"
+                 f"Discard it with: uv run {REL(__file__)} close {tid} --force")
     subprocess.run(["git", "apply", "-"], cwd=REPO, input=patch, check=True)
     decide(tid, "applied")
     return git("diff", "--stat", m["base"], m["branch"])
@@ -361,6 +364,26 @@ def changed(tid):
     files = set(git("diff", "--name-only", m["base"], cwd=wt).splitlines())
     files |= {line[3:].split(" -> ")[-1] for line in git("status", "--porcelain", "--untracked-files=all", cwd=wt).splitlines()}
     return Path(wt), m, sorted(f for f in files if f)
+
+
+def stage_claude(tid):
+    """Claude Code refuses Write/Edit under any .claude/ in a headless run, and allow rules don't lift that.
+    So the builder drafts in STATE_ROOT/claude/<path under .claude> and this copies the drafts into the
+    worktree only. All or nothing: a symlink or a target outside .claude/ refuses the whole batch."""
+    wt, _, _ = changed(tid)
+    src, dst = REPO / "output" / ".runs" / f"upgrade-{tid}" / "claude", (wt / ".claude").resolve()
+    pairs = []
+    for f in sorted(p for p in src.rglob("*") if p.is_file() or p.is_symlink()):
+        target = (dst / f.relative_to(src)).resolve()
+        if f.is_symlink() or not target.is_relative_to(dst):
+            sys.exit(f"refused, nothing staged: {f.relative_to(src)} leaves the worktree's .claude/")
+        pairs.append((f, target))
+    if not pairs:
+        sys.exit(f"nothing to stage in {src}")
+    for f, target in pairs:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(f, target)   # not copy2: an existing hook keeps its mode
+    return [str(t.relative_to(dst.parent)) for _, t in pairs]
 
 
 def verify(tid):
@@ -411,6 +434,14 @@ def commit(tid, msg):
     return git("rev-parse", "--short", "HEAD", cwd=wt)
 
 
+def review_status(m, report):
+    """The pause after a build. tasks.py carries out your Apply or Discard, with no agent."""
+    return {"state": "needs_input", "stage": "review", "updated": now(), "report": report,
+            "question": f"Built on {m['branch']}, checks OK. Read the review page, then Apply or Discard.",
+            "summary": f"Built on {m['branch']}, checks OK. Review the diff, then apply or discard.",
+            "options": ["Apply", "Discard"]}
+
+
 def finish(tid):
     wt, m, _ = changed(tid)
     if git("status", "--porcelain", cwd=wt):
@@ -436,15 +467,27 @@ def finish(tid):
         f"## What changed and why\n{notes.read_text().strip() if notes.is_file() else '(no notes)'}\n\n"
         f"## Checks\n{'OK' if v['ok'] else 'FAILED'}: {len(v['files'])} file(s) checked"
         + (f"; tests run: {', '.join(v['tests'])}" if v["tests"] else "; no hook tests touched") + "\n\n"
-        f"## Your call\n- Apply: `uv run {REL(__file__)} apply {tid}` (uncommitted edits in your checkout; review with `git diff`, "
+        f"## Your call\n**Apply** or **Discard** on this plan in the console's Plans tab, or in a terminal:\n\n"
+        f"- Apply: `uv run {REL(__file__)} apply {tid}` (uncommitted edits in your checkout; review with `git diff`, "
         f"commit when you like), then `uv run {REL(__file__)} close {tid}`\n"
         f"- Discard: `uv run {REL(__file__)} close {tid} --force`\n"
         f"- Look first: `git diff {m['base'][:10]} {m['branch']}` or `cd {wt}`\n\n"
         f"## Diff\n```\n{stat}\n```\n\n```diff\n" + "\n".join(diff[:600]) + ("\n… (cut at 600 lines)" if cut else "") + "\n```\n")
-    save(d / "STATUS.json", {"state": "done", "stage": "built", "updated": now(), "report": REL(page),
-                             "summary": f"Built on {m['branch']}, checks OK. Review the diff, then apply or discard."})
+    save(d / "STATUS.json", review_status(m, REL(page)))
     decide(tid, "built")
     return REL(page)
+
+
+def pause_built():
+    """One-off: builds finished while finish() still ended on done get the review pause."""
+    moved = []
+    for tid, x in latest().items():
+        d = TASKS / tid
+        st = load(d / "STATUS.json", {})
+        if x["decision"] == "built" and st.get("state") == "done" and st.get("stage") == "built":
+            save(d / "STATUS.json", review_status(load(d / "upgrade.json", {}), st.get("report")))
+            moved.append(tid)
+    return moved
 
 
 def close(tid, force=False):
@@ -458,6 +501,12 @@ def close(tid, force=False):
             sys.exit(f"worktree removed; branch {m['branch']} kept because it was never applied. apply it, or close --force to discard.")
         git("branch", "-D", m["branch"])
     decide(tid, "closed" if applied else "discarded")
+    st = load(d / "STATUS.json", {})
+    if st.get("stage") == "review":   # the pause ends here, from the console or a terminal alike
+        save(d / "STATUS.json", {"state": "done", "stage": "applied" if applied else "discarded", "updated": now(),
+                                 "report": st.get("report"),
+                                 "summary": "Applied to your checkout as uncommitted edits. Review with git diff, commit when you like."
+                                 if applied else "Discarded. Worktree and branch removed, nothing applied."})
 
 
 def status():
@@ -484,6 +533,8 @@ if __name__ == "__main__":
         sys.exit(1 if e else 0)
     elif a[:1] == ["prepare"] and len(a) == 2:
         print(prepare(a[1]))
+    elif a[:1] == ["stage-claude"] and len(a) == 2:
+        print("\n".join(stage_claude(a[1])))
     elif a[:1] == ["verify"] and len(a) == 2:
         e = verify(a[1])
         print("OK" if not e else "\n".join(e))
@@ -496,6 +547,8 @@ if __name__ == "__main__":
         print(apply(a[1]))
     elif a[:1] == ["close"] and len(a) in (2, 3):
         close(a[1], force=a[2:] == ["--force"])
+    elif a[:1] == ["pause-built"]:
+        print("\n".join(pause_built()) or "nothing to move")
     elif a[:1] == ["decide"] and len(a) in (3, 4):
         print(json.dumps(decide(a[1], a[2], a[3] if len(a) == 4 else "")))
     elif a[:1] == ["status"]:

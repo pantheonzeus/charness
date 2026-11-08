@@ -9,9 +9,9 @@ tags: [harness, ops, observability, self-improvement, error-analysis]
 related: []
 modules: [file-backed-state, decision-observability, self-evolution]
 status: active
-version: 8
+version: 9
 created: 2026-10-20
-updated: 2026-11-01
+updated: 2026-11-05
 ---
 
 # Run Forensics — Failure Codes, Quality Floors, Recurrence, Verified Fixes & Regression Suite
@@ -44,7 +44,7 @@ principal: "fix <CODE>" → this skill's fix step (below) → forensics.py fixed
 ## Taxonomy (closed; `schema/taxonomy.json`)
 **Run level → `failed`** (first/root failure only — an API outage also loses the handoff, the outage is the cause): `AUTH_EXPIRED` · `INFRA` · `BUDGET` · `GATE` · `NO_HANDOFF`.
 **Auth alarm:** `AUTH_EXPIRED` does not wait for the daily report or a second run. `run_agent.sh` matches the auth error on the first failed run, writes `output/.runs/_forensics/auth-alarm.json`, sends one macOS notification and Jarvis shows a red pill until the next good run removes the file. The fix is always the same: run `claude` and log in.
-**Step level → `degraded`:** `PERM_BLOCKED` · `BOUNDARY_BLOCKED` · `SKILL_MISROUTE` · `STALE_EDIT` · `PATH_MISS` · `ENV_MISSING` · `BAD_INPUT` · `QUALITY_FLOOR` (no tool error: the run skipped work its skill requires, section D). Recorded but never an issue (`track: false`): `NET_FAIL`, `CMD_FAIL` (exploration noise). Anything else → `UNCLASSIFIED`, which *is* tracked — a recurring unclassified signature means the taxonomy needs a rule.
+**Step level → `degraded`:** `PERM_BLOCKED` · `BOUNDARY_BLOCKED` · `SKILL_MISROUTE` · `STALE_EDIT` · `EGRESS_BLOCKED` · `PATH_MISS` · `ENV_MISSING` · `BAD_INPUT` · `QUALITY_FLOOR` (no tool error: the run skipped work its skill requires, section D). Recorded but never an issue (`track: false`): `NET_FAIL`, `CMD_FAIL`, `PATH_PROBE` (exploration noise; `PATH_PROBE` is an `ls` that found nothing). Anything else → `UNCLASSIFIED`, which *is* tracked — a recurring unclassified signature means the taxonomy needs a rule.
 Each code carries its MAST and TRAIL mapping and a fix hint.
 
 ## Core Blueprint

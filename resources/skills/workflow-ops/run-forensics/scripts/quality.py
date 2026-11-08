@@ -13,10 +13,13 @@ Code only, no LLM judge (SKILL.md: rules before judges). Stdlib, Python 3.9.
 import fnmatch
 import json
 import re
+import shlex
 from pathlib import Path
 from urllib.parse import urlsplit
 
 REPO = Path(__file__).resolve().parents[5]
+LONG_VALUE_FLAGS = ("--include", "--exclude", "--exclude-dir", "--regexp", "--file", "--max-count",
+                    "--after-context", "--before-context")
 
 
 def calls(path):
@@ -107,6 +110,52 @@ def grepped(inp, doc):
     return any(fnmatch.fnmatch(Path(doc).name, a) for a in alts)
 
 
+def grep_inputs(cmd):
+    """The {path, glob} entries grepped() reads for a Bash command that starts with grep, one per path argument; a
+    --include or an unexpanded shell wildcard becomes the glob. [] for any other command, one shlex cannot parse, or
+    grep -c "" (an empty pattern counts lines, it searches nothing). Flags may follow the paths (seen in transcripts)."""
+    try:
+        args = shlex.split(cmd)
+    except ValueError:
+        return []
+    if args[:1] != ["grep"]:
+        return []
+    words, patterns, includes = [], [], []
+    rest = iter(args[1:])
+    for a in rest:
+        if a == "--":
+            words.extend(rest)
+        elif a.startswith("--"):
+            name, eq, value = a.partition("=")
+            if name in LONG_VALUE_FLAGS and not eq:
+                value = next(rest, "")
+            if name == "--include":
+                includes.append(value)
+            elif name in ("--regexp", "--file"):
+                patterns.append(value)
+        elif a.startswith("-") and a != "-":
+            m = re.search("[ABCDdefm]", a)   # the short flags that take a value, attached or as the next word
+            if m:
+                value = a[m.end():] or next(rest, "")
+                if m.group() in "ef":
+                    patterns.append(value)
+        else:
+            words.append(a)
+    if not patterns and words:
+        patterns.append(words.pop(0))
+    if not any(patterns):
+        return []
+    out = []
+    for p in words:
+        p = p.removeprefix("./")
+        folder, _, name = p.rpartition("/")
+        if "*" in name or "?" in name:
+            out.append({"path": folder, "glob": name})
+        else:
+            out.extend({"path": p, "glob": g} for g in includes or [None])
+    return out
+
+
 def daily_intel(cs, prompt):
     """workflow-ops/daily-intel-briefing SKILL.md step 3: "Each section gets ≥ 2 WebSearch calls with different
     angles and every item gets ≥ 1 WebFetch of its primary source before it is written." """
@@ -134,8 +183,8 @@ def meeting_prep(cs, prompt):
     """workflow-ops/meeting-prep-loop SKILL.md: write output/meetings/prep/<uid>.json unless needs is "surface",
     and a surface for every meeting (steps 5-6); "For each entry in the meeting's docs with a text path, read the
     file" (step 3); "Stay within ≤ 4 web calls per run in total" (step 4). The document floor is looser than the
-    sentence: a document only searched (Grep), or carried into the prep from the last one, passes; a document the
-    run neither opened nor listed fails."""
+    sentence: a document only searched (the Grep tool or a Bash grep), or carried into the prep from the last one,
+    passes; a document the run neither opened nor listed fails."""
     root = re.search(r"output/\.runs/\d{8}-\d{4}-meeting-prep", prompt)
     root = root and root.group(0)
     task = loads((REPO / root / "TASK.json").read_text()) if root and (REPO / root / "TASK.json").exists() else None
@@ -149,6 +198,7 @@ def meeting_prep(cs, prompt):
     # A prep or surface the run read and left as it was counts: the agent judged it current (seen 2026-10-27/28).
     kept = lambda kind: {Path(r).stem for r in reads if f"output/meetings/{kind}/" in r}
     greps = [i for n, i in cs if n == "Grep"]
+    greps += [e for n, i in cs if n == "Bash" for e in grep_inputs(str(i.get("command", "")))]
     docs = sorted({d["text"].removeprefix("./") for x in due for d in x.get("docs") or [] if d.get("text")})
     read = [d for d in docs if any(r.endswith(d) for r in reads)]
     # Searching a document for this meeting's names and terms finds what matters in it; never opening it does not.

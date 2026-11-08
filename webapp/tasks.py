@@ -12,7 +12,8 @@ on every state change. A pause ends the worker's run cleanly: nothing hangs whil
 
 A task with `runner: upgrade` (a harness-upgrade-scout proposal) arrives already paused on its plan
 and launches nothing until you answer: Reject / Defer are recorded here, anything else starts the
-builder fresh in the proposal's own git worktree.
+builder fresh in the proposal's own git worktree. A finished build pauses again on your review:
+Apply / Discard run here too, with no agent.
 """
 import importlib.util
 import asyncio
@@ -130,6 +131,7 @@ def launch(d, meta, env, answer=None):
         prompt = (f"The user answered your question on task {tid}:\n\n{answer}\n\n"
                   f"Continue the {skill} skill from where you paused: reopen output/.runs/{prefix}-{tid}/RESPONSE.md"
                   + (" and re-read output/tasks/{tid}/PLAN.json first (the user may have edited it)".format(tid=tid) if kind == "plan" else "")
+                  + (" and re-read the skill's Build section (a retried build may find it changed)" if runner == "upgrade" else "")
                   + ", turn [~] back into [ ], set STATUS.json to working, then carry on.")
         session = ["--resume", meta["session_id"]]
     spine.parent.mkdir(parents=True, exist_ok=True)
@@ -154,6 +156,12 @@ def launch(d, meta, env, answer=None):
     meta.setdefault("launches", []).append(time.time())
 
 
+def answerable(d, status):
+    """An answer restarts the worker on a pause, and on a failed upgrade build (Go again retries it)."""
+    st = status.get("state")
+    return st == "needs_input" or (st == "failed" and frontmatter((d / "TASK.md").read_text()).get("runner") == "upgrade")
+
+
 def state_of(d, meta, status, procs=None):
     if meta is None:
         return "queued"
@@ -162,8 +170,8 @@ def state_of(d, meta, status, procs=None):
     if meta.get("error"):
         return "failed"
     if alive(meta, procs):  # a live process is working, even if STATUS still shows the question it just got answered
-        return "working" if status.get("state") in (None, "needs_input") else status["state"]
-    if status.get("state") == "needs_input" and unconsumed(d, meta):
+        return "working" if status.get("state") is None or answerable(d, status) else status["state"]
+    if answerable(d, status) and unconsumed(d, meta):
         return "resuming"
     if status.get("state") in ("needs_input", "done", "failed"):
         return status["state"]
@@ -172,6 +180,22 @@ def state_of(d, meta, status, procs=None):
 
 def unconsumed(d, meta):
     return [a for a in sorted((d / "answers").glob("*.md")) if a.name not in meta.get("answers_used", [])]
+
+
+def settle_upgrade(d, call, status):
+    """Your Apply or Discard from the review pause. upgrades.py exits on a git error, which must not
+    stop the watcher: the message lands in STATUS."""
+    mod, did = upgrades(), ""
+    try:
+        if call == "apply":
+            mod.apply(d.name)
+            did = "Applied to your checkout, but the cleanup failed: "
+            mod.close(d.name)
+        else:
+            mod.close(d.name, force=True)
+    except (SystemExit, Exception) as e:
+        save(d / "STATUS.json", {**status, "state": "failed", "error": f"{did}{e}",
+                                 "updated": time.strftime("%Y-%m-%dT%H:%M:%S%z")})
 
 
 def tick(env):
@@ -202,13 +226,19 @@ def tick(env):
         if meta.get("cancelled") or meta.get("error"):
             continue
         is_alive = alive(meta, procs)
-        if status.get("state") == "needs_input" and not is_alive and running < MAX_RUNNING:
+        if answerable(d, status) and not is_alive and running < MAX_RUNNING:
             fresh = unconsumed(d, meta)
             if fresh:
                 answer = "\n\n".join(a.read_text().strip() for a in fresh)
                 call = re.match(r"\s*(reject|defer)", answer, re.I)
-                if fm.get("runner") == "upgrade" and call:   # your call, recorded; no agent needed
-                    upgrades().decide(d.name, "rejected" if call.group(1).lower() == "reject" else "deferred", answer)
+                review = fm.get("runner") == "upgrade" and status.get("stage") == "review"
+                # Touches your checkout, so only a plain Apply / Discard counts; any other text goes to the builder.
+                settle = re.fullmatch(r"\s*(apply|discard)(\s+it)?[.!]?\s*", answer.split("\n\n")[0], re.I) if review else None
+                if settle or (fm.get("runner") == "upgrade" and call and not review):   # your call, recorded; no agent needed
+                    if settle:
+                        settle_upgrade(d, settle.group(1).lower(), status)
+                    else:
+                        upgrades().decide(d.name, "rejected" if call.group(1).lower() == "reject" else "deferred", answer)
                     meta["answers_used"] += [a.name for a in fresh]
                     meta["notified"] = f"done:{load(d / 'STATUS.json', {}).get('updated')}"   # you made the call; no knock about it
                     save(d / "meta.json", meta)
@@ -226,9 +256,10 @@ def tick(env):
             msg = {"needs_input": f"Needs your input: {status.get('question', '')}",
                    "done": f"Ready: {status.get('summary', '')}",
                    "failed": f"Stopped: {status.get('error', '')}",
-                   "lost": "Stopped without reporting. Ops has the log."}[st]
-            notify(f"cbrain · {who}", title, msg)
-            if st == "done":  # the report now exists in output/: give it its vault index note
+                   "lost": "Stopped without reporting. Ops has the log."}
+            built = st == "needs_input" and status.get("stage") == "review"   # paused, but its report is finished
+            notify(f"cbrain · {who}", title, msg["done" if built else st])
+            if st == "done" or built:  # the report now exists in output/: give it its vault index note
                 with LOG.open("a") as log:
                     subprocess.Popen(["python3", str(INDEXER)], cwd=REPO, stdout=log, stderr=subprocess.STDOUT)
                     if fm.get("media") and not meta.get("media_started"):   # NotebookLM podcast / video of the report
@@ -274,7 +305,7 @@ def list_tasks():
                         pass
                 for r in plan.get("receipts") or []:
                     r["flag"] = flags.get(r.get("ref"))
-        out.append({"id": d.name, "kind": fm.get("kind", "research"), "doc": plan,
+        out.append({"id": d.name, "kind": fm.get("kind", "research"), "doc": plan, "runner": fm.get("runner"),
                     "title": fm.get("title", d.name), "depth": fm.get("depth", "standard"),
                     "requested": fm.get("requested"), "state": state_of(d, meta, status, procs),
                     **{k: status.get(k) for k in ("stage", "plan", "question", "options", "questions", "summary", "report", "topic", "updated", "error")},
@@ -417,7 +448,7 @@ async def edit_plan(tid: str, request: Request):
     meta, status, plan = load(d / "meta.json", {}) or {}, load(d / "STATUS.json", {}), load(d / "PLAN.json", None)
     if not plan:
         raise HTTPException(404, "no plan")
-    if alive(meta) or status.get("state") != "needs_input":
+    if alive(meta) or not answerable(d, status):
         raise HTTPException(409, "the team is working; edit when it pauses")
     body = await request.json()
     old = {s["id"]: s for s in plan.get("steps", [])}

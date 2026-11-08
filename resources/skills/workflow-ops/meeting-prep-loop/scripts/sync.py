@@ -570,6 +570,14 @@ def check(path):
         if not isinstance(d, dict) or not d.get("name") or not d.get("insight"):
             errs.append("documents: each entry needs name and insight (one line on why it matters here)")
             break
+    # coverage: every task document with a text path must be listed (same test as run-forensics quality.py listed())
+    meeting = next((m for m in load(MEETINGS, {}).get("meetings", []) if m.get("uid") == p.get("uid")), None)
+    listed = json.dumps(p.get("documents") or [])
+    missing = [d.get("name") or d["id"] for d in (meeting or {}).get("docs") or []
+               if d.get("text") and d.get("id") and d["id"] not in listed]
+    if missing:
+        errs.append("documents: missing task document(s) " + "; ".join(missing)
+                    + " — open it and add a documents entry with its link and a one-line insight")
     for k in ("open_threads", "shared_themes"):
         if not isinstance(p.get(k, []), list):
             errs.append(f"{k} must be a list")

@@ -66,14 +66,15 @@
   {
    "code": "BOUNDARY_BLOCKED",
    "tool": ".*",
-   "pattern": "write-boundary guard|was blocked\\. For security|outside the allowed (working )?director|outside the allowed zones",
+   "pattern": "write-boundary guard|egress guard:|was blocked\\. For security|outside the allowed (working )?director|outside the allowed zones",
    "track": true,
    "mast": "system design",
    "trail": "system execution: configuration",
-   "fix": "Agent wrote or listed outside the allowed zones (often /tmp), or outside its job's write_scopes (hook log line carries `job`). Zones: tell the agent definition to use its STATE_ROOT for scratch files. Scopes: if the path is a legitimate output of the job, a human widens `write_scopes:` in .claude/agents/<job>.md; otherwise the wall worked, fix the prompt.",
+   "fix": "Agent wrote or listed outside the allowed zones (often /tmp), or outside its job's write_scopes (hook log line carries `job`). Zones: tell the agent definition to use its STATE_ROOT for scratch files. Scopes: if the path is a legitimate output of the job, a human widens `write_scopes:` in .claude/agents/<job>.md; otherwise the wall worked, fix the prompt. Egress guard: find what handed the agent that URL or query (hooks.jsonl carries `job` and `why`) and fix that source; never loosen the guard for one job.",
    "behavior": "Write boundary",
    "sites": [
     ".claude/hooks/write-boundary.sh",
+    ".claude/hooks/egress-guard.sh",
     "the CLI working-directory sandbox",
     ".claude/agents/<job>.md (Headless shell rule, write_scopes)"
    ]
@@ -122,6 +123,33 @@
    ]
   },
   {
+   "code": "EGRESS_BLOCKED",
+   "tool": "WebFetch|WebSearch",
+   "pattern": "egress guard: ",
+   "track": true,
+   "mast": "system design",
+   "trail": "system execution: configuration",
+   "fix": "The URL or query carried a shape research never needs (email address, encoded blob, oversized query). Tracking and token links are the usual cause: pass the agent the clean page URL. A deny on data that really was private means the guard worked; find out where the agent got it.",
+   "behavior": "Egress guard",
+   "sites": [
+    ".claude/hooks/egress-guard.sh",
+    "the launcher's prompt"
+   ]
+  },
+  {
+   "code": "PATH_PROBE",
+   "tool": "Bash",
+   "pattern": "^Exit code \\d+\\s+ls: ",
+   "track": false,
+   "mast": "-",
+   "trail": "-",
+   "fix": "An `ls` found nothing. The Path rule tells agents to `ls` a folder before Read, so this is the rule working. Only act if one job's count climbs: that job has lost its paths, so treat it like PATH_MISS.",
+   "behavior": "Task packet & paths",
+   "sites": [
+    ".claude/agents/<job>.md (Path rule)"
+   ]
+  },
+  {
    "code": "PATH_MISS",
    "tool": ".*",
    "pattern": "File does not exist|EISDIR|No such file or directory|does not exist\\.|ENOENT",
@@ -139,7 +167,7 @@
   {
    "code": "NET_FAIL",
    "tool": ".*",
-   "pattern": "timeout of \\d+ms|maxContentLength|went to sleep|ECONNRESET|ETIMEDOUT|fetch failed|socket hang up|\\b(403|404|429|5\\d\\d)\\b.*(status|error)|Request failed|unable to fetch from|Request interrupted by user",
+   "pattern": "timeout of \\d+ms|maxContentLength|went to sleep|ECONNRESET|ETIMEDOUT|fetch failed|socket hang up|\\b(403|404|429|5\\d\\d)\\b.*(status|error)|Request failed|unable to fetch from|Request interrupted by user|search was cut off before any results",
    "track": false,
    "mast": "-",
    "trail": "system execution: API/system",
@@ -167,7 +195,7 @@
   {
    "code": "BAD_INPUT",
    "tool": ".*",
-   "pattern": "InputValidationError|Invalid tool parameters|tool_use_error>Error",
+   "pattern": "InputValidationError|Invalid tool parameters|tool_use_error>Error|ripgrep rejected the pattern",
    "track": true,
    "mast": "system design",
    "trail": "reasoning: output generation",

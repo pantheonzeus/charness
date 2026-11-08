@@ -197,7 +197,7 @@ META="$(printf '%s' "$OUT" | jq -c '{is_error, subtype, terminal_reason,
            cache_read: .usage.cache_read_input_tokens, cache_write: .usage.cache_creation_input_tokens,
            web_search: .usage.server_tool_use.web_search_requests, web_fetch: .usage.server_tool_use.web_fetch_requests}
           else null end),
-  subagents: .subagent_stats.spawned}' 2>/dev/null || true)"
+  subagents: .subagent_stats.spawned, credential_expires_at}' 2>/dev/null || true)"
 [ -n "$META" ] || META='{}'
 jq -cn --arg ts "$START" --arg job "$JOB" --arg sha "$GIT_SHA" --argjson rc "$RC" \
   --argjson handoff "$handoff_present" --arg budget "$BUDGET" --argjson meta "$META" --argjson auth "$auth_failed" \
@@ -206,6 +206,40 @@ jq -cn --arg ts "$START" --arg job "$JOB" --arg sha "$GIT_SHA" --argjson rc "$RC
     budget_usd: (if $budget == "" then null else ($budget | tonumber) end), files_written: $files,
     effort: (if $effort == "" then null else $effort end), addendum: (if $addendum == "" then null else $addendum end)} + $meta' \
   >> "$LEDGER_DIR/$JOB.jsonl"
+
+# Login expiry warning: Claude Code 2.1.318+ reports the sign-in's end in the JSON result. Under 7 days
+# left, write auth-expiry.json and notify once per expiry date; a date past the window removes the file.
+# A run without the field (older CLI, crash, API key) leaves the file alone. The value's format is not
+# documented, so ISO strings and epoch seconds or milliseconds are all read.
+EXPIRY="$REPO_ROOT/output/.runs/_forensics/auth-expiry.json"
+EXP_RAW="$(printf '%s' "$META" | jq -r '.credential_expires_at // empty' 2>/dev/null)"
+if [ -n "$EXP_RAW" ]; then
+  EXP_EPOCH="$(/usr/bin/python3 - "$EXP_RAW" <<'PY' 2>/dev/null
+import sys
+from datetime import datetime, timezone
+v = sys.argv[1]
+try:
+    n = float(v)
+    print(int(n / 1000 if n > 1e11 else n))
+except ValueError:
+    d = datetime.fromisoformat(v.replace("Z", "+00:00"))
+    print(int((d if d.tzinfo else d.replace(tzinfo=timezone.utc)).timestamp()))
+PY
+)"
+  if [ -z "$EXP_EPOCH" ]; then
+    echo "[$(date '+%F %T')] WARNING: unreadable credential_expires_at: $EXP_RAW" >&2
+  elif [ $(( EXP_EPOCH - $(date +%s) )) -lt 604800 ]; then
+    EXP_DATE="$(date -r "$EXP_EPOCH" +%F)"
+    if [ "$(jq -r '.expires_date // empty' "$EXPIRY" 2>/dev/null)" != "$EXP_DATE" ]; then
+      mkdir -p "$(dirname "$EXPIRY")"
+      jq -cn --arg raw "$EXP_RAW" --arg d "$EXP_DATE" --argjson e "$EXP_EPOCH" --arg now "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        '{expires_at: $raw, expires_date: $d, expires_epoch: $e, since: $now}' > "$EXPIRY.tmp" && mv "$EXPIRY.tmp" "$EXPIRY"
+      osascript -e "display notification \"Run claude auth login in a terminal before then.\" with title \"Claude login ends $EXP_DATE\" sound name \"Basso\"" >/dev/null 2>&1 || true
+    fi
+  else
+    rm -f "$EXPIRY"
+  fi
+fi
 
 # Circuit bookkeeping: API pressure counts toward opening; any other outcome closes it.
 STATUS="$(printf '%s' "$META" | jq -r '.api_error_status // empty' 2>/dev/null)"
