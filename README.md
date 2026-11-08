@@ -53,7 +53,7 @@ The rest of this README describes that implementation.
 ├── output/              # Finished deliverables, run state (output/.runs/) & logs (git-ignored)
 ├── input/               # Input artifacts, e.g. analytics exports (git-ignored)
 ├── .github/             # CI workflow, issue + pull-request templates
-├── CONTRIBUTING.md · CODE_OF_CONDUCT.md · SECURITY.md
+├── CHANGELOG.md · CONTRIBUTING.md · CODE_OF_CONDUCT.md · SECURITY.md
 └── LICENSE · NOTICE     # MIT; the Lean Service Creation skills are CC BY-SA 4.0 (NOTICE)
 ```
 
