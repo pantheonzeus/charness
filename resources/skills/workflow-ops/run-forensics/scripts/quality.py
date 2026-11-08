@@ -1,4 +1,5 @@
-"""Per-job quality: did a run do the work its own skill says every run must do?
+"""Per-job quality: did a run do the work its own skill says every run must do? (Plus, for every job, how much of
+its research it repeated: efficiency().)
 
 forensics.py sees failures (blocked calls, missing handoffs). A run can be clean by those measures and still
 under-deliver: on Sonnet 5.5 the daily-intel runs got 75% cheaper by searching a third as much and shipping
@@ -241,3 +242,28 @@ def measure(job, path):
     """{"metrics": {...}, "below": [floor misses]} for a listed job's run, else None."""
     fn = JOBS.get(job)
     return fn(calls(path), launch(path)) if fn and path else None
+
+
+def efficiency(cs):
+    """Research a run repeated for nothing, for every job (path/convergence evals; report-only, never a floor or a
+    code): a WebSearch whose words an earlier search already used, a WebFetch of the same URL with the same prompt
+    (a new prompt asks a new question), a Read of the same file range with no Write or Edit to it in between.
+    Exact repeats of any call are not counted: on 2026-11-08 (~860 runs) they were mostly `date` stamps and checks
+    re-run after a fix, while this measure had a median of 0% in every job and a p90 of at most 21%. A model that
+    starts looping shows up as a step in its job's per-model numbers."""
+    seen, research, repeated = set(), 0, 0
+    for name, inp in cs:
+        if name == "WebSearch":
+            key = ("q", frozenset(re.findall(r"\w+", str(inp.get("query", "")).lower())))
+        elif name == "WebFetch":
+            key = ("u", url_key(str(inp.get("url", ""))), inp.get("prompt"))
+        elif name == "Read":
+            key = ("r", inp.get("file_path"), inp.get("offset"), inp.get("limit"))
+        else:
+            if name in ("Write", "Edit", "MultiEdit"):
+                seen = {k for k in seen if k[:2] != ("r", inp.get("file_path"))}
+            continue
+        research += 1
+        repeated += key in seen
+        seen.add(key)
+    return {"research": research, "repeated": repeated}

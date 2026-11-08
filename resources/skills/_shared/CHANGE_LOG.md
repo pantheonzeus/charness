@@ -2,6 +2,20 @@
 
 One entry per edit made under the [[change-manifest]] module. Newest first. Verdict fills in on the edit's next real use — never delete a disconfirmed entry.
 
+## 2026-11-08 — Output-quality judge (calibrated) and repeated-research report in run-forensics
+- **Trigger:** the principal, after a review of Arize's eval practice against this setup: "build 1 and add 3". HARNESSCARD named the gap: no output-quality eval for the deliverables.
+- **Touched:**
+  - **New** `workflow-ops/run-forensics/scripts/judge.py`: `label` (the principal grades briefing items), `calibrate` (judge on `claude-opus-5-5` grades every label, deciding nothing; TPR/TNR), `run` (daily, only while calibration is valid for the current rubric hash) → `output/.runs/_forensics/judge.jsonl`, corrected fail share (Rogan–Gladen), flag at ≥ 25%.
+  - `forensics.py`: joins judge verdicts in `load_runs` (code `QUALITY_JUDGE`), stores `efficiency` per run at ingest, report tables *Judged output quality* and *Repeated research*, `quality` backfills efficiency for every job.
+  - `quality.py`: `efficiency()` (same-words search, same URL+prompt fetch, unchanged re-read), report-only.
+  - `schema/taxonomy.json` (+ QUALITY_JUDGE), `references/handbook.md` (+ row), `schema/com.cbrain.run-forensics.plist` (`judge.py run` before the report), `SKILL.md` v11 (section F, D bullet, Rules-before-judges gotcha), INDEX row, HARNESSCARD Evaluation row.
+- **Expected to fix (falsifiable):** within 14 days of the principal's first ≥ 10 pass + 10 fail labels, `calibrate` reaches TPR and TNR ≥ 0.8 (with at most one rule-text revision, re-tested on fresh labels), and from then on the daily report shows judged daily-intel runs on every weekday.
+- **Refuted if:** calibration stays below 0.8 on either rate after two rule revisions on fresh labels (the judge is not a valid gate for this job: retire `run`, keep the labels), or QUALITY_JUDGE flags ≥ 80% of runs while the principal labels most of the same items pass.
+- **Preserves:** no code assigned by the judge while uncalibrated (verified offline: `run` writes nothing without `calibration.json`); ingest unchanged except an extra measurement inside the existing try/except; offline tests of correction maths, agreement gate, verdict cache, re-judge guard and the forensics join passed.
+- **Fires on stable:** one `claude -p` call per weekday once calibrated (~40 s, subscription); none before.
+- **Matched baseline:** repeated research 2026-11-08, ~860 runs: median 0% in every job, p90 ≤ 21% (`output/.runs/20261108-arize-judge-efficiency/EVIDENCE.md`).
+- **Verdict:** pending — run-forensics. Check when `calibration.json` first exists.
+
 ## 2026-11-08 — Commit guard v2: the principal is the only person on a commit
 - **Trigger:** the principal, after the first push: "check my skill, it should only show me as commit person". 16 of 17 commits on `origin/main` carried `Co-Authored-By: Claude …`, so GitHub listed a second author. The trailer came from the harness's attribution default, which v1 of the skill followed as "the repo's trailer convention".
 - **Touched:**

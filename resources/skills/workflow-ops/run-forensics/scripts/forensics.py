@@ -15,10 +15,12 @@ closed taxonomy (../schema/taxonomy.json), and tracks recurring codes as issues 
                       finished suite covers gets one started in the background, and output/.runs/_forensics/
                       model-alarm.json raises the console's model pill until a suite passes on it
   quality             measure past runs of the jobs quality.py lists (backfill), then print their quality per
-                      model; a run below its skill's floor carries QUALITY_FLOOR (ingest does this for new runs)
+                      model; a run below its skill's floor carries QUALITY_FLOOR (ingest does this for new runs);
+                      also backfills every job's repeated-research measure (quality.efficiency)
 
 Files: output/.runs/_forensics/runs.jsonl (one line per classified run), output/run-forensics/issues.json,
-output/.runs/_forensics/hooks.jsonl (block/deny decisions written by the .claude/hooks scripts).
+output/.runs/_forensics/hooks.jsonl (block/deny decisions written by the .claude/hooks scripts),
+output/.runs/_forensics/judge.jsonl (output-quality verdicts written by judge.py run; a flagged run gets QUALITY_JUDGE).
 Stdlib only, Python 3.9 (launchd runs /usr/bin/python3).
 """
 import argparse
@@ -39,6 +41,7 @@ REPO = Path(__file__).resolve().parents[5]
 LEDGER = REPO / "output" / ".runs" / "_ledger"
 RUNS = REPO / "output" / ".runs" / "_forensics" / "runs.jsonl"
 HOOKS = REPO / "output" / ".runs" / "_forensics" / "hooks.jsonl"
+JUDGE = REPO / "output" / ".runs" / "_forensics" / "judge.jsonl"
 OUT = REPO / "output" / "run-forensics"
 ISSUES = OUT / "issues.json"
 TAXONOMY = json.loads((Path(__file__).resolve().parents[1] / "schema" / "taxonomy.json").read_text())
@@ -159,6 +162,10 @@ def classify(r, hooks=None):
         q = quality.measure(r.get("job"), path) if path and not run else None
     except Exception as e:   # a parser bug must never stop ingest, which runs after every job
         q = {"metrics": {"error": f"{type(e).__name__}: {e}"[:200]}, "below": []}
+    try:
+        eff = quality.efficiency(quality.calls(path)) if path else None
+    except Exception:   # same rule: never stop ingest
+        eff = None
     for miss in (q or {}).get("below", []):
         steps["QUALITY_FLOOR"] += 1
         sigs[f"QUALITY_FLOOR · {r.get('job')} · {normalize(miss)}"] += 1
@@ -169,6 +176,8 @@ def classify(r, hooks=None):
            "step_codes": dict(steps), "signatures": dict(sigs.most_common(12)), "cost_usd": r.get("cost_usd")}
     if q:
         out["quality"] = q["metrics"]
+    if eff:
+        out["efficiency"] = eff
     events = (hooks or {}).get(r.get("session_id"), [])
     if events:   # joined now: the transcript needed for after_block expires, the classification doesn't
         out["hooks"] = hook_summary(events, tools if path else None)
@@ -252,9 +261,21 @@ def load_runs():
         for r in read_jsonl(p):
             ledger[r.get("session_id") or f'{r.get("job")}@{r.get("ts")}'] = r
     runs = list({r["key"]: r for r in read_jsonl(RUNS)}.values())
+    # The judge (judge.py run) grades a run the morning after it was ingested, so its verdict is joined here,
+    # not written into runs.jsonl. A flagged run carries QUALITY_JUDGE like any step code.
+    judged = {j["key"]: j for j in read_jsonl(JUDGE)}
     for r in runs:
         line = ledger.get(r["key"], {})
         r["model"], r["git_sha"] = main_model(line.get("models")), line.get("git_sha")
+        j = judged.get(r["key"])
+        if j:
+            r["judge"] = j
+        if j and j.get("flag"):
+            r["step_codes"]["QUALITY_JUDGE"] = j["fails"]
+            for c, n in j["criteria"].items():
+                r["signatures"][f"QUALITY_JUDGE · {r['job']} · {c}"] = n
+            if r["outcome"] == "clean":
+                r["outcome"] = "degraded"
     return runs
 
 
@@ -522,16 +543,56 @@ def quality_table(runs):
     return L
 
 
+def efficiency_table(runs):
+    """Repeated research per job and model (quality.efficiency): report-only, a step between models is the signal."""
+    rows = collections.defaultdict(list)
+    for r in runs:
+        e = r.get("efficiency")
+        if e and e["research"]:
+            rows[(r["job"], r["model"] or "none")].append(e["repeated"] / e["research"])
+    L = ["\n## Repeated research (per job and model, all measured runs)\n"]
+    if not rows:
+        return L + ["_No measured runs yet (`forensics.py quality` backfills them)._"]
+    L += ["| Job | Model | Runs | Median repeated | p90 | Max |", "|---|---|---|---|---|---|"]
+    for (job, model), s in sorted(rows.items()):
+        s = sorted(s)
+        L.append(f"| {job} | {model} | {len(s)} | {s[len(s) // 2]:.0%} | {s[int(0.9 * len(s))]:.0%} | {s[-1]:.0%} |")
+    return L
+
+
+def judge_table(runs):
+    """The output-quality judge's verdicts per job and model (judge.py): items failed, corrected for the judge's
+    measured error rates, and runs flagged QUALITY_JUDGE."""
+    rows = collections.defaultdict(list)
+    for r in runs:
+        if r.get("judge"):
+            rows[(r["job"], r["model"] or "none")].append(r["judge"])
+    if not rows:
+        return []
+    L = ["\n## Judged output quality (judge.py, calibrated against the principal's labels)\n",
+         "| Job | Model | Runs | Items | Median failed (corrected) | Flagged |", "|---|---|---|---|---|---|"]
+    for (job, model), js in sorted(rows.items()):
+        c = sorted(j["fail_share"] for j in js)
+        L.append(f"| {job} | {model} | {len(js)} | {sum(j['items'] for j in js)} | {c[len(c) // 2]:.0%} | "
+                 f"{sum(1 for j in js if j['flag'])} |")
+    return L
+
+
 def quality_cmd(_args):
-    """Backfill: re-classify runs of measured jobs that predate quality.py, while their transcripts last."""
+    """Backfill: re-classify runs that predate quality.py (measured jobs) or efficiency (every job), while their
+    transcripts last."""
     ledger = {}
     for p in LEDGER.glob("*.jsonl"):
         for r in read_jsonl(p):
             ledger[r.get("session_id") or f'{r.get("job")}@{r.get("ts")}'] = r
     hooks, lines, n = hook_events(), read_jsonl(RUNS), 0
     for i, x in enumerate(lines):
-        if x.get("job") in quality.JOBS and "quality" not in x and x["key"] in ledger and x.get("session_id") and transcript(x["session_id"]):
+        path = x["key"] in ledger and x.get("session_id") and transcript(x["session_id"])
+        if path and x.get("job") in quality.JOBS and "quality" not in x:
             lines[i] = classify(ledger[x["key"]], hooks)
+            n += 1
+        elif path and "efficiency" not in x:   # measure only: re-classifying would apply today's rules to old runs
+            x["efficiency"] = quality.efficiency(quality.calls(path))
             n += 1
     if n:
         tmp = RUNS.with_suffix(".tmp")
@@ -563,6 +624,8 @@ def report(args):
     L.extend(harness_decisions(runs))
     L.extend(check_models())
     L.extend(quality_table(runs))
+    L.extend(judge_table(runs))
+    L.extend(efficiency_table(runs))
     L.append("\n## Issues\n")
     for i in live:
         L.append(f"### {i['code']} — {i['state']}")
