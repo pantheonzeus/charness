@@ -6,6 +6,7 @@ authors:
   - given-names: Christoph
     family-names: Nützel
     alias: pantheonzeus
+    orcid: "https://orcid.org/0009-0000-2339-5832"
 version: 0.1.1
 date-released: 2026-11-08
 repository-code: "https://github.com/pantheonzeus/charness"
