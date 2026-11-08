@@ -49,3 +49,7 @@ resources/skills/workflow-ops/slack-intel/schema/channels.json
 /employers/*
 !/employers/README.md
 !/employers/_template/
+
+# Built documentation site (docs/mkdocs.yml → site/; CI builds and deploys it)
+/site/
+/.cache/

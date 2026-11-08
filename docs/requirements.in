@@ -1,0 +1,3 @@
+# Top-level pins; requirements.txt is the full lock: uv pip compile requirements.in -o requirements.txt
+mkdocs==1.6.1
+mkdocs-material==9.8.0

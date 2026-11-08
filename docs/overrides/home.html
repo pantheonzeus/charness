@@ -1,0 +1,36 @@
+{% extends "main.html" %}
+
+{% block tabs %}
+  {{ super() }}
+  <section class="cx-hero">
+    <div class="cx-hero__inner md-grid">
+      <div class="cx-hero__copy">
+        <p class="cx-eyebrow">Open-source agent harness for Claude Code · MIT</p>
+        <h1>The harness is where AI becomes <span>auditable</span>.</h1>
+        <p class="cx-lead">
+          charness turns Claude Code into an agent you can govern. Policy lives in plain-language documents
+          you can read and edit. Code enforces the guardrails. Every run leaves a file trail you can review,
+          replay and revert.
+        </p>
+        <div class="cx-cta">
+          <a href="{{ 'get-started/quickstart/' | url }}" class="md-button md-button--primary">Get started</a>
+          <a href="{{ 'governance/harnesscard/' | url }}" class="md-button">Read the HarnessCard</a>
+          <a href="{{ config.repo_url }}" class="cx-link">View on GitHub →</a>
+        </div>
+      </div>
+      <div class="cx-panel" aria-label="What a run leaves behind">
+        <p class="cx-panel__title">What a run leaves behind</p>
+        <ul>
+          <li><code>output/.runs/_ledger/&lt;job&gt;.jsonl</code><span>cost, turns, outcome and failure code of every headless run</span></li>
+          <li><code>.vault-history.git</code><span>one private commit per headless run, so you can review or revert its vault changes</span></li>
+          <li><code>output/.runs/&lt;slug&gt;/RESPONSE.md</code><span>the control spine: checkpoints a run must clear before it may stop</span></li>
+          <li><code>output/.runs/&lt;slug&gt;/EVIDENCE.md</code><span>the source behind each release-critical claim</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block content %}
+  {{ page.content }}
+{% endblock %}
