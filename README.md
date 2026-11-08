@@ -1,5 +1,6 @@
 # charness — Unified AI Agent Workspace
 
+[![CI](https://github.com/pantheonzeus/charness/actions/workflows/ci.yml/badge.svg)](https://github.com/pantheonzeus/charness/actions/workflows/ci.yml)
 [![Sponsored](https://img.shields.io/badge/chilicorn-sponsored-brightgreen.svg)](http://spiceprogram.org/)
 
 A configuration-as-code workspace for [Claude Code](https://claude.com/claude-code). It turns a general-purpose agent into a consistent, opinionated operator with a fixed identity, a set of operating rules, and a reusable **skill library** — tuned for research, high-signal content, and automated knowledge-work.
@@ -51,7 +52,7 @@ The rest of this README describes that implementation.
 ├── demos/frameshift/    # Frame-Shift Lab — autonomous discovery-loop demo on synthetic data
 ├── output/              # Finished deliverables, run state (output/.runs/) & logs (git-ignored)
 ├── input/               # Input artifacts, e.g. analytics exports (git-ignored)
-├── .github/             # Issue + pull-request templates
+├── .github/             # CI workflow, issue + pull-request templates
 ├── CONTRIBUTING.md · CODE_OF_CONDUCT.md · SECURITY.md
 └── LICENSE · NOTICE     # MIT; the Lean Service Creation skills are CC BY-SA 4.0 (NOTICE)
 ```

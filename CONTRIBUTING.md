@@ -80,7 +80,8 @@ Hooks are the un-bypassable mechanism, so treat them conservatively:
 
 ## Verifying your change
 
-There's no CI yet — verify locally and say what you ran.
+Run `scripts/check.sh` before you push: hook tests, skill lints, ruff and shellcheck. CI runs the same
+script on every push to `main` and every pull request; a red check blocks the merge.
 
 - **Hooks:** feed them sample JSON and check the decision, e.g.
   ```bash

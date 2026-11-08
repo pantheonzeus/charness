@@ -1,0 +1,35 @@
+name: CI
+
+# Runs scripts/check.sh (every repo check) on each push to main and each pull request. On a push it
+# also re-runs the commit guard over the pushed commits: the local git hooks can be skipped with
+# --no-verify, this can't. The vault isn't here, so the guard's client-name rule finds nothing in CI;
+# secrets, personal data, private paths and authorship are still checked.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: macos-latest   # the harness is macOS-native (launchd, EventKit); test where it runs
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+      - name: Repo checks
+        run: scripts/check.sh
+      - name: Commit guard over the pushed commits
+        if: github.event_name == 'push'
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.sha }}
+        run: |
+          # first push of a branch, or a force push whose old tip is gone: scan the new tip only
+          if git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then range="$BEFORE..$AFTER"; else range="$AFTER^!"; fi
+          python3 scripts/commit_guard.py range "$range"
