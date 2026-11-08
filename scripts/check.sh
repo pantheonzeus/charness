@@ -7,12 +7,13 @@
 #   python       ruff, rules and exceptions in ruff.toml
 #   shell        shellcheck, error severity
 #
-# Needs python3, jq and uv (ruff and shellcheck run pinned through uvx).
+# Needs python3, jq and uv (ruff, shellcheck and the lints' PyYAML come pinned through uv).
 # Usage: scripts/check.sh
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
 RUFF=ruff@0.17.4
+PYYAML=pyyaml==6.0.2   # the skill lints import yaml; a clean runner has none
 SHELLCHECK=shellcheck-py==0.11.0.1
 failed=()
 
@@ -23,8 +24,8 @@ run() {   # run <label> <command...>
 }
 
 for t in .claude/hooks/tests/*.test.sh; do run "$(basename "$t" .test.sh)" bash "$t"; done
-run "skill frontmatter" python3 resources/skills/vault-hygiene/skill-library-maintenance/scripts/lint_frontmatter.py
-run "skill spec export" python3 resources/skills/vault-hygiene/skill-library-maintenance/scripts/spec_export.py check
+run "skill frontmatter" uv run -q --no-project --with $PYYAML python3 resources/skills/vault-hygiene/skill-library-maintenance/scripts/lint_frontmatter.py
+run "skill spec export" uv run -q --no-project --with $PYYAML python3 resources/skills/vault-hygiene/skill-library-maintenance/scripts/spec_export.py check
 run "ruff" bash -c "git ls-files -z '*.py' | xargs -0 uvx $RUFF check --quiet"
 run "shellcheck" bash -c "git ls-files -z '*.sh' 'scripts/git-hooks/*' | xargs -0 uvx --from $SHELLCHECK shellcheck -S error"
 
