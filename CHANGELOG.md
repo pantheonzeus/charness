@@ -14,6 +14,7 @@ GitHub release (`.github/workflows/release.yml`); the release fails if the secti
   TNR ≥ 0.8 on ≥ 10 pass and 10 fail labels); not yet calibrated.
 - **Repeated-research report.** `quality.py` reports, per job and model, research a run repeated for nothing.
   Report-only.
+- **Citation file.** `CITATION.cff` gives the repo GitHub's "Cite this repository" button (APA, BibTeX).
 
 ### Fixed
 - **Commit guard** accepts GitHub's merge button as committer, so UI merges no longer fail CI on `main`.
