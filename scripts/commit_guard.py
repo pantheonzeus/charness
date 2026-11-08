@@ -6,13 +6,14 @@ Scans what a commit adds (staged mode) or every commit a push sends (push/range 
             file type (.env, keys, keystores, credential/token JSON, databases, .netrc …), a file over 5 MB
   secret    provider tokens (AWS, GitHub, GitLab, Slack, Google, Anthropic, OpenAI, Stripe), private key blocks, JWTs,
             credentials in URLs, bearer tokens, password/secret/token assignments, high-entropy strings next to a key word
-  personal  e-mail addresses (reserved example domains, GitHub noreply addresses and SECURITY.md's contact excepted),
+  personal  e-mail addresses (reserved example domains, GitHub noreply and system addresses and SECURITY.md's contact excepted),
             phone numbers, IBANs, home-directory paths
   names     client accounts, vault contacts with a company, internal chat channels, the employer-internal tag
             (scripts/outbound_gate.py, public mode)
   unicode   bidirectional controls and zero-width characters (Trojan Source)
   conflict  leftover merge-conflict markers
-  identity  author or committer other than the principal (git config user.name, a GitHub noreply address), and any
+  identity  author or committer other than the principal (git config user.name, a GitHub noreply address; GitHub's merge button
+            passes as committer only), and any
             Co-Authored-By / On-behalf-of trailer or "Generated with Claude" line: the principal is the only person shown
   push      a force push (remote tip not an ancestor), a branch deletion, any archive/* ref
 
@@ -44,6 +45,7 @@ import outbound_gate as gate  # noqa: E402
 MAX_BYTES = 5 * 1024 * 1024
 ZERO = "0" * 40
 NOREPLY = re.compile(r"@users\.noreply\.github\.com$", re.I)
+WEB_FLOW = ("GitHub", "noreply@github.com")   # committer of GitHub's merge button; never accepted as author
 SOLE = re.compile(r"(?im)^[ \t]*(co-authored-by|on-behalf-of)[ \t]*:.*$|^.*generated (with|by) \[?claude.*$")
 
 SECRET_FILE = re.compile(
@@ -79,7 +81,7 @@ ENTROPY_TOKEN = re.compile(r"[A-Za-z0-9+/=_-]{32,}")
 
 EMAIL = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
 RESERVED = re.compile(r"@([A-Za-z0-9-]+\.)*(example\.(com|org|net)|[A-Za-z0-9-]+\.(example|test|invalid|localhost|local))$"
-                      r"|@users\.noreply\.github\.com$", re.I)
+                      r"|@users\.noreply\.github\.com$|^noreply@github\.com$", re.I)
 PHONE = re.compile(r"(?<![\w.+-])\+\d{1,3}[ -]?\(?\d{2,5}\)?(?:[ -]?\d{2,5}){2,4}(?![\w-])")
 IBAN = re.compile(r"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){3,7}(?: ?[A-Z0-9]{1,3})?\b")
 HOME = re.compile(r"(/Users|/home)/(?!(<|\$|you\b|me\b|user\b|username\b|example|runner\b|shared\b))[A-Za-z0-9._-]+/")
@@ -216,7 +218,8 @@ class Scan:
         meta = git("show", "-s", "--format=%ae%n%ce%n%an%n%cn%n%B", sha).split("\n", 4)
         short = sha[:9]
         self.identity(f"{short} author", meta[0], meta[2])
-        self.identity(f"{short} committer", meta[1], meta[3])
+        if (meta[3].strip(), meta[1].strip()) != WEB_FLOW:
+            self.identity(f"{short} committer", meta[1], meta[3])
         self.message(f"{short} message", meta[4] if len(meta) > 4 else "")
         sizes = {}
         for l in git("ls-tree", "-r", "-l", sha).splitlines():

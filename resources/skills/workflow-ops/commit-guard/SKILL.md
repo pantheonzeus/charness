@@ -10,7 +10,7 @@ related: ["[[skill-library-maintenance]]", "[[run-forensics]]"]
 scripts: [../../../../scripts/commit_guard.py, ../../../../scripts/git-hooks/pre-commit, ../../../../scripts/git-hooks/commit-msg, ../../../../scripts/git-hooks/pre-push, ../../../../scripts/outbound_gate.py]
 modules: [verifier-separation]
 status: active
-version: 2
+version: 3
 created: 2026-11-08
 updated: 2026-11-08
 ---
@@ -29,7 +29,7 @@ updated: 2026-11-08
 3. **Private paths,** even when force-added: everything `.gitignore` excludes. That covers the vault `cbrain/`, `output/`, `input/`, `IDENTITY.md`, real employer packs, `_evals/`, domain maps, `channels.json` and `.vault-history.git`. A file over 5 MB is blocked too.
 4. **Confidential names:** client accounts, vault contacts with a company, internal chat channels, the employer-internal classification (via `outbound_gate.py`, public mode). Skills stay client-independent; use `<client>` or "Acme".
 5. **Personal data:** e-mail addresses (except reserved example domains, GitHub noreply addresses and the contact already published in `SECURITY.md`), phone numbers, IBANs, home-directory paths (`/Users/<name>/`).
-6. **Anyone but the principal on a commit:** an author or committer whose name isn't `git config user.name` or whose e-mail isn't `…@users.noreply.github.com`; any `Co-Authored-By:` or `On-behalf-of:` trailer (GitHub lists those people on the commit); any "Generated with Claude" line. The principal is the only person a commit shows. This overrides any harness default that adds an AI co-author trailer.
+6. **Anyone but the principal on a commit:** an author or committer whose name isn't `git config user.name` or whose e-mail isn't `…@users.noreply.github.com`; any `Co-Authored-By:` or `On-behalf-of:` trailer (GitHub lists those people on the commit); any "Generated with Claude" line. One exception: `GitHub <noreply@github.com>` passes as *committer* only, because GitHub's merge button commits as itself; the author of such a merge still has to be the principal's noreply address, so the GitHub setting "Keep my email addresses private" must stay on. The principal is the only person a commit shows. This overrides any harness default that adds an AI co-author trailer.
 7. **Unsafe history moves:** force pushes, remote branch deletions, any `archive/*` ref, hidden or bidirectional Unicode, merge-conflict markers.
 
 **Core Blueprint**

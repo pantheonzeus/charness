@@ -78,6 +78,8 @@ cm "generated-with line"                 block -m "Fix x" -m "Generated with [Cl
 cm "secret in message"                   block -m "Rotate $AWS"
 GIT_AUTHOR_NAME="Someone Else" git commit -q --allow-empty -m x >/dev/null 2>&1 && { ok "author name not the principal" block pass; git reset -q --soft HEAD~1; } || ok "author name not the principal" block block
 
+try "github system address" pass a.md "Merges are committed by noreply@github.com."
+
 # Push: clean fast-forward passes; a secret committed past the hook is caught; force push and archive refs blocked.
 printf 'ok\n' > b.md; git add b.md; git commit -qm clean; git push -q origin main 2>/dev/null; ok "clean push" 0 $?
 printf "k = '%s'\n" "$AWS" > c.py; git add c.py; git commit -q --no-verify -m sneaky
@@ -88,6 +90,17 @@ git push -q origin main 2>/dev/null; ok "personal email in commit message blocks
 git reset -q --hard HEAD~1
 git commit -q --no-verify --allow-empty -m "Fix y" -m "$CA"
 git push -q origin main 2>/dev/null; ok "co-author trailer blocks push" 1 $?
+git reset -q --hard HEAD~1
+# GitHub's merge button commits as GitHub <noreply@github.com>: fine as committer, never as author.
+WF=(GIT_COMMITTER_NAME=GitHub GIT_COMMITTER_EMAIL="noreply@github.com")
+env "${WF[@]}" git commit -q --no-verify --allow-empty -m "Merge pull request #1"
+python3 "$GUARD" range HEAD^! 2>/dev/null; ok "web-merge committer passes" 0 $?
+git reset -q --hard HEAD~1
+env "${WF[@]}" GIT_AUTHOR_NAME=GitHub GIT_AUTHOR_EMAIL="noreply@github.com" git commit -q --no-verify --allow-empty -m "Merge pull request #2"
+python3 "$GUARD" range HEAD^! 2>/dev/null; ok "web-merge identity as author blocks" 1 $?
+git reset -q --hard HEAD~1
+env "${WF[@]}" GIT_AUTHOR_EMAIL="$RP" git commit -q --no-verify --allow-empty -m "Merge pull request #3"
+python3 "$GUARD" range HEAD^! 2>/dev/null; ok "web merge with a real author email blocks" 1 $?
 git reset -q --hard HEAD~1
 git commit -q --amend -m "rewritten" --no-verify; git push -q --force origin main 2>/dev/null; ok "force push blocked" 1 $?
 git reset -q --hard origin/main; git branch -q archive/x; git push -q origin archive/x 2>/dev/null; ok "archive ref blocked" 1 $?
