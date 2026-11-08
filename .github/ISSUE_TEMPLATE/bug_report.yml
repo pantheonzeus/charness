@@ -1,0 +1,73 @@
+name: "🐛 Bug report"
+description: Something in the harness misbehaves — a hook, a skill, a script, or the Charter/Soul policy.
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please keep it concrete — the observed behavior and how to reproduce it beat a description of what you expected in the abstract.
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Which layer?
+      description: Where does the problem live? (See the layer table in CONTRIBUTING.md.)
+      options:
+        - "Backend / mechanism (.claude/ hooks, per-skill scripts/)"
+        - "Runtime Charter (Charter.md)"
+        - "Identity / voice (Soul.md, IDENTITY.example.md)"
+        - "Skill library (resources/skills/**)"
+        - "Docs / repo meta"
+        - "Not sure"
+    validations:
+      required: true
+  - type: input
+    id: skill
+    attributes:
+      label: Skill or file
+      description: The exact skill slug or file path, if you know it (e.g. `vault-hygiene/deliverable-index` or `.claude/hooks/write-boundary.sh`).
+      placeholder: "category/skill-slug or path/to/file"
+    validations:
+      required: false
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The actual behavior, including any error output. Paste logs in full — don't summarize them.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: One or two lines on the correct behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The minimal sequence that triggers it. A failing command or the exact prompt is ideal.
+      placeholder: |
+        1. Run `...`
+        2. Observe `...`
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, shell, and how you're running Claude Code (CLI / IDE / desktop). Note anything non-default.
+      placeholder: "macOS 15, zsh, Claude Code CLI"
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      options:
+        - label: I searched existing issues and this isn't a duplicate.
+          required: true
+        - label: This report contains no private/vault data (nothing from `cbrain/`, `output/`, `input/`, or `IDENTITY.md`).
+          required: true

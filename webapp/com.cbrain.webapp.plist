@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Keeps the console up: starts at login, restarts if it exits.
+     Install: cp webapp/com.cbrain.webapp.plist ~/Library/LaunchAgents/ && launchctl load ~/Library/LaunchAgents/com.cbrain.webapp.plist -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.cbrain.webapp</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/YOU/.local/bin/uv</string>
+    <string>run</string>
+    <string>-q</string>
+    <string>/Users/YOU/GitHub/cbrain/webapp/server.py</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/YOU/GitHub/cbrain</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>/Users/YOU/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>CBRAIN_REMOTE_HOSTS</key><string>futu-4829.tailf54409.ts.net</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>30</integer>
+  <key>StandardOutPath</key><string>/Users/YOU/GitHub/cbrain/output/webapp.log</string>
+  <key>StandardErrorPath</key><string>/Users/YOU/GitHub/cbrain/output/webapp.log</string>
+</dict>
+</plist>

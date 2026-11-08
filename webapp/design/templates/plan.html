@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="{{lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data: https:; media-src 'self' file:">
+<title>{{title}}</title>
+<style>{{css}}</style>
+</head>
+<body class="t-plan">
+<main class="page">
+<header class="mast"><div class="kicker">{{label}}</div><h1>{{title}}</h1>{{subtitle}}<div class="meta">{{meta}}</div></header>
+{{slot:lead}}
+<div class="phases measure">{{body}}</div>
+<div class="cols two">{{slot:risks}}{{slot:next}}</div>
+{{slot:sources}}
+</main>
+</body>
+</html>

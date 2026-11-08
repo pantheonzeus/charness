@@ -1,0 +1,57 @@
+{
+  "_doc": "Slot registry for the five page templates. A content file (output/**.md, frontmatter `template: <name>`) is split on its `## ` headings; each heading is matched case-insensitively against a slot's `headings` (exact, or as a prefix followed by ':' / ' —' / ' -'). Unmatched headings land in the `body` slot as their own sections. Text between the H1 and the first ## becomes the lead when no lead heading exists. Rendered by resources/skills/workflow-ops/reading-pages/scripts/page.py. Change the look in theme.css and the *.html skeletons; never in content.",
+  "blocks": ["callout", "metrics", "timeline", "options", "risks", "people", "steps", "items", "audio"],
+  "templates": {
+    "briefing": {
+      "label": "Briefing",
+      "use_for": "daily intel, morning briefing, frontier digest, daily report, weekly review: dated, scannable, many short items",
+      "slots": [
+        {"name": "lead", "required": true, "headings": ["headline", "the headline", "top story", "bottom line", "tl;dr"]},
+        {"name": "glance", "headings": ["at a glance", "glance", "numbers", "the numbers"]},
+        {"name": "watchlist", "headings": ["watchlist", "watch list", "coming up", "on the radar", "calendar", "listen", "latest podcasts", "podcasts"]},
+        {"name": "sources", "headings": ["sources", "references"]}
+      ]
+    },
+    "report": {
+      "label": "Research report",
+      "use_for": "deep research, market/competitor teardown, diagnostic, podcast/source summary, any long read that answers a question",
+      "slots": [
+        {"name": "lead", "required": true, "headings": ["bottom line", "tl;dr", "executive tl;dr", "executive summary", "executive read", "summary", "the answer", "answer"]},
+        {"name": "gaps", "headings": ["confidence and gaps", "confidence & gaps", "confidence", "gaps", "caveats", "limitations", "open questions"]},
+        {"name": "sources", "headings": ["sources", "references", "evidence", "sources & evidence", "sources and evidence", "quellen", "quellen & evidence"]}
+      ]
+    },
+    "decision": {
+      "label": "Decision memo",
+      "use_for": "position paper, recommendation, architecture/vendor options, proposal challenge, go/no-go: one call with options",
+      "slots": [
+        {"name": "lead", "required": true, "headings": ["recommendation", "the recommendation", "decision", "the call", "bottom line"]},
+        {"name": "options", "required": true, "headings": ["options", "the options", "options compared", "alternatives", "criteria vs options"]},
+        {"name": "risks", "headings": ["risks", "risks and caveats", "risks & caveats", "what could go wrong", "caveats"]},
+        {"name": "next", "headings": ["next steps", "next", "actions", "what happens next"]},
+        {"name": "sources", "headings": ["sources", "references", "evidence"]}
+      ]
+    },
+    "plan": {
+      "label": "Plan",
+      "use_for": "90-day plan, playbook, roadmap, onboarding, training plan, campaign: phases with steps, owners and dates",
+      "slots": [
+        {"name": "lead", "required": true, "headings": ["goal", "the goal", "outcome", "objective", "bottom line", "tl;dr"]},
+        {"name": "risks", "headings": ["risks", "assumptions", "the one thing that would change all of this", "what would change this"]},
+        {"name": "next", "headings": ["next steps", "this week", "first moves", "start here"]},
+        {"name": "sources", "headings": ["sources", "references", "evidence"]}
+      ]
+    },
+    "dossier": {
+      "label": "Brief",
+      "use_for": "person dossier, company/challenger brief, meeting prep, interview pack, cheat sheet, client leave-behind: one subject, read before you walk in",
+      "slots": [
+        {"name": "lead", "required": true, "headings": ["the one thing", "the one thing to say", "bottom line", "tl;dr", "executive tl;dr"]},
+        {"name": "profile", "headings": ["profile", "at a glance", "key facts", "facts", "who"]},
+        {"name": "asks", "headings": ["talking points", "asks", "the ask", "what to ask", "questions to ask", "dialogue plan"]},
+        {"name": "unknowns", "headings": ["unknowns", "open questions", "what is still unknown", "do not do these"]},
+        {"name": "sources", "headings": ["sources", "references", "evidence"]}
+      ]
+    }
+  }
+}

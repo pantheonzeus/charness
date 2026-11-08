@@ -1,0 +1,165 @@
+/* JARVIS skin — "bridge, not cockpit" (output/20261018-console-2300-concepts.html, visual lane spec).
+   Three layers, strict z-order: (1) ambient chrome: grid, brackets, sweep, core rings, decorative,
+   aria-hidden; (2) instruments: crew, reticle, mode readout; (3) reading plates: opaque, high contrast,
+   no glow or motion under text. Cyan = instruments, amber = you (needs-you, shield), red = broken.
+   Loaded after the page's own styles, so it overrides tokens and components in one place. */
+@import url("/static/vendor/fonts/fonts.css");
+
+:root, :root:is([data-theme]) {
+  color-scheme: dark;
+  --room: #04070c; --room-2: #08101a; --paper: #0c1520; --paper-2: #121e2c; --line: #1d2b3d;
+  --ink: #eaf1f8; --soft: #b6c3d2; --muted: #7f8fa3;
+  --glow: #5fd4ff; --speak: #9be6ff; --cut: #ffffff; --you: #ffb000; --err: #ff5a4f;
+  --cos: #e8c065; --ana: #8fa8ff; --res: #ff9f6e; --ops: #6fe0b0;
+  --glass: rgba(8, 14, 22, .78);
+  --serif: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+  --sans: "IBM Plex Sans", -apple-system, "Segoe UI", sans-serif;
+  --display: "Antonio", "Barlow Condensed", "Arial Narrow", sans-serif;
+  --cond: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --chamfer: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+@media (prefers-color-scheme: light) { :root { color-scheme: dark; --room: #04070c; --room-2: #08101a; --paper: #0c1520; --paper-2: #121e2c;
+  --line: #1d2b3d; --ink: #eaf1f8; --soft: #b6c3d2; --muted: #7f8fa3; --glow: #5fd4ff; --speak: #9be6ff; --glass: rgba(8, 14, 22, .78); } }
+
+body { background: radial-gradient(90% 70% at 50% 38%, #0b1826 0%, var(--room-2) 45%, var(--room) 100%); font-size: 16px; }
+::selection { background: rgba(95, 212, 255, .3); }
+:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
+
+/* ---------- layer 1: ambient chrome (decorative only) ---------- */
+#hud { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+#hud::before { content: ""; position: absolute; inset: 0;
+  background-image: linear-gradient(rgba(95, 212, 255, .045) 1px, transparent 1px), linear-gradient(90deg, rgba(95, 212, 255, .045) 1px, transparent 1px);
+  background-size: 56px 56px; -webkit-mask-image: radial-gradient(ellipse at 50% 40%, #000 25%, transparent 75%); mask-image: radial-gradient(ellipse at 50% 40%, #000 25%, transparent 75%); }
+#hud .c { position: absolute; width: 34px; height: 34px; border: 0 solid rgba(95, 212, 255, .55); }
+#hud .tl { top: 14px; left: 14px; border-top-width: 2px; border-left-width: 2px; }
+#hud .tr { top: 14px; right: 14px; border-top-width: 2px; border-right-width: 2px; }
+#hud .bl { bottom: 14px; left: 14px; border-bottom-width: 2px; border-left-width: 2px; }
+#hud .br { bottom: 14px; right: 14px; border-bottom-width: 2px; border-right-width: 2px; }
+#hud .sweep { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 0, rgba(95, 212, 255, .05) 49%, rgba(95, 212, 255, .11) 50%, transparent 51%);
+  background-size: 100% 240%; animation: hud-sweep 9s linear infinite; }
+@keyframes hud-sweep { from { background-position: 0 130%; } to { background-position: 0 -130%; } }
+/* The core: Jarvis herself, at the top of the left column. Colour and speed follow the real voice state. */
+#jv .core { aspect-ratio: 1; opacity: .7; transition: opacity .4s; }
+#jv .core circle { fill: none; stroke: var(--glow); vector-effect: non-scaling-stroke; }
+#jv .core .r1 { transform-origin: 50% 50%; animation: hud-spin 60s linear infinite; }
+#jv .core .r2 { transform-origin: 50% 50%; animation: hud-spin 38s linear infinite reverse; }
+#jv .core .r3 { transform-origin: 50% 50%; animation: hud-spin 22s linear infinite; }
+@keyframes hud-spin { to { transform: rotate(360deg); } }
+body[data-hud-voice="hearing"] #jv .core circle { stroke: var(--speak); }
+body[data-hud-voice="hearing"] #jv .core .r3, body[data-hud-voice="thinking"] #jv .core .r3 { animation-duration: 3s; }
+body[data-hud-voice="thinking"] #jv .core .r2 { animation-duration: 6s; }
+body[data-hud-voice="speaking"] #jv .core { opacity: 1; }
+body[data-hud-needs="1"] #jv .core circle { stroke: var(--you); }
+body[data-hud-shield="1"] #jv .core circle, body[data-hud-shield="1"] #hud .c { stroke: var(--you); border-color: var(--you); }
+body[data-hud-shield="1"] #hud *, body[data-hud-shield="1"] #jv .core * { animation-play-state: paused !important; }    /* 0 fps in meetings */
+#jv-state { font-family: var(--display) !important; letter-spacing: .3em !important; }
+
+/* ---------- type ---------- */
+#plans h1, #plan h1, #mail h1, #library h1, #ideas h1, #focus h1, #item h1 { font-family: var(--display); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+#plans h1, #plan h1, #mail h1, #library h1, #ideas h1, #item h1 { font-size: 34px; }
+.kick, #plans .kick, #plan .kick, #mail .kick, #library .kick, #ideas .kick, #item .kick, #work-head, #upnext .h, .today h4 { font-family: var(--cond) !important; font-weight: 600 !important; letter-spacing: .26em !important; color: var(--glow) !important; }
+.grp, #panel h4, #mail h2, #ideas h2 { font-family: var(--cond) !important; letter-spacing: .14em; }
+#mail h2, #ideas h2 { font-family: var(--display) !important; font-weight: 600; text-transform: uppercase; }
+#clock, .t, .li .t, .later .t, .meta .mono, #pres, .tk, .mh .t { font-family: var(--mono); }
+.lede, .meta { color: var(--muted); }
+
+/* ---------- instruments ---------- */
+header .side { font: 500 12px var(--mono); letter-spacing: .08em; color: var(--muted); }
+#glance { font: 600 13px var(--cond); letter-spacing: .2em; text-transform: uppercase; color: var(--soft); }
+#more { font: 600 16px var(--display); letter-spacing: .1em; color: var(--glow); background: rgba(12, 21, 32, .9); border-radius: 0;
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); padding: 5px 18px; }
+#more .n, #menu .n { background: var(--you); color: #1a1000; border-radius: 0; font-family: var(--mono); }
+#menu { background: #0a121c; border: 1px solid var(--glow); clip-path: var(--chamfer); }
+#menu button { font: 600 13px var(--display); letter-spacing: .16em; text-transform: uppercase; color: var(--soft); }
+#menu button.on { color: var(--glow); }
+.un { border-left-color: var(--line); } .un.on { border-left-color: var(--glow); } .un .qc { font-family: var(--mono); }
+.un b { font-weight: 500; color: var(--ink); }
+.call { border-left-color: var(--you); }
+#pres { font: 500 11px var(--mono); letter-spacing: .1em; background: rgba(12, 21, 32, .9); border: 1px solid var(--line); border-radius: 0;
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%); padding: 5px 16px; color: var(--glow); }
+#pres.shield { background: var(--you); color: #1a1000; border-color: var(--you); }
+#pres.quiet { color: var(--you); border-color: var(--you); }
+
+/* Crew: wireframe glyphs on a rail, each with its own hue; orbit = working, steady amber = needs you */
+#stars { gap: clamp(18px, 4vw, 54px); }
+.star .n { font: 600 12px var(--display); letter-spacing: .18em; text-transform: uppercase; color: var(--soft); }
+.star .s { font: 11px var(--mono); color: var(--muted); }
+.star i { width: 12px !important; height: 12px !important; border-radius: 0 !important; transform: rotate(45deg); background: transparent !important;
+  border: 2px solid var(--sc, var(--glow)); box-shadow: 0 0 10px -2px var(--sc, var(--glow)) !important; }
+.star.pulse i, .star.heart i { background: var(--sc) !important; }
+.star.ask i { border-color: var(--you) !important; background: var(--you) !important; box-shadow: 0 0 14px var(--you) !important; animation: none !important; }
+.star.alarm i { border-color: var(--err) !important; background: var(--err) !important; }
+.star.dim i { opacity: .35; box-shadow: none !important; }
+
+/* The reticle: hold to talk. Its rings carry the voice state. */
+#mic { width: 54px; height: 54px; border-radius: 50%; background: radial-gradient(circle, #0e2232 0 55%, transparent 56%), conic-gradient(from var(--a, 0deg), var(--glow) 0 18%, transparent 18% 50%, var(--glow) 50% 68%, transparent 68%);
+  border: 1px solid rgba(95, 212, 255, .5); color: var(--glow); font-size: 0; position: relative; animation: mic-spin 12s linear infinite; }
+#mic::after { content: ""; position: absolute; inset: 17px; border-radius: 50%; background: var(--glow); box-shadow: 0 0 12px var(--glow); transition: transform .15s, background .15s; }
+@keyframes mic-spin { to { --a: 360deg; } }
+#mic.hold { transform: none; background: radial-gradient(circle, #10283a 0 55%, transparent 56%), conic-gradient(var(--speak) 0 100%); animation: none; }
+#mic.hold::after { transform: scale(1.35); background: var(--speak); }
+body[data-hud-voice="thinking"] #mic { animation-duration: 1.4s; }
+body[data-hud-voice="speaking"] #mic::after { animation: mic-talk .5s ease-in-out infinite alternate; }
+@keyframes mic-talk { to { transform: scale(1.25); } }
+body[data-hud-shield="1"] #mic { border-color: var(--you); animation: none; background: radial-gradient(circle, #241a05 0 55%, transparent 56%), conic-gradient(var(--you) 0 100%); }
+body[data-hud-shield="1"] #mic::after { background: var(--you); box-shadow: none; }
+#vstate { font: 500 12px var(--mono); letter-spacing: .06em; color: var(--muted); }
+#vstate b { color: var(--glow); font-weight: 500; }
+
+/* Command line */
+#composer { background: rgba(10, 18, 28, .92); border: 1px solid var(--line); border-radius: 0; clip-path: polygon(14px 0, 100% 0, calc(100% - 14px) 100%, 0 100%);
+  padding: 8px 22px; box-shadow: none; backdrop-filter: none; }
+#composer:focus-within { border-color: var(--glow); }
+#prompt { font: 16px var(--sans); color: var(--ink); }
+#prompt::placeholder { font-family: var(--mono); font-size: 13px; letter-spacing: .04em; color: var(--muted); }
+#brief { font-family: var(--cond); text-transform: uppercase; letter-spacing: .14em; }
+
+/* Edge light: cyan voice, amber when it's you */
+#edge { --c: var(--glow); }
+body[data-hud-shield="1"] #edge { --c: var(--you); }
+#caption .lit { color: var(--glow); }
+
+/* ---------- layer 3: reading plates ---------- */
+.btn { border-radius: 0; clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 0 100%); font: 600 12.5px var(--cond); letter-spacing: .14em;
+  text-transform: uppercase; border: 1px solid var(--line); background: var(--paper-2); color: var(--ink); padding: 7px 14px; }
+.btn:hover { border-color: var(--glow); color: var(--glow); }
+.btn.pri, .btn.on { background: var(--glow); color: #021018; border-color: var(--glow); }
+.btn.pri:hover { color: #021018; filter: brightness(1.1); }
+.chips a, #library .chips a, #mail .chips a, #ideas .chips a { border-radius: 0 !important; font-family: var(--cond) !important; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
+#library .chips a.on { background: var(--glow) !important; color: #021018 !important; }
+.mi, .iq, .card, .sf, .planbar, .ckpt, #plans form, .idea, #lib-tray, .fresh { border-radius: 0 !important; clip-path: var(--chamfer); background: var(--paper); border-color: var(--line); }
+.mi.idea { border-left-width: 3px; }
+.mi.answer, .ckpt, .planbar { border-left-color: var(--you) !important; }
+.later, .li { border-bottom-color: var(--line); }
+.later:hover, .li:hover { background: linear-gradient(90deg, rgba(95, 212, 255, .08), transparent 60%); }
+.li b, .later b { color: var(--ink); }
+input, textarea, select { border-radius: 0 !important; background: #070d15 !important; border-color: var(--line) !important; color: var(--ink) !important; }
+input:focus, textarea:focus { border-color: var(--glow) !important; outline: none; }
+#panel { background: #0a121c; border-left: 1px solid var(--glow); clip-path: polygon(22px 0, 100% 0, 100% 100%, 0 100%, 0 22px); box-shadow: -40px 0 80px -30px rgba(95, 212, 255, .18); }
+#panel .ph b { font-family: var(--display); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+#island .pill { border-radius: 0; clip-path: polygon(10px 0, 100% 0, calc(100% - 10px) 100%, 0 100%); border: 1px solid var(--you); background: rgba(26, 18, 0, .9); color: var(--ink); }
+#talk .you { font-family: var(--mono); font-size: 13px; color: var(--glow); letter-spacing: .02em; }
+#talk .ans { font: 17px/1.6 var(--sans); color: var(--ink); }
+#talk .x.old .ans { color: var(--soft); }
+.toast { border-radius: 0; clip-path: var(--chamfer); background: #0a121c; border: 1px solid var(--glow); }
+#shieldov { background: radial-gradient(ellipse at 50% 45%, #120d02, #050302); }
+#shieldov .g, #shieldov .w { color: var(--you); } #shieldov .w { font-family: var(--display); letter-spacing: .34em; } #shieldov .tm { font-family: var(--mono); font-weight: 400; }
+
+@media (prefers-reduced-motion: reduce) {
+  #hud *, #jv .core *, #mic, #mic::after { animation: none !important; }
+  #hud .sweep { display: none; }
+}
+@media (prefers-reduced-transparency: reduce) { #hud { display: none; } }
+
+/* Idea types: a hue + a typed marker instead of emoji */
+.mi.idea.linkedin { border-left-color: var(--ana) !important; } .mi.idea.learning { border-left-color: var(--ops) !important; }
+.mi.idea.research { border-left-color: var(--res) !important; } .mi.idea.challenge { border-left-color: var(--you) !important; }
+
+/* Phone: the chip shows only the mode word, top right; the rail scrolls instead of clipping */
+@media (max-width: 720px) {
+  #pres { top: 10px; left: auto; right: 12px; transform: none; padding: 4px 12px; font-size: 10px; }
+  #pres i { display: none; }
+  #more { top: 10px; right: auto; left: 12px; }
+  #menu { top: 44px; right: auto; left: 12px; }
+}

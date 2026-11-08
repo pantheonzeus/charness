@@ -1,0 +1,11 @@
+{
+  "_comment": "Template. Copy to channels.json (gitignored: real channel names + ids are employer-internal) and fill in. Resolve ids via slack_search_channels; add a channel: name + id, then `slack_intel.py run --init --only <name>`.",
+  "posts_per_init": 20,
+  "posts_per_run": 20,
+  "channels": [
+    {
+      "name": "example-channel",
+      "id": "C0000000000"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+# Harness Handbook — behaviors, triggers, implementing files
+
+The fix step reads this before designing a fix (SKILL.md §B, step 2). Each failure code in `schema/taxonomy.json` names one behavior below (`behavior`) and the files that implement it (`sites`). A trace says what happened; this page says which part of the harness was responsible and where its code is.
+
+*Pattern: Harness Handbook (arXiv:2607.13285), used by RiseHarness (arXiv:2610.27435 §3.2) to connect execution evidence to behavior and code. Removing the harness traces and the Handbook cost 7 points of Pass@1 in its ablation.*
+
+**Where evidence shows up**
+- **Transcript:** what the agent asked for, and the errors it got back. Expires after a while.
+- **Hook log** (`output/.runs/_forensics/hooks.jsonl`): what the hooks decided.
+- **Ledger** (`output/.runs/_ledger/<job>.jsonl`): what the runner recorded.
+
+Forensics joins all three by `session_id` when the run ends.
+
+| Behavior | Trigger | Implemented in | Exit condition | Codes | Evidence |
+|---|---|---|---|---|---|
+| **Session context injection** | Every session start | `.claude/settings.json` SessionStart hooks (INDEX.md, MEMORY.md, IDENTITY.md) | The three context blocks are in the prompt | none directly; a gap shows up downstream as SKILL_MISROUTE or PATH_MISS | Transcript start |
+| **Skill dispatch** | Any task | `Charter.md` §3, `resources/skills/INDEX.md`, the job's `.claude/agents/<job>.md` | The matched `SKILL.md` was Read (not called through the Skill tool) | SKILL_MISROUTE | Transcript |
+| **Agent definition** | `run_agent.sh` finds `.claude/agents/<job>.md` | That file (model, `budget_usd`, Headless shell / Path / Edit rules); `scripts/run_agent.sh` (`--agent`, `--max-budget-usd`) | The run starts on that model and budget | BUDGET; its prose rules sit behind PERM_BLOCKED, PATH_MISS, STALE_EDIT | Ledger `models`, `budget_usd` |
+| **Command permissions** | Each Bash call in a headless run (nobody can approve a prompt) | The job launcher's `--allowedTools`: `meeting-prep-loop/scripts/sync.py`, `mail-triage/scripts/triage.py`, `idea-engine/scripts/ideas.py`, `slack-intel/scripts/slack_intel.py`, `ng-letters-watch/scripts/ng_letters.py`, `substack-watch/scripts/substack_watch.py`, `daily-intel-briefing/scripts/run.sh` and `podcast.sh`, `vault-frontier-loop/scripts/run.sh`, `webapp/tasks.py` (researcher, researcher-deep, plan-runner, topic-builder), `webapp/server.py` (console). `linkedin-viral-scheduler/scripts/run.sh` sets **no** `--allowedTools` (only `--permission-mode acceptEdits`), so that job has nothing beyond the CLI's read-only auto-approval: 30 PERM_BLOCKED in its 4 runs (2026-10-22). Also the CLI's own shell checks (refuses `$VAR`, `$(…)`, compound commands) | The command runs, or is refused with an error | PERM_BLOCKED | Transcript error; ledger `permission_denials` |
+| **Write boundary** | PreToolUse on Write / Edit / MultiEdit / NotebookEdit | `.claude/hooks/write-boundary.sh`: repo zones for everyone; for a headless job (`CBRAIN_JOB`, exported by `scripts/run_agent.sh`) only the `write_scopes:` in `.claude/agents/<job>.md`. Test: `.claude/hooks/tests/write-boundary.test.sh`. Separately, the CLI's working-directory sandbox for reads and listings ("was blocked. For security") | Allow, or deny with a reason; fails open on its own parse errors | BOUNDARY_BLOCKED | Hook log `write-boundary · deny` with `job` (scope denials) or `job: null` (zone denials); transcript error (both) |
+| **Vault history** | `scripts/run_agent.sh`, before and after every headless run | `scripts/vault_history.sh` (git dir `.vault-history.git`, outside the synced vault; pre-push hook refuses every push) | One commit per run, authored by the job, holding exactly the vault files its transcript shows it wrote with Write/Edit (none → no commit); everything else lands in the next `unattributed` commit | none (snapshot failures print a WARNING line to the job log, never fail the job) | `scripts/vault_history.sh log --format='%an %s'` |
+| **Task packet & paths** | Run start | The launcher's prompt and the files it seeds (TASK.json / TASK.md, the RESPONSE.md spine, e.g. `sync.py` `launch()`); the skill's `SKILL.md` paths and call examples | The agent finds what it needs without guessing a path or a call shape | PATH_MISS, BAD_INPUT | Transcript |
+| **Shared-file editing** | An Edit on a file that the console or the agent's own earlier edits also change | The Edit rule in `.claude/agents/<job>.md`; co-writers such as `webapp/tasks.py` `save()` (PLAN.json) | The Edit's old text matches the file as it is now | STALE_EDIT | Transcript |
+| **Completion gate** | Every Stop | `.claude/hooks/control-spine-gate.sh` (scoped to the session's own runs) | Allow; or block once, never twice (`stop_hook_active`); fails open | GATE | Hook log `block` / `release`; forensics `hooks.after_block` (worked · tick-only · none) |
+| **Runner, ledger & handoff** | Every scheduled run | `scripts/run_agent.sh` (caffeinate, auth alarm, ledger line, handoff reopen, forensics ingest); the job's launchd plist | Ledger line written; handoff reopened; run classified | INFRA, AUTH_EXPIRED, NO_HANDOFF | Ledger; `_forensics/auth-alarm.json` |
+| **Environment** | A step that needs a CLI, the network or a login | This Mac (brew/uv installs, MCP auth); external sites | The tool is present and reachable | ENV_MISSING; untracked: NET_FAIL, CMD_FAIL | Transcript |
+
+**Keeping it current.** When a fix adds or moves a mechanism, update the row and the code's `sites` in the same change. If this page drifts from the code, the fix step ends up reasoning about a harness that no longer exists.

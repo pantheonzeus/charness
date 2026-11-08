@@ -1,0 +1,22 @@
+charness
+Copyright (c) 2026 Christoph Nuetzel
+
+Everything in this repository is licensed under the MIT License (see LICENSE),
+with the following exception.
+
+Lean Service Creation skills — CC BY-SA 4.0
+-------------------------------------------
+The folders
+
+  resources/skills/business-design/lean-service-creation/
+  resources/skills/business-design/lsc-*/
+
+reproduce and adapt canvas content (canvas titles, field questions and
+callouts) from the Lean Service Creation Toolbox v3.0.5 by Futurice Ltd,
+licensed under Creative Commons Attribution-ShareAlike 4.0 International
+(https://creativecommons.org/licenses/by-sa/4.0/). These folders, and any
+copy or adaptation of them, are distributed under CC BY-SA 4.0, not MIT.
+Method guidance marked [house] in those skills is this project's addition.
+Public overview of the method: https://futurice.com/lean-service-creation
+
+Details: resources/skills/business-design/lean-service-creation/references/lsc-conventions.md

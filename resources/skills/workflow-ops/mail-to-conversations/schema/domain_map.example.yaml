@@ -1,0 +1,7 @@
+# Sender domain → Company. Also the default domain set fetch_gmail.py / mcp_gmail_to_sources.py pull from.
+# Copy to domain_map.yaml (gitignored — your real partner list stays local) and edit.
+# One "domain: Company" per line; used before the title-case-the-domain heuristic.
+
+yourcompany.com: Your Company
+acme-industries.com: ACME Industries
+example-uni.ac.uk: Example University
