@@ -7,7 +7,7 @@
   <array>
     <string>/bin/sh</string>
     <string>-c</string>
-    <string>R=resources/skills/workflow-ops/run-forensics/scripts; /usr/bin/python3 scripts/session_archive.py sync; /usr/bin/python3 $R/sessions.py scan; /usr/bin/python3 $R/forensics.py report</string>
+    <string>R=resources/skills/workflow-ops/run-forensics/scripts; /usr/bin/python3 scripts/session_archive.py sync; /usr/bin/python3 $R/sessions.py scan; /usr/bin/python3 $R/judge.py run; /usr/bin/python3 $R/forensics.py report</string>
   </array>
   <key>WorkingDirectory</key><string>/Users/YOU/GitHub/cbrain</string>
   <key>StartCalendarInterval</key><dict><key>Hour</key><integer>7</integer><key>Minute</key><integer>20</integer></dict>

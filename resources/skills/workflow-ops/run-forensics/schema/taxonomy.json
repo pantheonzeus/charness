@@ -233,6 +233,22 @@
     "resources/skills/workflow-ops/run-forensics/scripts/quality.py",
     "the job's SKILL.md (the floor's wording)"
    ]
+  },
+  {
+   "code": "QUALITY_JUDGE",
+   "tool": "-",
+   "pattern": "(?!)",
+   "when": "assigned by scripts/judge.py, not by a tool error: a calibrated LLM judge graded a run's deliverable (daily-intel: each briefing item against four rules quoted from its SKILL.md) and the fail share, corrected for the judge's measured error rates, is >= 25%. Never assigned while the judge's calibration against the principal's labels is missing, below TPR/TNR 0.8, or stale",
+   "track": true,
+   "mast": "task verification: incomplete verification",
+   "trail": "output generation: poor quality output",
+   "fix": "The run did its work but wrote items the reader would fail. Read the signature (which rule), then the judge's critiques in output/.runs/_forensics/judge.jsonl and the briefing. A rule that fails on most items is either prose the agent ignores (fix: a mechanism or a sharper step in the job's SKILL.md) or a judge that is too strict: label the disputed items and re-run `judge.py calibrate` before changing the job.",
+   "behavior": "Output-quality judge",
+   "sites": [
+    "resources/skills/workflow-ops/run-forensics/scripts/judge.py",
+    "the job's SKILL.md (the rule's wording)",
+    "output/run-forensics/judge/labels.jsonl (the principal's grades)"
+   ]
   }
  ]
 }

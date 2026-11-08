@@ -1,20 +1,20 @@
 ---
 id: run-forensics
 aliases: [run-forensics, failure-taxonomy]
-name: "Run Forensics — Failure Codes, Quality Floors, Recurrence, Verified Fixes, Regression Suite & Session Lessons"
+name: "Run Forensics — Failure Codes, Quality Floors, Output-Quality Judge, Recurrence, Verified Fixes, Regression Suite & Session Lessons"
 category: workflow-ops
-description: Classify why every headless agent run failed or degraded (closed taxonomy, from the run's own transcript plus the hooks' logged decisions; for daily-intel and meeting-prep also whether the run did the work its skill requires), detect failure codes that recur across runs and jobs, read the principal's own sessions from the session archive for corrections, repeated asks and friction (kept as delta-only lessons that become skill and harness proposals), and close the loop with a human-approved harness fix (diagnosed against a clean run of the same job, revised against what the harness can see and already does, designed from a precedent) that is verified automatically on the next runs — over a window scaled to how often the code hit, per model.
-triggers: [why did the run fail, job quality, quality floor, is the briefing getting worse, did the model change hurt quality, run failed, recurring failure, failure mode, same failure again, fix the recurring failures, fix PERM_BLOCKED, fix SKILL_MISROUTE, run forensics, agent errors, ops failures, harness self-improvement, error analysis, flipping runs, compare a failing run with a clean one, learn from sessions, learn from past sessions, session lessons, what goes wrong in my sessions, repeated asks]
+description: Classify why every headless agent run failed or degraded (closed taxonomy, from the run's own transcript plus the hooks' logged decisions; for daily-intel and meeting-prep also whether the run did the work its skill requires; for daily-intel also whether its items pass an LLM judge calibrated against the principal's own grades; for every job how much research it repeated), detect failure codes that recur across runs and jobs, read the principal's own sessions from the session archive for corrections, repeated asks and friction (kept as delta-only lessons that become skill and harness proposals), and close the loop with a human-approved harness fix (diagnosed against a clean run of the same job, revised against what the harness can see and already does, designed from a precedent) that is verified automatically on the next runs — over a window scaled to how often the code hit, per model.
+triggers: [why did the run fail, job quality, quality floor, is the briefing getting worse, did the model change hurt quality, run failed, recurring failure, failure mode, same failure again, fix the recurring failures, fix PERM_BLOCKED, fix SKILL_MISROUTE, run forensics, agent errors, ops failures, harness self-improvement, error analysis, flipping runs, compare a failing run with a clean one, learn from sessions, learn from past sessions, session lessons, what goes wrong in my sessions, repeated asks, llm judge, output quality eval, label briefing items, calibrate the judge, is the judge reliable, repeated research, agent looping]
 tags: [harness, ops, observability, self-improvement, error-analysis]
 related: []
 modules: [file-backed-state, decision-observability, self-evolution]
 status: active
-version: 10
+version: 11
 created: 2026-10-20
 updated: 2026-11-08
 ---
 
-# Run Forensics — Failure Codes, Quality Floors, Recurrence, Verified Fixes, Regression Suite & Session Lessons
+# Run Forensics — Failure Codes, Quality Floors, Output-Quality Judge, Recurrence, Verified Fixes, Regression Suite & Session Lessons
 
 **The problem it solves.** `run_agent.sh`'s ledger records exit codes, and nearly every run exits 0 with `subtype: success`. The transcript underneath tells a different story: on 2026-10-20, 113 of 186 ledgered runs were *degraded* — ~215 blocked shell commands, 46 repo skills called through the Skill tool, 38 guessed paths — and nothing grouped them or noticed they came back every day.
 
@@ -22,7 +22,7 @@ updated: 2026-11-08
 - **Input:** `output/.runs/_ledger/*.jsonl` (one line per run, incl. `models` and `git_sha`), each run's transcript `~/.claude/projects/*/<session_id>.jsonl`, and the hooks' decision log `output/.runs/_forensics/hooks.jsonl` (written by `.claude/hooks/write-boundary.sh` and `control-spine-gate.sh`).
 - **Output:** `output/.runs/_forensics/runs.jsonl` (per-run outcome + codes + normalized signatures + `hooks` summary), `output/run-forensics/issues.json` (issue state machine), `output/run-forensics/report-<YYYYMMDD>.md` (daily), Jarvis Ops panel + island pill.
 - **Sessions (section E):** input `output/.sessions/` (the archive, `scripts/session_archive.py`); output `output/run-forensics/sessions-<YYYYMMDD>.md` (digest) and `output/run-forensics/lessons.json` (lessons ledger).
-- **Allowed tools/artifacts:** `scripts/forensics.py`, `scripts/sessions.py` and `scripts/quality.py` (stdlib, deterministic — no LLM in the hot path); `references/handbook.md` (which harness behavior owns each code, and where its code lives); for the fix step, edits to `.claude/agents/*.md`, a job's `--allowedTools`, a skill's `SKILL.md`, a hook, or `schema/taxonomy.json`.
+- **Allowed tools/artifacts:** `scripts/forensics.py`, `scripts/sessions.py` and `scripts/quality.py` (stdlib, deterministic — no LLM in the hot path); `scripts/judge.py` (section F: the one LLM call, daily and off the hot path, gated by its calibration); `references/handbook.md` (which harness behavior owns each code, and where its code lives); for the fix step, edits to `.claude/agents/*.md`, a job's `--allowedTools`, a skill's `SKILL.md`, a hook, or `schema/taxonomy.json`.
 - **Done when:** (detection) every ledgered run is classified and the unclassified share is < 5%; (fix) the issue is `verified`: `needs` clean post-fix runs of the affected jobs on their current model, zero recurrences.
 
 **Triggers/Context**
@@ -32,7 +32,7 @@ updated: 2026-11-08
 ## The loop
 ```
 run ends → run_agent.sh → forensics.py ingest      (per run: classify, never fails the job)
-07:20 daily → launchd com.cbrain.run-forensics → session_archive.py sync → sessions.py scan → forensics.py report
+07:20 daily → launchd com.cbrain.run-forensics → session_archive.py sync → sessions.py scan → judge.py run → forensics.py report
               → recurring code (≥ 2 runs / 7 d) opens an issue → Jarvis island pill
 principal: "fix <CODE>" → this skill's fix step (below) → forensics.py fixed <CODE> --note …
               → judged every report on post-fix runs of the fixed jobs only (never the pre-fix runs still in the window),
@@ -95,6 +95,7 @@ A run can be clean by every code above and still under-deliver. On Sonnet 5.5, d
 - **Volume is never a floor.** A quiet news day may be short ("Never pad"). The report's **Quality** table shows each job's medians per model, so a model change shows up as a step in them; read it next to the model-swap test.
 - **Run:** ingest measures new runs automatically. `forensics.py quality` backfills earlier runs while their transcripts last and prints the table.
 - **Add a job:** one function in `quality.py` (`JOBS`), each floor quoted from the job's SKILL.md in its docstring. A floor the skill doesn't state is not a floor. Change the skill first, with the principal.
+- **Repeated research (every job, added 2026-11-08).** `quality.efficiency` counts research a run did twice for nothing: a WebSearch whose words an earlier one used, a WebFetch of the same URL with the same prompt, a Read of an unchanged file range. The report's **Repeated research** table shows median, p90 and max per job and model. Report-only, never a code: on ~860 runs the median was 0% in every job (p90 ≤ 21%), and exact repeats of any call were `date` stamps and re-run checks. A model that loops shows up as a step between its rows (Arize's convergence evals, without the judge).
 - **A floor that fires on most runs** is either prose the agent ignores (fix: a mechanism, step B) or a rule the skill should drop. That decision belongs to the principal, never to the measurement. *(meeting-prep 2026-11-01: 59 of 80 Sonnet 5.5 runs left task documents neither opened nor listed; strict "read the file" would flag 65.)*
 
 ### E. Session lessons (the principal's own sessions, added 2026-11-08)
@@ -108,8 +109,16 @@ Sections A–D read headless runs. Interactive sessions show what goes wrong for
 - **Provenance is mechanical.** A lesson drawn from any session that took in outside text is `derived-untrusted` (set from the archive's `taint`, not by the writer). It is still proposable, because your Go is the gate, but the proposal says so.
 - **Client-free.** Lessons and the digest quote your prompts and can name clients; they stay in `output/`. What reaches a skill is the procedure only, with no client, person or deal names and no quotes (skills are published).
 
+### F. Output-quality judge (daily-intel, added 2026-11-08)
+Floors check the work a run did; nothing checked what it wrote. `scripts/judge.py` grades each briefing item against four rules quoted from the daily-intel SKILL.md (`grounded`, `delta`, `why`, `no_padding`), critique before verdict, given the page text the run itself fetched for the item's sources (from its transcript), so a claim the source never made is caught. One `claude -p` call per briefing on `claude-opus-5-5`, a model other than the producer's.
+- **It decides nothing until it agrees with you.** `judge.py label` shows unlabelled items and takes your pass/fail (and which rule) into `output/run-forensics/judge/labels.jsonl`. `judge.py calibrate` has the judge grade every labelled item and prints TPR (passes it passes), TNR (fails it fails) and each disagreement with its critique. Valid only at TPR and TNR ≥ 0.8 on ≥ 10 pass and ≥ 10 fail labels, for the current rubric, prompt and model (a hash; any edit makes it stale). Arize/Phoenix and Hamel Husain's evals FAQ: binary verdicts, explanation first, judge aligned to human labels before use.
+- **Then daily, before the report:** `judge.py run` judges the daily-intel runs of the last 2 days into `output/.runs/_forensics/judge.jsonl`. The fail share is corrected for the judge's error rates (Rogan–Gladen); a run at ≥ 25% gets `QUALITY_JUDGE` (tracked, degraded, signature = the rule), so recurrence, `pair` and fix verification work as for any code. The report's **Judged output quality** table shows it per model.
+- **Disagreements are error analysis, both ways.** Where you and the judge differ, either the judge is wrong (sharpen the rule text in `judge.py`, then label fresh items before trusting the next calibration: tuning a rule on the same labels you test it on overstates agreement) or the briefing is (the rule belongs in the job's SKILL.md as a mechanism, step B). A rule's wording changes only with the job's SKILL.md: a rule the skill doesn't state is not a rule here.
+- **Smoke test 2026-11-08:** 3 items of the 2026-11-06 briefing, 41 s, all 3 failed at least one rule (one an attribution the source didn't make). Strict by design; calibration says whether too strict.
+- **Not yet:** other jobs get a judge only after this one holds calibration, each with its own labels. The judge's critiques are the text feedback a prompt-learning loop on the job's SKILL.md would need (Arize reports +5.19% / +10.87% on SWE-Bench Lite from optimized CLAUDE.md rules alone, on its own blog, unreplicated); that loop is a separate, approved step.
+
 ## Optimizations/Gotchas
-- **Rules before judges.** All codes are assigned by regex/fields. TRAIL found the best model locates only ~11% of trace errors — an LLM label is a hypothesis, not a classification. Output quality is first measured as effort floors and counts (section D). An LLM judge of the content itself comes only when those floors hold and quality still slips.
+- **Rules before judges.** All codes are assigned by regex/fields. TRAIL found the best model locates only ~11% of trace errors — an LLM label is a hypothesis, not a classification. Output quality is first measured as effort floors and counts (section D). The LLM judge of the content (section F) assigns a code only after it agrees with the principal's own labels, and never replaces a rule that code can check.
 - **Degraded ≠ broken.** A degraded run usually still delivered; the cost is wasted turns and money and the risk of a silent workaround. The Job-health table flags only *failed* > 10% (14 d) as an error-budget breach (Google SRE error-budget policy).
 - **Transcripts expire** in `~/.claude` after `cleanupPeriodDays` (90 since 2026-11-08). Classification is persisted at run end for that reason. Since 2026-11-08 the session archive keeps a redacted copy of every transcript (`scripts/session_archive.py show <id>`), so old runs can be re-read there; runs before 2026-10-10 are gone.
 - **The ledger stays append-only.** Forensics writes its own sidecar keyed by `session_id`; `run_agent.sh` additionally records `api_error_status`, `error` and `startup_failure_reason` for root-causing `INFRA`.
@@ -122,6 +131,7 @@ Sections A–D read headless runs. Interactive sessions show what goes wrong for
 - Cemri et al., *Why Do Multi-Agent LLM Systems Fail?* (MAST), arXiv:2503.13657 · Deshpande et al., *TRAIL*, arXiv:2505.08638 · *Where LLM Agents Fail and How They Can Learn from Failures* (AgentDebug), arXiv:2509.25370.
 - *Agentic Harness Engineering* (falsifiable edit predictions), arXiv:2604.25850 · *Meta-Harness* (raw traces as feedback), arXiv:2603.28052 · ACE, arXiv:2510.04618.
 - Wang et al., *Harness Self-Evolution for Long-Horizon Terminal Agents* (RiseHarness: flipping-run pairs, wish → revise against harness traces, precedent research, per-model adaptation, adoption only on a complete grid against a declared baseline), arXiv:2610.27435 · *Harness Handbook*, arXiv:2607.13285. Applied here: `output/20261022-riseharness-jarvis.md`.
+- Output-quality judge: Arize, *Trace and session evals* (arize.com/docs/ax/evaluate/trace-and-session-evals) and *CLAUDE.md best practices learned from optimizing Claude Code with prompt learning* (arize.com/blog, 2025) · Rogan & Gladen, *Estimating prevalence from the results of a screening test*, Am. J. Epidemiol. 1978.
 - Hamel Husain, evals FAQ — error analysis (open → axial coding, first failure per trace): hamel.dev/blog/posts/evals-faq/ · Sentry event grouping: docs.sentry.io/concepts/data-management/event-grouping/ · Google SRE: postmortem culture, error budget policy (sre.google).
 - Andrew Ng, *Improve Agentic Performance with Evals and Error Analysis* Parts 1–2, The Batch 2025-10-15/22 (vault: `output/ng-letters/letters/`).
 - Session lessons: ACE, arXiv:2510.04618 (delta updates, helpful/harmful counters) · ExpeL, arXiv:2308.10144 · ReasoningBank, arXiv:2509.25140 · multi-round skill evolution, arXiv:2608.02636 · consolidation provenance, arXiv:2607.29167 · LangSmith trace retention tiers (docs.langchain.com/langsmith/administration-overview). Research run: `output/.runs/20261108-session-learning/`.
