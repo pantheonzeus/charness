@@ -3,7 +3,7 @@
 One entry per edit made under the [[change-manifest]] module. Newest first. Verdict fills in on the edit's next real use — never delete a disconfirmed entry.
 
 ## 2026-10-29 — Knowledge-layer gaps: trust tier, typed commitments, golden-set kinds, transcript capture
-- **Trigger:** principal: "I want to close the gap", after a gap review of cbrain's knowledge layer (trust, commitments, recall, transcripts). Scope chosen: all four items, deterministic checks, full transcripts. Run state `output/.runs/20261029-knowledge-layer-gaps/`.
+- **Trigger:** principal: "I want to close the gap", after a gap review of cbrain's knowledge layer (trust, commitments, recall, transcripts). Scope chosen: all four items, deterministic checks, full transcripts. Run state `output/.runs/20261029-company-brain-gaps/`.
 - **Evidence:**
   - No `confirmed`/`owner` field in any knowledge-graph or vault-hygiene skill.
   - 369 meeting notes, 41 next-step bullets, no index over them.
