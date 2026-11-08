@@ -2,6 +2,19 @@
 
 One entry per edit made under the [[change-manifest]] module. Newest first. Verdict fills in on the edit's next real use — never delete a disconfirmed entry.
 
+## 2026-11-08 — PostToolUseFailure hook answers a missed path with what exists
+- **Trigger:** principal approved scout proposal 20261102-0837-upgrade-1. The headless build stopped on 2026-11-02 because Claude Code refuses writes under `.claude/` in a headless run; the builder's drafts were installed in an interactive session.
+- **Evidence:** PATH_MISS regressed to 35 hits in 14 runs across 7 jobs (forensics report 2026-11-02); the 2026-10-20 prose fix still let 7 of 135 runs hit it.
+- **Files touched:**
+  - `.claude/hooks/path-hint.py` (new): on a Read/Edit "does not exist" error inside the repo, returns the nearest existing dir, closest name matches and up to 15 entries as `additionalContext`. Under `cbrain/` closest matches only, no listing. Stdlib, fail-open.
+  - `.claude/hooks/tests/path-hint.test.sh` (new, 13 checks); `.claude/settings.json` (PostToolUseFailure, matcher `Read|Edit`); README hooks table.
+  - Changed from the draft: closest-match cutoff 0.8 inside the vault (0.5 elsewhere). At 0.5 a date-prefix overlap named an unrelated person's note; the draft's own test caught it.
+- **Verified:** `path-hint.test.sh` 13/13; live headless probe on Claude Code 2.1.310: the hook fired on a Read miss in 87 ms and named the right sibling run dir (`--debug hooks`).
+- **Expected to fix (falsifiable):** PATH_MISS hits per 100 headless runs fall by at least half in the 14 days after landing, against the 2026-11-02 report's rate.
+- **Refuted if:** the rate holds or rises over those 14 days. Then agents ignore the hint and the fix belongs in the task packets, not a hook.
+- **Risk flagged:** a listing outside the vault can carry file names into a transcript; the hook only lists inside the repo. A changed error string in a future CLI silences the hook (fail-open, no harm).
+- **Verdict:** pending — 14 days after landing.
+
 ## 2026-11-06 — Harness upgrades: Apply and Discard in the Plans tab
 - **Trigger:** principal approved scout proposal 20261106-0950-upgrade-2. Six upgrades built 2026-11-03 to 2026-11-05 and `decisions.jsonl` held no applied, closed or discarded line, because the last step needed a terminal.
 - **Files touched:**
