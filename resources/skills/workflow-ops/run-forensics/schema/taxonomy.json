@@ -82,11 +82,11 @@
   {
    "code": "PERM_BLOCKED",
    "tool": ".*",
-   "pattern": "requires approval|Contains [a-z_ -]+|contains multiple operations|Parser skipped input|cannot be auto-allowed|integer attribute|Arithmetic expansion|Redirect has multiple targets|expansion obfuscation|has been denied|doesn't want to proceed|require explicit approval|Brace expansion|^(<tool_use_error>)?Blocked: |executes arbitrary commands",
+   "pattern": "requires approval|Contains [a-z_ -]+|contains multiple operations|Parser skipped input|cannot be auto-allowed|integer attribute|Arithmetic expansion|Redirect has multiple targets|expansion obfuscation|has been denied|doesn't want to proceed|require explicit approval|Brace expansion|^(<tool_use_error>)?Blocked: |executes arbitrary commands|denied by the Claude Code auto mode classifier",
    "track": true,
    "mast": "system design",
    "trail": "system execution: configuration",
-   "fix": "Headless runs cannot answer prompts. Either allowlist the exact command for that job (--allowedTools) or tell the agent to use Read/Grep/Glob and single plain commands instead of compound shell.",
+   "fix": "Headless runs cannot answer prompts. Either allowlist the exact command for that job (--allowedTools) or tell the agent to use Read/Grep/Glob and single plain commands instead of compound shell. An auto-mode classifier denial in an interactive session means the classifier refused the action (e.g. running code from outside); read the stated reason before retrying, never route around it.",
    "behavior": "Command permissions",
    "sites": [
     "the job launcher's --allowedTools",

@@ -73,6 +73,16 @@ One entry per edit made under the [[change-manifest]] module. Newest first. Verd
   - `.claude/agents/verdict-judge.md` (built in a parallel session, not on main) needs a registry entry before it merges, or CI goes red.
 - **Verdict:** pending. Check on the meeting-prep ledger and preps on 2026-11-23, the caps on 2026-12-07, and the first spot-check score.
 
+## 2026-11-09 — Run-forensics names the auto-mode classifier denial (PERM_BLOCKED)
+- **Trigger:** harness-upgrade-scout proposal, approved (Go) 2026-11-09. `output/run-forensics/sessions-20261109.md` (58 human sessions, 7 days): the largest bucket was UNCLASSIFIED ×21, all "Permission for this action was denied by the Claude Code auto mode classifier. Reason: […]".
+- **Touched:** `workflow-ops/run-forensics/schema/taxonomy.json` PERM_BLOCKED: pattern + `denied by the Claude Code auto mode classifier`; fix text + one sentence (an interactive classifier denial is the classifier refusing the action; read its reason before retrying, never route around it).
+- **Expected to fix (falsifiable):** the next sessions digest shows 0 UNCLASSIFIED lines with the auto-mode classifier signature (21 on 2026-11-09), and the same count moves to PERM_BLOCKED.
+- **Refuted if:** the next `sessions-<date>.md` still lists "denied by the Claude Code auto mode classifier" under UNCLASSIFIED.
+- **Preserves:** every existing PERM_BLOCKED alternative unchanged (one alternative appended); no code changed. PERM_BLOCKED is in state `fixing`: its count gains interactive-only occurrences, but sessions are reported apart from headless runs, so job verification should not move. No taxonomy unit fixture exists (`evals/regression.json` holds live-agent cases only), so no case was added.
+- **Fires on stable:** nothing new; one more regex alternative per classified error.
+- **Matched baseline:** UNCLASSIFIED ×21 with this signature in `sessions-20261109.md`.
+- **Verdict:** pending — check at the next sessions digest.
+
 ## 2026-11-08 — Output-quality judge (calibrated) and repeated-research report in run-forensics
 - **Trigger:** the principal, after a review of Arize's eval practice against this setup: "build 1 and add 3". HARNESSCARD named the gap: no output-quality eval for the deliverables.
 - **Touched:**
