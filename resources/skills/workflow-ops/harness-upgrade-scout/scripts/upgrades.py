@@ -4,8 +4,11 @@
 """Harness upgrade scout: each weekday, check what is new against this setup and stage at most 3
 improvement proposals as plans in the console, each waiting for your Go. Go builds it on its own branch.
 
-  run                    launch the scout agent, validate its RESULT.json, stage the proposals as plans
+  run                    launch the scout agent, validate its RESULT.json, stage the proposals as plans;
+                         while more than 10 CHANGE_LOG entries are in use without a verdict, judge instead
+  judge                  launch the verdict judge on the 5 oldest READY CHANGE_LOG entries, write its verdicts
   check <STATE_ROOT>     validate the RESULT.json one scout run wrote
+  judge-check <STATE_ROOT>  validate the VERDICTS.json one judge run wrote
   stage <STATE_ROOT>     turn a checked RESULT.json into console plans (run does this)
   prepare <task-id>      create the task's worktree + branch upgrade/<task-id> from the checkout as it is now
                          (HEAD + a snapshot commit of uncommitted work), idempotent; print its path
@@ -24,6 +27,7 @@ tab (or `apply <task-id>`, then `close <task-id>`), review `git diff`, commit wh
 Decisions live in output/harness-upgrades/decisions.jsonl; the scout reads them so a rejected idea
 never comes back and a deferred one waits its week.
 """
+import hashlib
 import json
 import os
 import re
@@ -47,6 +51,14 @@ SESSIONS_PY = "resources/skills/workflow-ops/run-forensics/scripts/sessions.py" 
 WORKTREES = Path.home() / "GitHub" / "cbrain-upgrades"
 RUN_AGENT = REPO / "scripts" / "run_agent.sh"
 MAX_NEW, MAX_OPEN, MIN_SEARCHED, DEFER_DAYS = 3, 5, 4, 7
+CHANGE_LOG = REPO / "resources" / "skills" / "_shared" / "CHANGE_LOG.md"
+SWEEP = REPO / "resources" / "skills" / "_shared" / "scripts" / "verdict_sweep.py"
+MAX_READY, JUDGE_N = 10, 5   # the brake: above MAX_READY unjudged changes in use, judge JUDGE_N instead of scanning
+VERDICTS = ("confirmed", "not confirmed", "regressed", "partial", "blocked")
+REGRESSION = REPO / "resources" / "skills" / "workflow-ops" / "run-forensics" / "scripts" / "regression.py"
+GUARDED = ("Charter.md", "Soul.md", "CLAUDE.md", "resources/skills/_shared/", "resources/skills/INDEX.md", "resources/models/",
+           "scripts/skill_router.py", ".claude/hooks/", ".claude/agents/", ".claude/settings.json")   # a change here runs the suite
+PRIVATE = ("IDENTITY.md", "employers")   # gitignored, so not in a worktree; the probes need the real persona and pack
 SCOPES = ("cc-releases", "harness-research", "console-ux", "run-failures", "session-lessons")
 FIELDS = ("title", "scope", "source", "finding", "current", "change", "files", "steps",
           "predicted_effect", "refuted_if", "effort", "risk", "confidence")
@@ -233,6 +245,10 @@ def alive():
 def run():
     if alive():
         return log("previous run still alive; skipping")
+    ready = ready_entries()
+    if len(ready) > MAX_READY:
+        log(f"{len(ready)} logged changes are in use without a verdict (brake at {MAX_READY}); judging, not scanning")
+        return judge(ready)
     waiting = open_ids()
     if len(waiting) >= MAX_OPEN:
         return log(f"{len(waiting)} proposals still wait for your call; no new scan until you decide some")
@@ -265,6 +281,106 @@ def run():
         save(STATE, state)
     finally:
         LOCK.unlink(missing_ok=True)
+
+
+# ---------- verdict judge (the brake's other half) ----------
+
+def ready_entries():
+    """CHANGE_LOG entries a later run already used but nobody judged, oldest first (verdict_sweep.py READY)."""
+    r = subprocess.run([sys.executable, str(SWEEP), "--json"], capture_output=True, text=True)
+    rows = json.loads(r.stdout)["rows"] if r.returncode == 0 else []
+    return sorted((x for x in rows if x["state"] == "READY"), key=lambda x: -x["age"])
+
+
+def log_entries():
+    """{heading without '## ': entry text} for every CHANGE_LOG entry."""
+    parts = re.split(r"^(?=## \d{4}-\d{2}-\d{2})", CHANGE_LOG.read_text(), flags=re.M)[1:]
+    return {p.splitlines()[0][3:]: p for p in parts}
+
+
+def judge(ready=None):
+    if alive():
+        return log("previous run still alive; skipping")
+    pick = (ready if ready is not None else ready_entries())[:JUDGE_N]
+    if not pick:
+        return log("no READY change-log entries to judge")
+    OUT.mkdir(parents=True, exist_ok=True)
+    LOCK.write_text(str(os.getpid()))
+    try:
+        stamp = time.strftime("%Y%m%d-%H%M%S")
+        root = REPO / "output" / ".runs" / f"{stamp}-verdict-judge"
+        root.mkdir(parents=True)
+        entries = log_entries()
+        save(root / "TASK.json", {"run": stamp, "date": time.strftime("%Y-%m-%d"), "change_log": REL(CHANGE_LOG),
+                                  "entries": [{"heading": p["title"], "age_days": p["age"], "text": entries.get(p["title"], ""),
+                                               "evidence": [e["run"] for e in p["evidence"] if e["strong"]][:5]}
+                                              for p in pick]})
+        (root / "RESPONSE.md").write_text(
+            # no skill named in this header: verdict_sweep counts a header mention as use, and judging is not use
+            f"# verdict-judge {stamp}\n- [ ] TASK.json read\n"
+            "- [ ] each entry's prediction checked against the evidence runs it names\n"
+            f"- [ ] VERDICTS.json written ({len(pick)} verdicts)\n- [ ] upgrades.py judge-check prints OK\n")
+        prompt = (f"Read and follow resources/skills/workflow-ops/harness-upgrade-scout/SKILL.md, section Verdict judge "
+                  f"(a repo skill: open it with Read, not the Skill tool) for the task packet {REL(root)}/TASK.json. "
+                  f"Your STATE_ROOT is {REL(root)}/. Finish with `uv run {REL(__file__)} judge-check {REL(root)}` printing OK.")
+        subprocess.run(["bash", str(RUN_AGENT), "verdict-judge", str(root / "RESPONSE.md"), prompt,
+                        "--permission-mode", "acceptEdits", "--allowedTools", "Read", "Glob", "Grep", "Write",
+                        "Bash(ls:*)", "Bash(grep:*)", f"Bash(uv run {REL(__file__)} judge-check:*)",
+                        f"Bash(uv run {__file__} judge-check:*)"],
+                       cwd=REPO, env=CLI_ENV, stdin=subprocess.DEVNULL)
+        errs = judge_check(root)
+        written = write_verdicts(root) if not errs else []
+        log(f"{len(written)} verdict(s) written to CHANGE_LOG.md; check {'OK' if not errs else 'FAILED: ' + '; '.join(errs[:3])}")
+        state = load(STATE, {"runs": []})
+        state["judge_runs"] = (state.get("judge_runs", []) + [{"at": stamp, "ok": not errs, "errors": errs[:5],
+                                                               "verdicts": written}])[-300:]
+        save(STATE, state)
+    finally:
+        LOCK.unlink(missing_ok=True)
+
+
+def judge_check(root):
+    root = Path(root)
+    task, res = load(root / "TASK.json", {}), load(root / "VERDICTS.json", None)
+    if not isinstance(res, dict) or not isinstance(res.get("verdicts"), list):
+        return ['no VERDICTS.json: write {"verdicts": [{"entry", "verdict", "proof", "evidence"}]}']
+    want = [e["heading"] for e in task.get("entries", [])]
+    got = [v.get("entry") for v in res["verdicts"] if isinstance(v, dict)]
+    errs = [f"no verdict for '{h}'" for h in want if h not in got]
+    errs += [f"'{h}' is not an entry of this task" for h in got if h not in want]
+    errs += [f"'{h}' judged twice" for h in set(got) if got.count(h) > 1]
+    for i, v in enumerate(x for x in res["verdicts"] if isinstance(x, dict)):
+        if v.get("verdict") not in VERDICTS:
+            errs.append(f"verdicts[{i}]: verdict must be one of {VERDICTS}")
+        proof = v.get("proof")
+        if not isinstance(proof, str) or not 20 <= len(proof) <= 400 or "\n" in proof:
+            errs.append(f"verdicts[{i}]: proof is one line of 20-400 characters")
+        ev = v.get("evidence") if isinstance(v.get("evidence"), list) else None
+        if ev is None or any(not isinstance(p, str) or ".." in p or p.startswith("/") or not (REPO / p).exists() for p in ev):
+            errs.append(f"verdicts[{i}]: evidence is a list of repo paths that exist")
+        elif v.get("verdict") != "blocked" and not ev:
+            errs.append(f"verdicts[{i}]: a {v.get('verdict')} verdict names at least one evidence path")
+    return errs
+
+
+def write_verdicts(root):
+    """Add one dated verdict line to the end of each judged entry; verdict_sweep reads the latest line.
+    Nothing else in CHANGE_LOG.md changes: the prediction and older verdicts stay as written."""
+    text, today, done = CHANGE_LOG.read_text(), time.strftime("%Y-%m-%d"), []
+    for v in load(Path(root) / "VERDICTS.json", {}).get("verdicts", []):
+        m = re.search(rf"^## {re.escape(v['entry'])}\n.*?(?=^## \d{{4}}-|\Z)", text, re.M | re.S)
+        if not m:
+            continue
+        ev = ", ".join(f"`{p}`" for p in v["evidence"])
+        line = (f"- **Verdict ({today}, verdict-judge):** pending — blocked: {v['proof']}" if v["verdict"] == "blocked" else
+                f"- **Verdict ({today}, verdict-judge):** **{v['verdict']}.** {v['proof']} Evidence: {ev}.")
+        body = m.group(0).rstrip("\n")
+        text = text[:m.start()] + body + "\n" + line + text[m.start() + len(body):]
+        done.append(f"{v['verdict']}: {v['entry'][:70]}")
+    tmp = CHANGE_LOG.with_suffix(".tmp")
+    tmp.write_text(text)
+    tmp.replace(CHANGE_LOG)
+    return done
 
 
 def stage(root):
@@ -434,10 +550,59 @@ def verify(tid):
                            env={**os.environ, "CLAUDE_PROJECT_DIR": str(wt)})
         if r.returncode:
             errs.append(f"{t.relative_to(wt)} failed: {(r.stdout + r.stderr).strip()[-400:]}")
+    reg = regress(wt, m, files) if not errs and any(f.startswith(GUARDED) for f in files) else None
+    errs += reg["errors"] if reg else []
     d, m = meta(tid)
     m["verify"] = {"at": now(), "ok": not errs, "errors": errs[:20], "files": files, "tests": [str(t.relative_to(wt)) for t in tests]}
+    if reg:
+        m["regression"] = reg
     save(d / "upgrade.json", m)
     return errs
+
+
+def passes(tsv):
+    """{probe: passed pass^k} from one regression.py results file, and the model it ran on."""
+    runs, model = {}, ""
+    for row in Path(tsv).read_text().splitlines()[1:]:
+        c = row.split("\t")
+        runs.setdefault(c[0], []).append(c[3] == "1")
+        model = c[9] if len(c) > 9 else model
+    k = load(REGRESSION.parent.parent / "evals" / "regression.json", {}).get("k", 3)
+    return {p: all(o) and len(o) >= k for p, o in runs.items()}, model
+
+
+def regress(wt, m, files):
+    """Regression suite (pass^k) on the branch, against the latest run on your checkout: a probe that passes
+    there must pass here (change-manifest "Preserves"). Cached by the changed files' content, so finish's
+    re-verify of the same change does not pay for a second run (~3 min, ~$2)."""
+    key = hashlib.sha256("".join(f + ((wt / f).read_text(errors="ignore") if (wt / f).is_file() else "")
+                                 for f in files).encode()).hexdigest()[:16]
+    if (m.get("regression") or {}).get("key") == key:
+        return m["regression"]
+    base = sorted((REPO / "output" / "regression").glob("*.tsv"))
+    if not base:
+        return {"key": key, "errors": ["regression: no baseline on your checkout; run regression.py there first"]}
+    for name in PRIVATE:
+        if (REPO / name).exists() and not (wt / name).exists():
+            (wt / name).symlink_to(REPO / name)
+    out = wt / "output" / "regression"
+    before = set(out.glob("*.tsv"))
+    try:
+        # the builder's own job variables would hold the probes to its write scopes, unlike the baseline run
+        env = {k: v for k, v in CLI_ENV.items() if not k.startswith("CBRAIN_") and k != "CLAUDE_PROJECT_DIR"}
+        subprocess.run([sys.executable, str(wt / REGRESSION.relative_to(REPO))], cwd=wt, env=env,
+                       stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=1500)
+    except subprocess.TimeoutExpired:
+        return {"key": key, "errors": ["regression: the suite ran past 25 minutes"]}
+    new = sorted(set(out.glob("*.tsv")) - before)
+    if not new:
+        return {"key": key, "errors": ["regression: the suite wrote no results (circuit breaker open?)"]}
+    after, model = passes(new[-1])
+    ref = next((t for t in reversed(base) if passes(t)[1] == model), base[-1])
+    lost = [p for p, ok in passes(ref)[0].items() if ok and not after.get(p)]
+    return {"key": key, "at": now(), "results": str(new[-1]), "baseline": REL(ref), "pass": after,
+            "errors": [f"regression: {p} passes pass^k on your checkout ({ref.name}) and fails on the branch ({new[-1]})"
+                       for p in lost]}
 
 
 def commit(tid, msg):
@@ -541,6 +706,12 @@ if __name__ == "__main__":
         run()
     elif a[:1] == ["check"] and len(a) == 2:
         e = check(a[1])
+        print("OK" if not e else "\n".join(e))
+        sys.exit(1 if e else 0)
+    elif a[:1] == ["judge"]:
+        judge()
+    elif a[:1] == ["judge-check"] and len(a) == 2:
+        e = judge_check(a[1])
         print("OK" if not e else "\n".join(e))
         sys.exit(1 if e else 0)
     elif a[:1] == ["stage"] and len(a) == 2:

@@ -15,15 +15,18 @@ Read-only. The verdict itself is a judgement written by hand into CHANGE_LOG.md
 
 Metric (lower is better): pending_over_14d. Last line:
   `entries=<n> pending=<p> pending_over_14d=<o> ready=<r> mentioned=<m>`
-Usage: python3 verdict_sweep.py [--log RESULTS_TSV] [--max N]   (--max limits READY lines printed; default 5)
+Usage: python3 verdict_sweep.py [--log RESULTS_TSV] [--max N] [--json]   (--max limits READY lines printed; default 5)
+  --json   the same worklist as one JSON object {counts, rows} (harness-upgrade-scout's brake reads it)
+A verdict is the entry's latest `- **Verdict…:**` line. A `blocked` one counts only runs after its date.
 """
-import argparse, datetime, pathlib, re
+import argparse, datetime, json, pathlib, re
 
 SKILLS = pathlib.Path(__file__).resolve().parents[2]
 REPO = SKILLS.parents[1]
 ap = argparse.ArgumentParser()
 ap.add_argument("--log")
 ap.add_argument("--max", type=int, default=5)
+ap.add_argument("--json", action="store_true")
 a = ap.parse_args()
 
 text = (SKILLS / "_shared" / "CHANGE_LOG.md").read_text(encoding="utf-8")
@@ -53,13 +56,19 @@ rows = []
 for e in entries:
     head = e.splitlines()[0]
     date = datetime.date.fromisoformat(head[3:13])
-    verdict = re.search(r"^- \*\*Verdict:\*\*\s*(.*)$", e, re.M)
-    status = verdict.group(1).strip("* ").lower() if verdict else "missing"
+    # the latest verdict line counts: `- **Verdict:**` or a dated `- **Verdict (YYYY-MM-DD, who):**` added later
+    verdicts = re.findall(r"^- \*\*Verdict(?: \((\d{4}-\d{2}-\d{2})[^)]*\))?:\*\*\s*(.*)$", e, re.M)
+    vdate, vtext = verdicts[-1] if verdicts else ("", "missing")
+    status = vtext.strip("* ").lower()
     if not (status.startswith("pending") or status == "missing"):
         continue
     pending += 1
     age = (today - date).days
     over14 += age > 14
+    since = date   # a blocked verdict waits for runs after it, so the same evidence is not judged twice
+    if "blocked" in status:
+        b = vdate or next(iter(re.findall(r"blocked \((\d{4}-\d{2}-\d{2})", status)), "")
+        since = max(date, datetime.date.fromisoformat(b)) if b else date
     touched_line = re.search(r"^- \*\*Files touched:\*\*(.*?)(?=^- \*\*|\Z)", e, re.M | re.S)
     touched_text = touched_line.group(1) if touched_line else e
     # a touched name counts only when written as a path, in backticks, or as a [[link]] —
@@ -68,7 +77,7 @@ for e in entries:
                     if re.search(rf"(?:[/`]|\[\[){re.escape(n)}(?:[/`.]|\]\])", touched_text)})
     hits = []
     for d in runs:
-        if datetime.date(int(d.name[:4]), int(d.name[4:6]), int(d.name[6:8])) <= date:
+        if datetime.date(int(d.name[:4]), int(d.name[4:6]), int(d.name[6:8])) <= since:
             continue
         header, full = cache.setdefault(d, run_text(d))
         strong = [n for n in names if named(n, header)]
@@ -85,7 +94,9 @@ for e in entries:
     rows.append((state, age, head[3:], names, hits))
 
 ORDER = {"READY": 0, "MENTIONED": 1, "NO-USE-YET": 2}
-for state, age, title, names, hits in sorted(rows, key=lambda r: (ORDER[r[0]], -r[1])):
+rows.sort(key=lambda r: (ORDER[r[0]], -r[1]))
+counts = {"entries": len(entries), "pending": pending, "pending_over_14d": over14, "ready": ready, "mentioned": mentioned}
+for state, age, title, names, hits in rows if not a.json else []:
     print(f"{state:10} {age:3}d  {title[:90]}")
     print(f"           touched: {', '.join(names) or '(no skill/module named)'}")
     for name, strong, weak in hits[:a.max]:
@@ -93,8 +104,13 @@ for state, age, title, names, hits in sorted(rows, key=lambda r: (ORDER[r[0]], -
         print(f"           evidence: output/.runs/{name}  ({tag})")
     if len(hits) > a.max:
         print(f"           … {len(hits) - a.max} more runs")
-line = f"entries={len(entries)} pending={pending} pending_over_14d={over14} ready={ready} mentioned={mentioned}"
-print(line)
+if a.json:
+    print(json.dumps({"counts": counts, "rows": [
+        {"state": s, "age": age, "title": t, "touched": n,
+         "evidence": [{"run": f"output/.runs/{r}", "strong": st, "weak": wk} for r, st, wk in h]}
+        for s, age, t, n, h in rows]}, ensure_ascii=False))
+else:
+    print(" ".join(f"{k}={v}" for k, v in counts.items()))
 if a.log:
     log = pathlib.Path(a.log)
     new = not log.exists()
