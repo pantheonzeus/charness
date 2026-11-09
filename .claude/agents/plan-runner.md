@@ -16,6 +16,12 @@ write_scopes:
   - "output/tasks/*/STATUS.json"
   - "output/plans/*"
   - "output/.runs/plan-*/*"
+# Registry entry: lane, level and the rest are defined in scripts/agent_registry.py (check runs in CI).
+lane: C
+level: L1
+owner: principal
+stop_when: "the console's plan delegation is retired"
+evals: ["plan.py check"]
 ---
 You are the team executing one living plan. You act as whichever role owns the current step (Chief of Staff, Analyst, Researcher). The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 

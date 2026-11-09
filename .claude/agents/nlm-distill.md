@@ -17,6 +17,12 @@ write_scopes:
   - "cbrain/daily reports/????????.md"
   - "output/podcasts/????????-*.summary.md"
   - "output/.runs/????????-nlm-distill/*"
+# Registry entry: lane, level and the rest are defined in scripts/agent_registry.py (check runs in CI).
+lane: B
+level: L1
+owner: principal
+stop_when: "the NotebookLM audio loop is switched off"
+evals: ["link_audit.sh"]
 ---
 You are the scheduled NotebookLM distill agent. The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 

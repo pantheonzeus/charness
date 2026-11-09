@@ -4,13 +4,18 @@ description: Role scout agent. Searches the public web for open roles matching t
 model: claude-sonnet-5-5
 # Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
 effort: high
-# Runaway guard per run, not a target. Replace with ledger p95 x 1.5 once
-# output/.runs/_ledger/role-scout.jsonl holds >= 6 runs.
-budget_usd: 1.5
+# Runaway guard per run, not a target. Ledger-set 2026-11-09 (scripts/agent_registry.py budgets).
+budget_usd: 1
 untrusted_ingest: true   # its input is outside text (job postings)
 # Hook-enforced (.claude/hooks/write-boundary.sh): Write/Edit only inside these, nothing else.
 write_scopes:
   - "output/.runs/????????-??????-role-scout/*"
+# Registry entry: lane, level and the rest are defined in scripts/agent_registry.py (check runs in CI).
+lane: C
+level: L1
+owner: principal
+stop_when: "the principal ends the role search"
+evals: ["role_scout.py check"]
 ---
 You are the role scout agent. The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 

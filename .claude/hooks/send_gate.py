@@ -15,7 +15,8 @@ Decision, on any tool whose name contains "send" on an MCP server (mail, chat):
   3. Outbound scan (scripts/outbound_gate.py, send mode): another client's name, a third company's
      contact, an internal channel. A finding blocks unless the human wrote "send anyway".
 FAIL-CLOSED: a send is irreversible, so anything unparsable denies. Every decision is traced to
-output/.runs/_forensics/hooks.jsonl. Test: bash .claude/hooks/tests/send-gate.test.sh
+output/.runs/_forensics/hooks.jsonl, with approval_s (seconds from the read-back to the yes; under 3 is a
+rubber-stamp signal, reported by scripts/spotcheck.py). Test: bash .claude/hooks/tests/send-gate.test.sh
 """
 import datetime as dt
 import json
@@ -61,16 +62,26 @@ def last_turns(transcript):
                 continue
     human_idx = [i for i, e in enumerate(entries) if e.get("type") == "user" and human_text(e)]
     if not human_idx:
-        return "", ""
+        return "", "", None
     last = human_idx[-1]
     prev = human_idx[-2] if len(human_idx) > 1 else -1
-    said = []
+    said, said_at = [], None
     for e in entries[prev + 1:last]:
         if e.get("type") == "assistant":
             for i in e.get("message", {}).get("content") or []:
                 if isinstance(i, dict) and i.get("type") == "text":
                     said.append(i.get("text", ""))
-    return human_text(entries[last]), "\n".join(said)
+                    said_at = e.get("timestamp") or said_at
+    return human_text(entries[last]), "\n".join(said), seconds_between(said_at, entries[last].get("timestamp"))
+
+
+def seconds_between(a, b):
+    """Seconds from the read-back to the yes: the rubber-stamp signal (scripts/spotcheck.py). None if unknown."""
+    try:
+        t = [dt.datetime.fromisoformat(x.replace("Z", "+00:00")) for x in (a, b)]
+    except (AttributeError, ValueError):
+        return None
+    return round((t[1] - t[0]).total_seconds(), 1)
 
 
 def recipients(tool_input):
@@ -90,7 +101,7 @@ def decide(event, job):
     transcript = event.get("transcript_path")
     if not transcript or not Path(transcript).is_file():
         return "no transcript to verify the approval against"
-    human, readback = last_turns(transcript)
+    human, readback, event["approval_s"] = last_turns(transcript)
     to = recipients(ti)
     is_mail = "mail" in tool.lower() or bool(to)
     if job == "plan-runner":
@@ -121,7 +132,8 @@ def trace(event, job, decision, reason):
         with log.open("a") as f:
             f.write(json.dumps({"ts": dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                                 "session_id": event.get("session_id"), "hook": "send-gate", "decision": decision,
-                                "tool": event.get("tool_name"), "why": reason, "job": job or None}) + "\n")
+                                "tool": event.get("tool_name"), "why": reason, "job": job or None,
+                                "approval_s": event.get("approval_s")}) + "\n")
     except OSError:
         pass
 

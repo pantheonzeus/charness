@@ -13,6 +13,12 @@ write_scopes:
   - "cbrain/projects/*.md"
   - "cbrain/Clients/*.md"
   - "output/.runs/????????-vault-frontier/*"
+# Registry entry: lane, level and the rest are defined in scripts/agent_registry.py (check runs in CI).
+lane: C
+level: L1
+owner: principal
+stop_when: "4 weeks of digests bring no finding into a meeting prep"
+evals: ["frontier.py check"]
 ---
 You are the scheduled vault-frontier agent. The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 

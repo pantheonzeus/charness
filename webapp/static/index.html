@@ -1773,6 +1773,8 @@ document.addEventListener("click", async (e) => {
 // A reply leaves only on Approve & send; your edits to a draft survive every refresh.
 // =====================================================================
 const mailDraft = {};          // id → {body, all}: your unsent edits
+const mailSeen = {};           // id → when it was first on screen: each decision's dwell (rubber-stamp check, scripts/spotcheck.py)
+const dwell = (id) => mailSeen[id] ? Date.now() - mailSeen[id] : null;
 const gmailLink = (t) => `https://mail.google.com/mail/u/0/#all/${encodeURIComponent(t)}`;
 async function loadMail(force) {
   try { D.mail = await (await fetch("/api/mail")).json(); } catch { return; }
@@ -1809,6 +1811,7 @@ function renderMail(force) {
     const grp = (k, label, xs, bulk) => {
       if (!xs.length) return "";
       const key = c.name + k, isOpen = open[key] ?? (k !== "know" || xs.length <= 3);
+      if (isOpen) xs.forEach((x) => mailSeen[x.id] ??= Date.now());
       return `<details data-k="${esc(key)}" ${isOpen ? "open" : ""}><summary class="grp">${label} (${xs.length})${bulk ? `<a data-mail-bulk="${esc(xs.map((x) => x.id).join(","))}">mark all read</a>` : ""}</summary>${xs.map((x) => mailItem(x, k)).join("")}</details>`;
     };
     h += grp("know", "To know", c.know, true) + grp("action", "Action needed", c.action) + grp("answer", "Answer needed", c.answer);
@@ -1823,9 +1826,9 @@ const mailClick = async (e) => {
   const jump = e.target.closest("[data-mail-jump]");
   if (jump) return document.getElementById("mail-" + jump.dataset.mailJump.replace(/\W+/g, "-"))?.scrollIntoView({behavior: "smooth"});
   const bulk = e.target.closest("[data-mail-bulk]");
-  if (bulk) { e.preventDefault(); await Promise.all(bulk.dataset.mailBulk.split(",").map((id) => post(`/api/mail/${id}/done`, {action: "read"}))); return loadMail(true); }
+  if (bulk) { e.preventDefault(); await Promise.all(bulk.dataset.mailBulk.split(",").map((id) => post(`/api/mail/${id}/done`, {action: "read", bulk: true, dwell_ms: dwell(id)}))); return loadMail(true); }
   const done = e.target.closest("[data-mail-done]");
-  if (done) { await post(`/api/mail/${done.dataset.mailDone}/done`, {action: done.dataset.act || "done"}); delete mailDraft[done.dataset.mailDone]; return loadMail(true); }
+  if (done) { await post(`/api/mail/${done.dataset.mailDone}/done`, {action: done.dataset.act || "done", dwell_ms: dwell(done.dataset.mailDone)}); delete mailDraft[done.dataset.mailDone]; return loadMail(true); }
   const send = e.target.closest("[data-mail-send]");
   if (!send) return;
   const card = send.closest("[data-mail]"), id = send.dataset.mailSend;
@@ -1834,11 +1837,14 @@ const mailClick = async (e) => {
   if (/\[confirm:/i.test(body)) return alert("The reply still has a [confirm: …] placeholder. Fill it in first.");
   if (!confirm(`Send this reply as you to ${x.from} <${x.from_email}>${all ? " and everyone on the thread" : ""}?`)) return;
   send.disabled = true; send.textContent = "Sending…";
-  const r = await post(`/api/mail/${id}/send`, {body, reply_all: all});
+  const r = await post(`/api/mail/${id}/send`, {body, reply_all: all, dwell_ms: dwell(id)});
   if (!r.ok) { send.disabled = false; send.textContent = "Approve & send"; return alert((await r.json()).detail || "Send failed."); }
   delete mailDraft[id]; toast("Sent", `Reply to ${x.from}`); loadMail(true);
 };
 for (const el of [$("#mail"), $("#item")]) { el.addEventListener("input", mailInput); el.addEventListener("click", mailClick); }
+$("#mail").addEventListener("toggle", (e) => {   // a group opened by hand: its items are on screen from now
+  if (e.target.open) e.target.querySelectorAll("[data-mail-done]").forEach((b) => mailSeen[b.dataset.mailDone] ??= Date.now());
+}, true);
 
 // =====================================================================
 // Data

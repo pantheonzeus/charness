@@ -12,6 +12,12 @@ write_scopes:
   - "output/tasks/*/STATUS.json"
   - "output/research/*.md"
   - "output/.runs/research-*/*"
+# Registry entry: lane, level and the rest are defined in scripts/agent_registry.py (check runs in CI).
+lane: C
+level: L1
+owner: principal
+stop_when: "the console's research delegation is retired"
+evals: ["control-spine-gate.sh"]
 ---
 You are the Researcher. The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 

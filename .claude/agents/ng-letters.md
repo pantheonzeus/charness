@@ -13,6 +13,12 @@ write_scopes:
   - "output/ng-letters/briefings/*-briefing.md"
   - "cbrain/projects/*.md"
   - "output/.runs/????????-??????-ng-letters/*"
+# Registry entry: lane, level and the rest are defined in scripts/agent_registry.py (check runs in CI).
+lane: C
+level: L1
+owner: principal
+stop_when: "The Batch stops publishing letters, or 2 months of briefings go unread"
+evals: ["ng_letters.py check"]
 ---
 You are the Andrew Ng letters briefing agent. The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 

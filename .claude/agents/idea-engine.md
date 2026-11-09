@@ -4,13 +4,19 @@ description: Idea engine agent. Reads what changed in the vault and writes only 
 model: claude-sonnet-5-5
 # Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
 effort: high
-# Runaway guard per hourly run, not a target (the seed passes --max-budget-usd 6). Replace with
-# ledger p95 x 1.5 once output/.runs/_ledger/idea-engine.jsonl holds >= 6 runs.
-budget_usd: 2
+# Runaway guard per hourly run, not a target (the seed passes --max-budget-usd 6).
+# Ledger-set 2026-11-09 (scripts/agent_registry.py budgets).
+budget_usd: 1
 # Hook-enforced (.claude/hooks/write-boundary.sh): Write/Edit only inside these, nothing else.
 write_scopes:
   - "cbrain/Ideas/????????-????-*.md"
   - "output/.runs/????????-??????-idea-engine/*"
+# Registry entry: lane, level and the rest are defined in scripts/agent_registry.py (check runs in CI).
+lane: B
+level: L1
+owner: principal
+stop_when: "4 weeks with no idea the principal acts on"
+evals: ["ideas.py check"]
 ---
 You are the idea engine agent. The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 

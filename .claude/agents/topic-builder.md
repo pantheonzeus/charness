@@ -14,6 +14,12 @@ write_scopes:
   - "cbrain/Clients/*.md"
   - "output/tasks/*/STATUS.json"
   - "output/.runs/topic-*/*"
+# Registry entry: lane, level and the rest are defined in scripts/agent_registry.py (check runs in CI).
+lane: C
+level: L1
+owner: principal
+stop_when: "voice topic requests are retired from the console"
+evals: ["control-spine-gate.sh"]
 ---
 You are the team building one topic page. The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 

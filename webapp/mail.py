@@ -3,6 +3,8 @@
 Reads what workflow-ops/mail-triage writes (output/mail-triage/: index.json, messages/, triage/,
 state.json). The only file written here is decisions.json (done / dismissed / sent). Sending
 shells out to `triage.py send`, which holds the gmail.send token, and only on an explicit click.
+Each decision also records how long the item was on screen (dwell_s), whether it came from "mark all
+read" (bulk) and, for a send, whether the draft was edited: the rubber-stamp signals scripts/spotcheck.py reports.
 """
 import json
 import re
@@ -36,9 +38,11 @@ def load(path, default):
         return default
 
 
-def decide(mid, **fields):
+def decide(mid, body, **fields):
     d = load(DECISIONS, {})
-    d[mid] = {**fields, "at": time.strftime("%Y-%m-%dT%H:%M:%S")}
+    ms = body.get("dwell_ms")
+    dwell = {"dwell_s": round(ms / 1000, 1)} if isinstance(ms, (int, float)) and ms >= 0 else {}
+    d[mid] = {**fields, **dwell, **({"bulk": True} if body.get("bulk") else {}), "at": time.strftime("%Y-%m-%dT%H:%M:%S")}
     tmp = DECISIONS.with_suffix(".tmp")
     tmp.write_text(json.dumps(d, indent=1, ensure_ascii=False))
     tmp.replace(DECISIONS)
@@ -83,7 +87,7 @@ def _id(mid):
 @router.post("/api/mail/{mid}/done")
 async def done(mid: str, request: Request):
     body = await request.json()
-    decide(_id(mid), action=body.get("action", "done"))
+    decide(_id(mid), body, action=body.get("action", "done"))
     return {"ok": True}
 
 
@@ -108,5 +112,7 @@ async def send(mid: str, request: Request):
     if r.returncode != 0:
         raise HTTPException(502, (r.stderr or r.stdout).strip().splitlines()[-1] if (r.stderr or r.stdout).strip() else "Send failed.")
     res = json.loads(r.stdout.strip().splitlines()[-1])
-    decide(mid, action="sent", to=res.get("to"), cc=res.get("cc"), gmail_id=res.get("gmail_id"), body=text)
+    draft = str(load(OUT / "triage" / f"{mid}.json", {}).get("reply", "")).strip()
+    decide(mid, body, action="sent", to=res.get("to"), cc=res.get("cc"), gmail_id=res.get("gmail_id"), body=text,
+           edited=text != draft)
     return res
