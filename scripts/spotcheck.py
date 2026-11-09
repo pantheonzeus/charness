@@ -8,8 +8,9 @@ Two sources, both written as the decisions happen:
   output/.runs/_forensics/hooks.jsonl    send-gate allows: approval_s (seconds from read-back to yes)
 
   python3 scripts/spotcheck.py report [--days 7]          the signals for the window
-  python3 scripts/spotcheck.py sample [--n 5] [--days 7]  a blind sheet: re-decide n mails without the
-                                                          original call -> output/spotcheck/<YYYY>-W<ww>.md
+  python3 scripts/spotcheck.py sample [--n 5] [--days 7]  the report, then a blind sheet: re-decide n mails without
+                                                          the original call -> output/spotcheck/<YYYY>-W<ww>.md
+                                                          (launchd, Sundays 08:00: scripts/com.cbrain.spotcheck.plist)
   python3 scripts/spotcheck.py score <sheet.md>           agreement with the original calls, appended to
                                                           output/spotcheck/scores.jsonl
 
@@ -18,7 +19,9 @@ are labels for a future mail-triage quality judge. The sheet holds mail text, so
 Stdlib only.
 """
 import argparse
+import contextlib
 import datetime as dt
+import io
 import json
 import os
 import random
@@ -86,7 +89,10 @@ def sample(n, days):
         return 1
     year, week, _ = dt.date.today().isocalendar()
     sheet = OUT / f"{year}-W{week:02d}.md"
-    out = [f"# Blind spot-check — {year}-W{week:02d}",
+    signals = io.StringIO()
+    with contextlib.redirect_stdout(signals):
+        report(days)
+    out = [f"# Blind spot-check — {year}-W{week:02d}", "", "```", signals.getvalue().rstrip(), "```", "",
            "Decide each mail again without looking up what you did. Tick one call and say whether the triage was right,",
            f"then: python3 scripts/spotcheck.py score {sheet.relative_to(REPO)}", ""]
     for i, mid in enumerate(picked, 1):

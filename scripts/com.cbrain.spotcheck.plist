@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Weekly blind spot-check sheet (scripts/spotcheck.py sample), Sundays 08:00. Ships as a file, not loaded on your behalf. Install:
+     sed "s#<REPO>#$PWD#g" scripts/com.cbrain.spotcheck.plist > ~/Library/LaunchAgents/com.cbrain.spotcheck.plist
+     launchctl load ~/Library/LaunchAgents/com.cbrain.spotcheck.plist -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.cbrain.spotcheck</string>
+  <key>ProgramArguments</key><array>
+    <string>/usr/bin/python3</string>
+    <string><REPO>/scripts/spotcheck.py</string>
+    <string>sample</string>
+  </array>
+  <key>WorkingDirectory</key><string><REPO></string>
+  <key>StartCalendarInterval</key><dict>
+    <key>Weekday</key><integer>0</integer><key>Hour</key><integer>8</integer><key>Minute</key><integer>0</integer>
+  </dict>
+  <key>StandardOutPath</key><string><REPO>/output/spotcheck/spotcheck.log</string>
+  <key>StandardErrorPath</key><string><REPO>/output/spotcheck/spotcheck.log</string>
+</dict></plist>

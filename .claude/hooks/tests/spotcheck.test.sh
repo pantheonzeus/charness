@@ -30,7 +30,8 @@ ok "only allowed sends are timed"           'grep -q "read-back: 1 of 1 timed (1
 S="$(CLAUDE_PROJECT_DIR="$T" python3 "$SC" sample --n 3)"
 ok "sheet written"                          '[ -f "$S" ]'
 ok "sheet prefers non-bulk decisions"       '! grep -q aaaaaaaa04 "$S"'
-ok "sheet hides the original call"          '! grep -qiE "dwell|action|sent unedited" "$S"'
+ok "sheet opens with the week's signals"     'grep -q "under 3 s on screen: 2 of 3 timed" "$S"'
+ok "sheet hides each mail's original call"  '! sed -n "/^## 1 /,\$p" "$S" | grep -qiE "dwell|action|unedited"'
 # Tick "done" everywhere: agrees only with aaaaaaaa02.
 sed -i.bak 's/^- \[ \] done$/- [x] done/; s/^- \[ \] triage right$/- [x] triage right/' "$S"
 C="$(CLAUDE_PROJECT_DIR="$T" python3 "$SC" score "$S")"
