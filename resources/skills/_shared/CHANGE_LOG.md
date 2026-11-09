@@ -45,6 +45,34 @@ One entry per edit made under the [[change-manifest]] module. Newest first. Verd
   - The principal's overrides on the first 10 are the labelled set.
   - At ≥ 3/10 overrides, the judge goes back to proposing: `write_verdicts` is switched off and `VERDICTS.json` is only read.
 - **Verdict:** pending — check `verdict_sweep.py` on 2026-11-30, and the first upgrade build that touches a guarded path.
+
+## 2026-11-09 — AI-team gaps: agent registry, ledger-set caps, rubber-stamp check, prep research firewall
+- **Trigger:** the principal asked how close the setup is to an AI-only team and a human–AI team. The review against `technology/multi-agent-platform` and `service-design/agentic-service-blueprint` found four buildable gaps, and the principal approved all four ("build 2-5").
+- **Touched:**
+  - Registry: all 19 `.claude/agents/*.md` gain `lane`, `level`, `owner`, `stop_when`, `evals`; new `scripts/agent_registry.py` (`check` in `scripts/check.sh`, `budgets` report).
+  - Caps: 9 `budget_usd` values lowered to max(p95 × 1.5, largest run × 1.25, $1) on each job's pinned model. vault-frontier (principal-set), slack-intel and jobs with < 6 runs are unchanged.
+  - Rubber-stamp: `webapp/mail.py` + `static/index.html` record `dwell_s`, `bulk`, `edited` per mail decision; `send_gate.py` traces `approval_s`; new `scripts/spotcheck.py` (report, blind sample, score); tests `send-gate` (+2) and `spotcheck` (11).
+  - Firewall: `meeting-prep-loop` `sync.py` tags `[external]` harvest lines and its `check` refuses unlabelled web notes and a `new_insight` URL the harvest never offered; `SKILL.md` v9 (steps 2, 4, 7, one gotcha); test `prep-firewall` (8).
+- **Expected to fix (falsifiable):**
+  - Over the next 2 weeks of meeting-prep runs, no prep carries an unlabelled web claim. The new check costs at most one extra fix round, in ≤ 10 % of runs.
+  - Over 4 weeks, no job hits its new cap on a normal run.
+  - The first two spot-check sheets give a measured agreement and a < 3 s share, where today there is none.
+  - A new agent file without a registry entry turns CI red.
+- **Refuted if:**
+  - A prep still passes with an unlabelled web claim.
+  - meeting-prep's failure rate in the ledger rises above 10 % (5.5 % today: 12 of 220).
+  - A normal run is cut by its cap.
+  - The labels are rejected as noise by the principal.
+- **Fires on stable:**
+  - Historic data: on the 105 preps up to 2026-11-09, the new check flags 5 notes, all web-derived (3 are "web search found nothing"), and 0 of 26 insights. All past runs on the pinned model sit under the new caps.
+  - Each prep run may need one more round when a web note is unlabelled.
+- **Matched baseline:** prep check failures 0/105 before vs 5/105 after on the same files; ledger p95 per job (EVIDENCE.md of `output/.runs/20261109-ai-team-gaps/`).
+- **Risk flagged:**
+  - `stop_when` lines are drafts by the agent for the principal to correct.
+  - The `EXTERNAL` regex is a cue list (URL, LinkedIn, web search, speaker page, press release). A web fact phrased without any cue passes.
+  - `.claude/agents/verdict-judge.md` (built in a parallel session, not on main) needs a registry entry before it merges, or CI goes red.
+- **Verdict:** pending. Check on the meeting-prep ledger and preps on 2026-11-23, the caps on 2026-12-07, and the first spot-check score.
+
 ## 2026-11-08 — Output-quality judge (calibrated) and repeated-research report in run-forensics
 - **Trigger:** the principal, after a review of Arize's eval practice against this setup: "build 1 and add 3". HARNESSCARD named the gap: no output-quality eval for the deliverables.
 - **Touched:**
@@ -1306,33 +1334,6 @@ One entry per edit made under the [[change-manifest]] module. Newest first. Verd
 - **Matched baseline:** n/a (no model in the loop; deterministic converter).
 - **Not decided:** in-place migration of the 149 sources versus export-only. Code impact of in-place is one script (`lint_frontmatter.py`); policy text in Charter §6, README, `_template` and the agent files names `vault_writes:` and would need the new path.
 - **Verdict:** pending. Check on the first real upload of an exported skill.
-
-## 2026-11-09 — AI-team gaps: agent registry, ledger-set caps, rubber-stamp check, prep research firewall
-- **Trigger:** the principal asked how close the setup is to an AI-only team and a human–AI team. The review against `technology/multi-agent-platform` and `service-design/agentic-service-blueprint` found four buildable gaps, and the principal approved all four ("build 2-5").
-- **Touched:**
-  - Registry: all 19 `.claude/agents/*.md` gain `lane`, `level`, `owner`, `stop_when`, `evals`; new `scripts/agent_registry.py` (`check` in `scripts/check.sh`, `budgets` report).
-  - Caps: 9 `budget_usd` values lowered to max(p95 × 1.5, largest run × 1.25, $1) on each job's pinned model. vault-frontier (principal-set), slack-intel and jobs with < 6 runs are unchanged.
-  - Rubber-stamp: `webapp/mail.py` + `static/index.html` record `dwell_s`, `bulk`, `edited` per mail decision; `send_gate.py` traces `approval_s`; new `scripts/spotcheck.py` (report, blind sample, score); tests `send-gate` (+2) and `spotcheck` (11).
-  - Firewall: `meeting-prep-loop` `sync.py` tags `[external]` harvest lines and its `check` refuses unlabelled web notes and a `new_insight` URL the harvest never offered; `SKILL.md` v9 (steps 2, 4, 7, one gotcha); test `prep-firewall` (8).
-- **Expected to fix (falsifiable):**
-  - Over the next 2 weeks of meeting-prep runs, no prep carries an unlabelled web claim. The new check costs at most one extra fix round, in ≤ 10 % of runs.
-  - Over 4 weeks, no job hits its new cap on a normal run.
-  - The first two spot-check sheets give a measured agreement and a < 3 s share, where today there is none.
-  - A new agent file without a registry entry turns CI red.
-- **Refuted if:**
-  - A prep still passes with an unlabelled web claim.
-  - meeting-prep's failure rate in the ledger rises above 10 % (5.5 % today: 12 of 220).
-  - A normal run is cut by its cap.
-  - The labels are rejected as noise by the principal.
-- **Fires on stable:**
-  - Historic data: on the 105 preps up to 2026-11-09, the new check flags 5 notes, all web-derived (3 are "web search found nothing"), and 0 of 26 insights. All past runs on the pinned model sit under the new caps.
-  - Each prep run may need one more round when a web note is unlabelled.
-- **Matched baseline:** prep check failures 0/105 before vs 5/105 after on the same files; ledger p95 per job (EVIDENCE.md of `output/.runs/20261109-ai-team-gaps/`).
-- **Risk flagged:**
-  - `stop_when` lines are drafts by the agent for the principal to correct.
-  - The `EXTERNAL` regex is a cue list (URL, LinkedIn, web search, speaker page, press release). A web fact phrased without any cue passes.
-  - `.claude/agents/verdict-judge.md` (built in a parallel session, not on main) needs a registry entry before it merges, or CI goes red.
-- **Verdict:** pending. Check on the meeting-prep ledger and preps on 2026-11-23, the caps on 2026-12-07, and the first spot-check score.
 
 ## 2026-11-09 — Multi-Agent Platform v3: worked example for registry and caps
 - **Trigger:** the principal approved turning the registry fields and the caps formula from the AI-team gap build (entry above) into a worked example in `technology/multi-agent-platform`.
