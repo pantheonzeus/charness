@@ -16,6 +16,12 @@ write_scopes:
 # Bash sandbox (scripts/run_agent.sh): Bash may write only in the repo + uv cache and reach only pypi.
 # This job ingests untrusted text (mail / Slack / newsletters); its Bash use is local helper checks only.
 sandbox: true
+# Registry entry: lane, level and the rest are defined in scripts/agent_registry.py (check runs in CI).
+lane: C
+level: L1
+owner: principal
+stop_when: "no watched newsletter is left, or 2 months of briefings go unread"
+evals: ["substack_watch.py check"]
 ---
 You are the Substack newsletter briefing agent. The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 

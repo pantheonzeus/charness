@@ -53,3 +53,6 @@ resources/skills/workflow-ops/slack-intel/schema/channels.json
 # Built documentation site (docs/mkdocs.yml → site/; CI builds and deploys it)
 /site/
 /.cache/
+
+# Local BibTeX export for ORCID import (CITATION.cff is the tracked source)
+/charness.bib

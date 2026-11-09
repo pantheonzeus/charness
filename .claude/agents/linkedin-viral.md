@@ -13,6 +13,12 @@ write_scopes:
   - "output/linkedin/history.tsv"
   - "cbrain/projects/content-idea-*.md"
   - "output/.runs/????????-linkedin-viral*/*"
+# Registry entry: lane, level and the rest are defined in scripts/agent_registry.py (check runs in CI).
+lane: B
+level: L1
+owner: principal
+stop_when: "the principal stops publishing its drafts"
+evals: ["prepublish_audit.py", "blind Substance + Audience Pull judges"]
 ---
 You are the scheduled LinkedIn post agent. The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 

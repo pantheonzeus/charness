@@ -2,6 +2,87 @@
 
 One entry per edit made under the [[change-manifest]] module. Newest first. Verdict fills in on the edit's next real use — never delete a disconfirmed entry.
 
+## 2026-11-09 — Verification brake: the scout's slot judges unverified changes before it proposes new ones; the regression suite gates harness-wide builds
+- **Trigger:** the principal asked how to use recursive self-improvement on the harness, then "do the recommendation". `verdict_sweep.py` on 2026-11-09: 96 entries, 90 pending, `pending_over_14d` 62 (9 on 2026-10-09), READY 51. The hand sweep ran once (2026-10-09). Its own prediction named the missing scheduled trigger (verdict below). The builder's `verify` ran only syntax and hook tests, so the **Preserves** clause was never enforced for an upgrade.
+- **Touched:**
+  - `workflow-ops/harness-upgrade-scout/scripts/upgrades.py`:
+    - Brake in `run`: while READY > 10, launch `judge` on the 5 oldest instead of the scout.
+    - New `judge`, `judge-check` and `write_verdicts`. The last appends one dated `- **Verdict (<date>, verdict-judge):**` line per entry and changes nothing else.
+    - `verify` runs `regress` when the branch touches a `GUARDED` path (Charter, Soul, CLAUDE.md, `_shared/`, INDEX, router, model addenda, hooks, agents, settings). It runs `regression.py` at pass^3 in the worktree, links `IDENTITY.md` and `employers/`, strips `CBRAIN_*` and `CLAUDE_PROJECT_DIR`, and caches by content. A probe that passes on the checkout's latest same-model baseline and fails on the branch is a verify error.
+  - Weekly tuning (the principal: "tune them after the first week, second week and third week"). `brake-review` runs from `run` on or after 2026-11-16, 11-23 and 11-30. It scores the week against five rules fixed today, before any data, and stages the result as a proposal (SKILL **Brake reviews**). `ready_entries` now logs every sweep to `output/verdict-sweep/results.tsv`; the week-1 start row is 2026-11-09, READY 44, over-14d 56. Offline test: each rule fires on its case, a review stages as a paused plan, and a missed date is caught up with the older one skipped.
+  - **New** `.claude/agents/verdict-judge.md`: `claude-opus-5-5`, effort medium, `budget_usd` 2, `untrusted_ingest`, `write_scopes` = its STATE_ROOT.
+  - `_shared/scripts/verdict_sweep.py`:
+    - An entry's latest verdict line counts, including dated `- **Verdict (<date>, who):**` lines.
+    - A `blocked` verdict counts only runs after its date.
+    - New `--json` output.
+  - `_shared/change-manifest.md` step 3, and `workflow-ops/harness-upgrade-scout` SKILL v6: Brake, the Verdict judge section, a Build step 5 note, two failure modes. INDEX row.
+- **Expected to fix (falsifiable):**
+  - READY falls from 50 to ≤ 10 within 12 weekdays (5 per weekday slot).
+  - `pending_over_14d` falls below 40 by 2026-11-30.
+  - Every upgrade build that touches a guarded path carries a `regression` record in its `upgrade.json`.
+- **Refuted if:** any one of these holds.
+  - The brake still holds after 15 weekdays.
+  - ≥ 60% of judge verdicts are `blocked`: the ledger stops discriminating, or READY over-reports (risk (1) of the 2026-10-09 (b) entry).
+  - The principal overrides ≥ 3 of the first 10 judge verdicts.
+- **Preserves:**
+  - Regression suite 5/5 pass^3 on `claude-sonnet-5-5` in a fresh worktree at HEAD (`output/.runs/20261109-verify-debt-brake/regression-worktree-20261109-105833.txt`), equal to the checkout baseline `output/regression/20261108-135616.tsv`. So the worktree environment is valid for the gate.
+  - Offline tests:
+    - A bad VERDICTS packet is refused with 7 errors.
+    - Verdicts land at the end of the right entries.
+    - `confirmed` and `partial` leave the queue; `blocked` drops to NO-USE-YET.
+    - The gate blocks a probe lost against the baseline, skips the rerun on unchanged content and reruns on changed content.
+  - ruff clean.
+  - First live judge pass, `output/.runs/20261109-110600-verdict-judge`: 4 `partial` and 1 `blocked` on the 5 oldest READY entries, $0.94, 58 s, `judge-check` OK. It found no instruction-shaped lines in the evidence.
+  - Self-count fixed in the same change. A run's spine header that names a skill counts as use of it, so this build run made 3 entries READY, and the judge's own header would have made it judge the brake. Neither header names a skill now. READY went 49 → 44, exactly the 5 judged.
+  - Sweep counts move by one on today's log (90 → 89 pending): the 2026-10-22 run-forensics `confirmed` line now counts.
+- **Fires on stable:**
+  - While READY > 10, the scout scans nothing. That is deliberate.
+  - The judge is one `claude -p` per weekday, ≤ $2.
+  - The regression gate costs about 3 min and $2 per distinct guarded change. Nothing runs on builds that touch only skills or `webapp/`.
+- **Matched baseline:** hand sweep, 2026-10-10 → 2026-11-09: two dated verdict lines in the whole log (2026-10-22 and 2026-10-24, both run-forensics).
+- **Judge competence:** not measured before it decides. Mitigations:
+  - Its verdicts are tagged `verdict-judge` and only ever appended.
+  - The principal's overrides on the first 10 are the labelled set.
+  - At ≥ 3/10 overrides, the judge goes back to proposing: `write_verdicts` is switched off and `VERDICTS.json` is only read.
+- **Verdict:** pending — check `verdict_sweep.py` on 2026-11-30, and the first upgrade build that touches a guarded path.
+
+## 2026-11-09 — AI-team gaps: agent registry, ledger-set caps, rubber-stamp check, prep research firewall
+- **Trigger:** the principal asked how close the setup is to an AI-only team and a human–AI team. The review against `technology/multi-agent-platform` and `service-design/agentic-service-blueprint` found four buildable gaps, and the principal approved all four ("build 2-5").
+- **Touched:**
+  - Registry: all 19 `.claude/agents/*.md` gain `lane`, `level`, `owner`, `stop_when`, `evals`; new `scripts/agent_registry.py` (`check` in `scripts/check.sh`, `budgets` report).
+  - Caps: 9 `budget_usd` values lowered to max(p95 × 1.5, largest run × 1.25, $1) on each job's pinned model. vault-frontier (principal-set), slack-intel and jobs with < 6 runs are unchanged.
+  - Rubber-stamp: `webapp/mail.py` + `static/index.html` record `dwell_s`, `bulk`, `edited` per mail decision; `send_gate.py` traces `approval_s`; new `scripts/spotcheck.py` (report, blind sample, score); tests `send-gate` (+2) and `spotcheck` (11).
+  - Firewall: `meeting-prep-loop` `sync.py` tags `[external]` harvest lines and its `check` refuses unlabelled web notes and a `new_insight` URL the harvest never offered; `SKILL.md` v9 (steps 2, 4, 7, one gotcha); test `prep-firewall` (8).
+- **Expected to fix (falsifiable):**
+  - Over the next 2 weeks of meeting-prep runs, no prep carries an unlabelled web claim. The new check costs at most one extra fix round, in ≤ 10 % of runs.
+  - Over 4 weeks, no job hits its new cap on a normal run.
+  - The first two spot-check sheets give a measured agreement and a < 3 s share, where today there is none.
+  - A new agent file without a registry entry turns CI red.
+- **Refuted if:**
+  - A prep still passes with an unlabelled web claim.
+  - meeting-prep's failure rate in the ledger rises above 10 % (5.5 % today: 12 of 220).
+  - A normal run is cut by its cap.
+  - The labels are rejected as noise by the principal.
+- **Fires on stable:**
+  - Historic data: on the 105 preps up to 2026-11-09, the new check flags 5 notes, all web-derived (3 are "web search found nothing"), and 0 of 26 insights. All past runs on the pinned model sit under the new caps.
+  - Each prep run may need one more round when a web note is unlabelled.
+- **Matched baseline:** prep check failures 0/105 before vs 5/105 after on the same files; ledger p95 per job (EVIDENCE.md of `output/.runs/20261109-ai-team-gaps/`).
+- **Risk flagged:**
+  - `stop_when` lines are drafts by the agent for the principal to correct.
+  - The `EXTERNAL` regex is a cue list (URL, LinkedIn, web search, speaker page, press release). A web fact phrased without any cue passes.
+  - `.claude/agents/verdict-judge.md` (built in a parallel session, not on main) needs a registry entry before it merges, or CI goes red.
+- **Verdict:** pending. Check on the meeting-prep ledger and preps on 2026-11-23, the caps on 2026-12-07, and the first spot-check score.
+
+## 2026-11-09 — Run-forensics names the auto-mode classifier denial (PERM_BLOCKED)
+- **Trigger:** harness-upgrade-scout proposal, approved (Go) 2026-11-09. `output/run-forensics/sessions-20261109.md` (58 human sessions, 7 days): the largest bucket was UNCLASSIFIED ×21, all "Permission for this action was denied by the Claude Code auto mode classifier. Reason: […]".
+- **Touched:** `workflow-ops/run-forensics/schema/taxonomy.json` PERM_BLOCKED: pattern + `denied by the Claude Code auto mode classifier`; fix text + one sentence (an interactive classifier denial is the classifier refusing the action; read its reason before retrying, never route around it).
+- **Expected to fix (falsifiable):** the next sessions digest shows 0 UNCLASSIFIED lines with the auto-mode classifier signature (21 on 2026-11-09), and the same count moves to PERM_BLOCKED.
+- **Refuted if:** the next `sessions-<date>.md` still lists "denied by the Claude Code auto mode classifier" under UNCLASSIFIED.
+- **Preserves:** every existing PERM_BLOCKED alternative unchanged (one alternative appended); no code changed. PERM_BLOCKED is in state `fixing`: its count gains interactive-only occurrences, but sessions are reported apart from headless runs, so job verification should not move. No taxonomy unit fixture exists (`evals/regression.json` holds live-agent cases only), so no case was added.
+- **Fires on stable:** nothing new; one more regex alternative per classified error.
+- **Matched baseline:** UNCLASSIFIED ×21 with this signature in `sessions-20261109.md`.
+- **Verdict:** pending — check at the next sessions digest.
+
 ## 2026-11-08 — Output-quality judge (calibrated) and repeated-research report in run-forensics
 - **Trigger:** the principal, after a review of Arize's eval practice against this setup: "build 1 and add 3". HARNESSCARD named the gap: no output-quality eval for the deliverables.
 - **Touched:**
@@ -564,6 +645,7 @@ One entry per edit made under the [[change-manifest]] module. Newest first. Verd
   - (2) **Ceremony risk.** If verdicts become "partial" by default, the ledger stops discriminating. Watch the confirmed : not-confirmed : partial ratio.
   - (3) **Not scheduled.** The sweep runs only when someone calls it.
 - **Verdict:** pending. **Falsifiable prediction:** on 2026-10-23, `pending_over_14d` ≤ 9 and at least 2 more entries carry a dated verdict. If it is higher, the sweep needs a scheduled trigger (the Monday ratchet job or `campaign-week`).
+- **Verdict (2026-11-09, session):** **not confirmed.** On 2026-11-09 `pending_over_14d` was 62, not ≤ 9. Two dated verdicts landed after 2026-10-09, both from run-forensics, not from the sweep. Risk (3) materialised: the sweep ran only when called. The scheduled trigger is the 2026-11-09 verification brake.
 
 ## 2026-10-09 — Four loops built under `autoresearch-loop` (routing, recall, vault ratchet, client evidence + outcomes)
 - **Trigger:** principal asked for the loops recommended in `output/20261009-autoresearch-loop-map.md` §3.3–3.6. Run: `output/.runs/20261009-loops-build/`.
@@ -692,6 +774,7 @@ One entry per edit made under the [[change-manifest]] module. Newest first. Verd
 - **Expected to fix:** drafts stop shipping as case studies the reader watches; every post now has to answer "by the second block, has the reader met their own problem?" and "is there a claim someone could push back on?" Both are craft checks in the SKILL.md body, deliberately **not** metrics.
 - **Risk flagged:** (1) **Tier-3 source, n=1 creator, survivorship-biased** — a person who succeeded describing what he believes caused it. Every entry is labelled craft-only and barred from scorer weights, but the risk is that repetition launders it into fact; if a later Tier-1 source contradicts any of it, the Tier-1 source wins. (2) The polarity check is the dangerous one — it can be misread as licence to manufacture controversy, so it is explicitly bounded by the confidentiality and no-overselling lines. It is also in direct tension with a supervisory-board relationship the principal holds: sharpen the claim against the *industry*, never against a board member. (3) The notebook says **nothing** about distribution and cannot explain the 288-impression result; recording that absence in the QA note is deliberate, so it is not later mined for a reach theory it does not support.
 - **Verdict:** pending — check on the next two drafts: does the body-jobs check actually change a draft's structure before scoring, and does a post carrying a genuinely stakeable claim move comments (not impressions) relative to the ledger?
+- **Verdict (2026-11-09, verdict-judge):** **partial.** Polarity check exercised: 20260821 EVIDENCE.md tags 'parameter development is given away as pre-sales cost' as a stakeable claim, and v6.md puts the reader's industry in block 1. Untested: no run shows the body-jobs check changing structure before scoring, and no run has comment counts vs the ledger. Evidence: `output/.runs/20260821-linkedin-process-optimizer`.
 
 ## 2026-08-19 — Prediction-vs-outcome ledger + Scorecard D volume floor (linkedin-viral-scheduler + calibration)
 - **Trigger:** first single-post analytics for a deliberately dialect-corrected post (`SinglePostAnalytics_…_7495797662907273216`, the "Third Condition" post). It scored composite **98.5** pre-publish across three gates and was served to **288** people — 27% of the account's mean reach — while producing the **best audience mix in the archive** (manufacturing family 32% vs consulting/IT/software 26%; decision-maker density 35.5). Two defects surfaced at once: (1) the loop had **no mechanical path** from a published post's export back to the run that predicted it, so twelve iterations of gate-optimisation could never learn they had not moved reach; (2) **Buyer-Weighted Engagement is a rate × mix with no volume term** and a multiplier clamped at 2.0, so 126 well-matched readers and 2,000 well-matched readers are indistinguishable to the north-star.
@@ -714,6 +797,7 @@ One entry per edit made under the [[change-manifest]] module. Newest first. Verd
 - **Measured, not assumed:** Buyer-Dialect Density was validated against the account's own corpus before shipping — **r = +0.444 with Decision-Maker Density (n=23, threshold 1.96/√n = 0.409)** and **r = −0.241 with engagement rate (n=50, threshold 0.277)**, i.e. correct sign on the axis it claims and correctly null on the axis it doesn't. A latent bug was caught here: the first implementation silently disabled ~74 word-boundary patterns (`\b` written into a non-raw Python string became literal backspaces), which produced a spurious r=0.041 across a near-zero-variance column. Fixed and re-measured.
 - **Risk flagged:** (1) **H1 is thin** — 13 of 23 rows score 0, the two sub-shares each fail individually (senior +0.293, industry-fit +0.363), and **topic is an uncontrolled confound** (buyer words plausibly co-occur with manufacturing topics, which may be doing the work). It ships **non-gating** for exactly this reason. (2) **Goodhart risk** on a lexical proxy for a semantic mechanism — salting buyer terms into a post would raise the number while a semantic model sees through it; prohibited explicitly in three places, but it is the obvious abuse. (3) The dialect metric is a **floor detector on this corpus** — most posts score 0, so it currently says "you didn't pull this lever" more than "you pulled it well." (4) The **counter-example is real and unresolved**: `20260715-buy-capability` has the corpus's highest dialect score and 0.00% engagement — right audience, wrong content — so this must never be read as a resonance signal. (5) The Buyer Lexicon term banks are **hand-written from domain knowledge, not harvested** from real buyer profiles yet; the harvest path is documented but unexecuted, so early scores partly measure my vocabulary guesses. (6) `ranking-model-2026.md` rests partly on one secondary source (ByteByteGo) for retrieval-training details not in LinkedIn's own post; tiered as T2 and labelled.
 - **Verdict:** pending — three separate checks. (a) **Next drafted post:** does the loop actually use the dialect lever when P1 is weakest, and does `buyer_dialect` rise without term-salting? (b) **Next weekly review:** does the H1 dialect check get run and reported, including when it is unflattering? (c) **At n ≥ 40:** does r hold, and does a topic-matched comparison move the manufacturing-viewer share? If (c) fails, `engagement-learnings.md` Rule 5 must be downgraded and the lever demoted — that instruction is written into both files.
+- **Verdict (2026-11-09, verdict-judge):** **partial.** (a) confirmed: next draft named a dialect segment and raised buyer-dialect 50 -> 80 with real plant terms (commissioning, cycle time, machine hours, scrap rate), no salting; 20260822 30 -> 60 likewise. (b) weekly-review H1 check and (c) n>=40 re-test: no evidence run covers them. Evidence: `output/.runs/20260821-linkedin-process-optimizer`, `output/.runs/20260822-l4m-business-models-pe-post`.
 
 
 ## 2026-08-18 — Ingest-damage guard on the calibration corpus + CTA close scoring (viral-scheduler + scoring-calibration)
@@ -722,6 +806,7 @@ One entry per edit made under the [[change-manifest]] module. Newest first. Verd
 - **Expected to fix:** (1) the scorer stops structurally pushing every draft toward a closing question — corroborated by this account's own data, where `has_question` correlates r=+0.157 with the blended outcome, i.e. noise; (2) calibration stops fitting an ingest artifact and now reports its true n (51→23 on the correlate path) instead of an inflated one, which also corrects the `1.96/√n` significance threshold.
 - **Risk flagged:** (1) the CTA fix is **small** — CTA is 25% of Spacing which is 20% of composite, a 5% lever; composite moved ≤±1.8 and the ≥85 pass count was unchanged at 6/51. It corrects guidance, not gate outcomes; do not oversell it. (2) `formatting_intact` uses a crude >2-non-empty-lines heuristic — a genuinely short 2-line post would be wrongly excluded; none exist in the current corpus but this will misfire eventually. (3) Dropping to n=23 (and n=7 with demographics) makes any calibration verdict weaker than it looked before — that is the honest position, but it means the skill may now correctly refuse to update the scorer for a long time. (4) The underlying ingest bug is **not** fixed — only guarded. Damaged bodies need backfilling from each note's `url:` frontmatter.
 - **Verdict:** pending — check on the next `linkedin-scoring-calibration` run (does it report n=23 and refuse/accept honestly?) and on the next drafted post (does the loop stop appending a closing question?).
+- **Verdict (2026-11-09, verdict-judge):** **partial.** Drafted-post clause held: the 20260821 final draft (v6.md) ends on a declarative line, no appended closing question; 20260822 ledger discards extra closes on substance, not CTA score. Calibration clause (reports n=23, refuses/accepts honestly) untested: no scoring-calibration run among the evidence. Evidence: `output/.runs/20260821-linkedin-process-optimizer`, `output/.runs/20260822-l4m-business-models-pe-post`.
 
 ## 2026-07-29 — Primary-source + live-trigger sourcing pattern (linkedin-authentic-storytelling + notebooklm)
 - **Trigger:** produced a LinkedIn draft on the EU's Battery Booster Facility by querying a NotebookLM notebook holding the Draghi competitiveness report for its own numbers (65 GWh EU vs. 670 GWh China battery output, 19-month EU legislative speed, no joint-venture mandate on non-EU battery capital) and framing the take as "the announcement doesn't fix what the report already diagnosed," anchored by a real vault moment (a Lasers4MaaS GA review touching battery-cell-welding monitoring data). The existing SKILL.md only documented vault-only moment harvesting — this cross-tool sourcing method (report as data spine, vault moment as hook, live news as trigger) wasn't captured anywhere.
@@ -729,6 +814,7 @@ One entry per edit made under the [[change-manifest]] module. Newest first. Verd
 - **Expected to fix:** future Register-B posts that intersect a live announcement with an existing primary-source report get a documented, repeatable method instead of being reinvented ad hoc; keeps the pattern out of `engagement-learnings.md` since it's method, not yet measured evidence (the post hasn't published).
 - **Risk flagged:** this is a sourcing method, unvalidated by engagement data — if it under-performs once published, the bullet should be softened or the worked-example reference swapped, not left pointing at a weak result.
 - **Verdict:** pending — no use yet (2026-10-09, verdict sweep): the battery-booster post (or a successor) was never published. It has no `history.tsv` row and no `LinkedIn-Posts/` note. Original check (kept for audit): once it is published and scored by `viral_metrics.py`.
+- **Verdict (2026-11-09, verdict-judge):** pending — blocked: The prediction is checkable only once the battery-booster post (or a successor using the report-spine + live-trigger method) is published and scored; no evidence run mentions Draghi, the Battery Booster or that method, and none was published under it.
 
 ## 2026-07-25 — Deliverable → vault bridge (deliverable-index skill) + CLAUDE.md casing fix
 - **Trigger:** post-"big changes" harness check. Principal asked whether all outputs land in the second brain. They don't, by design (Charter §4 splits `output/` deliverables from the `cbrain/` graph); principal chose "keep the split, add a vault index" over relocating. Also found `CLAUDE.md` committed as `Claude.md` — loads on case-insensitive macOS, silently fails to load the whole harness policy on any case-sensitive filesystem (Linux CI, teammate clone).
@@ -743,6 +829,7 @@ One entry per edit made under the [[change-manifest]] module. Newest first. Verd
 - **Expected to fix:** Charter §7 edits currently rely on "felt better" judgment with no record of what was predicted; this pairs each harness-level edit with a written prediction so it can be confirmed or falsified against the next real use.
 - **Risk flagged:** if the manifest is never checked on next-use, it becomes a write-only log — bookkeeping cost with no falsification benefit, the exact failure mode it exists to avoid.
 - **Verdict:** pending — check on the next Charter §7-triggered edit to Charter.md/MODULES.md/`_shared`/a skill Blueprint.
+- **Verdict (2026-11-09, verdict-judge):** **partial.** Confirmed: later harness edits were logged with predictions (20261022 spine: 'CHANGE_LOG entries with predictions'; 20261010, 20261018 x2 and 20261001 each tick a change-manifest entry). Untestable here: none of the five runs checks a pending verdict on next use, so the write-only-log risk is neither confirmed nor refuted. Evidence: `output/.runs/20261022-forensics-evidence-discipline`, `output/.runs/20261010-agent-architect-skill`, `output/.runs/20261018-webapp-library`, `output/.runs/20261018-jarvis-one-page`, `output/.runs/20261001-vault-bridge-harness-audit`.
 
 ## 2026-10-10 — new `technology` category + `cloud-architecture` skill
 - **Trigger:** principal (a technologist) asked for "the best cloud architecting skill", backed by web research. The library had no architecture/infra skill, and no category fitted technical (vs commercial) method.
@@ -1257,3 +1344,11 @@ One entry per edit made under the [[change-manifest]] module. Newest first. Verd
 - **Matched baseline:** n/a (no model in the loop; deterministic converter).
 - **Not decided:** in-place migration of the 149 sources versus export-only. Code impact of in-place is one script (`lint_frontmatter.py`); policy text in Charter §6, README, `_template` and the agent files names `vault_writes:` and would need the new path.
 - **Verdict:** pending. Check on the first real upload of an exported skill.
+
+## 2026-11-09 — Multi-Agent Platform v3: worked example for registry and caps
+- **Trigger:** the principal approved turning the registry fields and the caps formula from the AI-team gap build (entry above) into a worked example in `technology/multi-agent-platform`.
+- **Touched:** new `references/worked-example-registry.md`; `SKILL.md` v3 (step 8 links it, frontmatter `references:`). No client names and no personal jobs named.
+- **Expected to fix (falsifiable):** the next registry or budget design run with this skill produces registry keys and a caps rule on the first draft, without the principal having to ask for them.
+- **Refuted if:** the next such run again proposes budgets as round guesses, or a registry without `stop_when` and `evals`.
+- **Fires on stable:** reference-only; no script and no routing change.
+- **Verdict:** pending. Check on the next use of `multi-agent-platform` in design or review mode.

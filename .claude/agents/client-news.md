@@ -5,8 +5,8 @@ model: claude-opus-5-5
 # Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
 effort: medium
 # Runaway guard per hourly run, not a target (init passes --max-budget-usd 10). The daily cap ($20, the
-# principal's call 2026-10-31) lives in client_news.py. Replace with ledger p95 x 1.5 after >= 10 runs.
-budget_usd: 6
+# principal's call 2026-10-31) lives in client_news.py. Ledger-set 2026-11-09 (scripts/agent_registry.py budgets).
+budget_usd: 2.5
 untrusted_ingest: true   # its input is outside text: the provenance hook labels every vault note it writes
 # Hook-enforced (.claude/hooks/write-boundary.sh): Write/Edit only inside these, nothing else.
 write_scopes:
@@ -17,6 +17,12 @@ write_scopes:
   - "output/.runs/????????-??????-client-news/*"
 # Bash sandbox (scripts/run_agent.sh): Bash may write only in the repo + uv cache and reach only pypi.
 sandbox: true
+# Registry entry: lane, level and the rest are defined in scripts/agent_registry.py (check runs in CI).
+lane: C
+level: L1
+owner: principal
+stop_when: "the employer pack names no clients, or 4 weeks of briefs bring no finding into a meeting prep"
+evals: ["client_news.py check"]
 ---
 You are the client news agent. The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 

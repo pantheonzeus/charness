@@ -65,6 +65,10 @@ check "slack send needs approval too"         deny  ""          "$T/inject.jsonl
 out="$(printf 'garbage' | CLAUDE_PROJECT_DIR="$T/repo" bash "$HOOK")"
 printf '%s' "$out" | grep -q deny && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL: garbage input must deny (fail-closed)"; }
 grep -q '"hook": "send-gate"' "$T/repo/output/.runs/_forensics/hooks.jsonl" && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL: decision trace missing"; }
+# The trace carries the seconds from read-back to yes, the rubber-stamp signal scripts/spotcheck.py reports.
+{ u "reply to Mark"; a "$RB" | jq -c '.timestamp = "2026-11-09T10:00:00.000Z"'; u "yes, send it" | jq -c '.timestamp = "2026-11-09T10:00:02.500Z"'; } > "$T/fast.jsonl"
+check "timed approval is allowed"             allow ""          "$T/fast.jsonl" "$CLEAN"
+[ "$(tail -1 "$T/repo/output/.runs/_forensics/hooks.jsonl" | jq '.approval_s')" = "2.5" ] && pass=$((pass+1)) || { fail=$((fail+1)); echo "FAIL: trace must carry approval_s 2.5"; }
 
 # An account note named with its legal form ("… AG") is also caught by its short name in a public draft.
 mkdir -p "$T/clients"; printf -- '---\ntype: account\n---\n' > "$T/clients/Acme Widgets AG.md"

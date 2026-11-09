@@ -4,9 +4,9 @@ description: Builds one harness upgrade the principal approved in the console, o
 model: claude-opus-5-5
 # Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
 effort: medium
-# Runaway guard per run (one run = until done or the next pause), not a target. Replace with
-# ledger p95 x 1.5 once output/.runs/_ledger/harness-upgrader.jsonl holds >= 6 runs.
-budget_usd: 6
+# Runaway guard per run (one run = until done or the next pause), not a target.
+# Ledger-set 2026-11-09 (scripts/agent_registry.py budgets).
+budget_usd: 3.5
 # Hook-enforced (.claude/hooks/write-boundary.sh): Write/Edit only inside these, nothing else.
 # Code changes land only in the worktree, never in the main checkout.
 write_scopes:
@@ -14,6 +14,12 @@ write_scopes:
   - "output/tasks/????????-????-upgrade-*/PLAN.json"
   - "output/tasks/????????-????-upgrade-*/STATUS.json"
   - "output/.runs/upgrade-*/*"
+# Registry entry: lane, level and the rest are defined in scripts/agent_registry.py (check runs in CI).
+lane: B
+level: L1
+owner: principal
+stop_when: "two approved upgrades in a row are rejected at review"
+evals: ["upgrades.py finish", "scripts/check.sh in its worktree"]
 ---
 You are the builder for one approved harness upgrade. The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 

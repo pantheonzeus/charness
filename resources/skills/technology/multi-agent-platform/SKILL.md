@@ -9,14 +9,14 @@ tags: [technology, architecture, ai-agents, multi-agent, orchestration, platform
 related: ["[[agent-architecture]]", "[[agentic-service-blueprint]]", "[[agentic-service-evaluation]]", "[[agent-ready-service]]", "[[ai-opportunity-portfolio]]", "[[ecosystem-platform-design]]", "[[cloud-architecture]]", "[[operating-model-design]]", "[[decision-memo]]"]
 modules: [file-backed-state, evidence-backed-answering, verifier-separation]
 status: active
-version: 2
+version: 3
 created: 2026-10-10
-updated: 2026-11-01
+updated: 2026-11-09
 requires:
   tools: [web_search, web_fetch]
   optional: [python3 (scripts/research_firewall.py reference implementation + selftest)]
 environment: "Runs anywhere. references/landscape-2026-10.md is a dated snapshot (protocols, frameworks, EU AI Act Omnibus dates, industrial vendors); several items are secondary-source only and marked so — re-verify before client use."
-references: [references/landscape-2026-10.md, references/decision-questions.md, references/harness-scaling.md, references/enterprise-orchestration-primer.md, ../agent-architecture/references/harness-patterns.md]
+references: [references/landscape-2026-10.md, references/decision-questions.md, references/harness-scaling.md, references/enterprise-orchestration-primer.md, references/worked-example-registry.md, ../agent-architecture/references/harness-patterns.md]
 ---
 
 # Multi-Agent Platform & Orchestration — Lanes, Research Firewall, Three Clocks & Control Plane
@@ -108,7 +108,7 @@ Substantive runs keep a STATE_ROOT at `output/.runs/<YYYYMMDD>-<slug>-agent-plat
    - a sandbox for code-executing agents (a gap in most designs).
 
    No vendor sells this plane whole. Say so.
-8. **Repo and registry shape.** Agent-as-folder monorepo: one folder = one package = one deployable. `agent.yaml` is the registry entry (lane, level, owner, tool allowlist, write scopes `[]` by default, budget, eval suite). Evals are a required check; add CODEOWNERS per agent and per policy folder, release automation per package, and shared mechanism as an internal library. The registry and allowlist then change only through a reviewed PR diff.
+8. **Repo and registry shape.** Agent-as-folder monorepo: one folder = one package = one deployable. `agent.yaml` is the registry entry (lane, level, owner, tool allowlist, write scopes `[]` by default, budget, eval suite). Evals are a required check; add CODEOWNERS per agent and per policy folder, release automation per package, and shared mechanism as an internal library. The registry and allowlist then change only through a reviewed PR diff. Worked example, with the registry keys in each agent file, the CI check, and per-agent caps set from the run ledger by formula: [worked-example-registry.md](references/worked-example-registry.md).
 9. **Sequence by trigger and place regulation.**
    - Before agent two: gateway, registry, identity, named policy owners.
    - Before agent three: shared ledger, audit chain, screening, CI evals.

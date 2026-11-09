@@ -4,14 +4,20 @@ description: Scheduled weekday daily-intel briefing agent (eight AI themes, emer
 model: claude-sonnet-5-5
 # Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
 effort: high
-# Runaway guard, not a target. Raised 5 -> 15 on 2026-10-31 for 8 theme sections + up to 3 deep dives
-# (old scope ran $1.7-2.9 at full depth). Replace with ledger p95 x 1.5 after 6 runs on the new scope.
-budget_usd: 15
+# Runaway guard, not a target. Raised 5 -> 15 on 2026-10-31 for 8 theme sections + up to 3 deep dives;
+# Ledger-set 2026-11-09 (scripts/agent_registry.py budgets) after 7 runs on that scope ($1.57-2.55).
+budget_usd: 4
 # Hook-enforced (.claude/hooks/write-boundary.sh): Write/Edit only inside these, nothing else.
 write_scopes:
   - "output/briefings/????-??-??.json"
   - "output/briefings/????-??-??/dd-?.md"
   - "output/.runs/????????-daily-intel/*"
+# Registry entry: lane, level and the rest are defined in scripts/agent_registry.py (check runs in CI).
+lane: C
+level: L1
+owner: principal
+stop_when: "4 weeks in which no briefing item reaches a post, a prep or a decision"
+evals: ["briefing.py check", "run-forensics judge.py (uncalibrated)"]
 ---
 You are the scheduled daily-intel briefing agent. The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 

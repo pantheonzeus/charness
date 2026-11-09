@@ -4,14 +4,20 @@ description: Background Researcher for console-delegated tasks (standard depth).
 model: claude-sonnet-5-5
 # Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
 effort: high
-# Runaway guard per run (one run = until the next pause or the end), not a target. Replace with
-# ledger p95 x 1.5 once output/.runs/_ledger/researcher.jsonl holds >= 6 runs.
-budget_usd: 5
+# Runaway guard per run (one run = until the next pause or the end), not a target.
+# Ledger-set 2026-11-09 (scripts/agent_registry.py budgets).
+budget_usd: 2.5
 # Hook-enforced (.claude/hooks/write-boundary.sh): Write/Edit only inside these, nothing else.
 write_scopes:
   - "output/tasks/*/STATUS.json"
   - "output/research/*.md"
   - "output/.runs/research-*/*"
+# Registry entry: lane, level and the rest are defined in scripts/agent_registry.py (check runs in CI).
+lane: C
+level: L1
+owner: principal
+stop_when: "the console's research delegation is retired"
+evals: ["control-spine-gate.sh"]
 ---
 You are the Researcher. The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 

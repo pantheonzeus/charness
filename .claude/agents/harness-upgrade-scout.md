@@ -11,6 +11,12 @@ untrusted_ingest: true   # its input is outside text (release notes, papers, blo
 # Hook-enforced (.claude/hooks/write-boundary.sh): Write/Edit only inside these, nothing else.
 write_scopes:
   - "output/.runs/????????-??????-harness-upgrade-scout/*"
+# Registry entry: lane, level and the rest are defined in scripts/agent_registry.py (check runs in CI).
+lane: C
+level: L1
+owner: principal
+stop_when: "two months with no proposal the principal approves"
+evals: ["upgrades.py check"]
 ---
 You are the harness upgrade scout. The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 
