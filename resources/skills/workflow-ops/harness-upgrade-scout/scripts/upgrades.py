@@ -9,6 +9,8 @@ improvement proposals as plans in the console, each waiting for your Go. Go buil
   judge                  launch the verdict judge on the 5 oldest READY CHANGE_LOG entries, write its verdicts
   check <STATE_ROOT>     validate the RESULT.json one scout run wrote
   judge-check <STATE_ROOT>  validate the VERDICTS.json one judge run wrote
+  brake-review           score the brake's last week against its fixed rules, stage the result as a proposal
+                         (run does this once on or after each date in BRAKE_REVIEWS)
   stage <STATE_ROOT>     turn a checked RESULT.json into console plans (run does this)
   prepare <task-id>      create the task's worktree + branch upgrade/<task-id> from the checkout as it is now
                          (HEAD + a snapshot commit of uncommitted work), idempotent; print its path
@@ -54,6 +56,8 @@ MAX_NEW, MAX_OPEN, MIN_SEARCHED, DEFER_DAYS = 3, 5, 4, 7
 CHANGE_LOG = REPO / "resources" / "skills" / "_shared" / "CHANGE_LOG.md"
 SWEEP = REPO / "resources" / "skills" / "_shared" / "scripts" / "verdict_sweep.py"
 MAX_READY, JUDGE_N = 10, 5   # the brake: above MAX_READY unjudged changes in use, judge JUDGE_N instead of scanning
+BRAKE_REVIEWS = ("2026-11-16", "2026-11-23", "2026-11-30")   # weekly tuning of the two numbers, then they stay
+SWEEP_LOG = REPO / "output" / "verdict-sweep" / "results.tsv"
 VERDICTS = ("confirmed", "not confirmed", "regressed", "partial", "blocked")
 REGRESSION = REPO / "resources" / "skills" / "workflow-ops" / "run-forensics" / "scripts" / "regression.py"
 GUARDED = ("Charter.md", "Soul.md", "CLAUDE.md", "resources/skills/_shared/", "resources/skills/INDEX.md", "resources/models/",
@@ -245,6 +249,14 @@ def alive():
 def run():
     if alive():
         return log("previous run still alive; skipping")
+    today, done = time.strftime("%Y-%m-%d"), load(STATE, {}).get("brake_reviews", {})
+    due = [d for d in BRAKE_REVIEWS if d <= today and d not in done]
+    if due:
+        brake_review(due[-1])   # only the latest: an older missed date would score a stale week
+        state = load(STATE, {})
+        for d in due[:-1]:
+            state.setdefault("brake_reviews", {})[d] = {"rule": "skipped", "reason": f"superseded by {due[-1]}"}
+        save(STATE, state)
     ready = ready_entries()
     if len(ready) > MAX_READY:
         log(f"{len(ready)} logged changes are in use without a verdict (brake at {MAX_READY}); judging, not scanning")
@@ -287,7 +299,7 @@ def run():
 
 def ready_entries():
     """CHANGE_LOG entries a later run already used but nobody judged, oldest first (verdict_sweep.py READY)."""
-    r = subprocess.run([sys.executable, str(SWEEP), "--json"], capture_output=True, text=True)
+    r = subprocess.run([sys.executable, str(SWEEP), "--json", "--log", str(SWEEP_LOG)], capture_output=True, text=True)
     rows = json.loads(r.stdout)["rows"] if r.returncode == 0 else []
     return sorted((x for x in rows if x["state"] == "READY"), key=lambda x: -x["age"])
 
@@ -337,6 +349,103 @@ def judge(ready=None):
         save(STATE, state)
     finally:
         LOCK.unlink(missing_ok=True)
+
+
+def brake_week(since):
+    """The brake's numbers since a date: READY first/last, runs braked vs scanned, verdict mix, cost, overrides."""
+    rows = [r.split("\t") for r in (SWEEP_LOG.read_text().splitlines()[1:] if SWEEP_LOG.exists() else [])]
+    rows = [r for r in rows if r[0] >= since]
+    state = load(STATE, {})
+    stamp = since.replace("-", "")
+    judged = [j for j in state.get("judge_runs", []) if j["at"] >= stamp]
+    scans = [r for r in state.get("runs", []) if r["at"] >= stamp]
+    mix = {}
+    for j in judged:
+        for v in j.get("verdicts", []):
+            k = v.split(":")[0]
+            mix[k] = mix.get(k, 0) + 1
+    cost = []
+    led = REPO / "output" / ".runs" / "_ledger" / "verdict-judge.jsonl"
+    for line in led.read_text().splitlines() if led.exists() else []:
+        e = json.loads(line)
+        if e.get("ts", "")[:10] >= since:
+            cost.append(e.get("cost_usd") or 0)
+    # an override: your own dated verdict line below a verdict-judge line in the same entry
+    overrides = sum(1 for e in log_entries().values()
+                    if re.search(r"verdict-judge\):\*\*.*?^- \*\*Verdict \([\d-]+, principal\):", e, re.M | re.S))
+    return {"since": since, "ready_first": int(rows[0][4]) if rows else None, "ready_last": int(rows[-1][4]) if rows else None,
+            "over14_last": int(rows[-1][3]) if rows else None, "braked": len(judged), "scanned": len(scans),
+            "verdicts": mix, "judged": sum(mix.values()), "cost_usd": round(sum(cost), 2), "overrides": overrides}
+
+
+def brake_rule(w):
+    """The tuning rules, fixed on 2026-11-09 before any data. First match wins; at most one number moves."""
+    blocked = w["verdicts"].get("blocked", 0)
+    if w["ready_last"] is None:
+        return "keep", "No sweep rows this week (no runs): nothing to tune on.", None
+    if w["overrides"] >= 3:
+        return "propose-only", (f"{w['overrides']} of the judge's verdicts were overridden by you: stop write_verdicts, so the judge "
+                                "writes VERDICTS.json for you to read; the numbers stay."), None
+    if w["judged"] and blocked / w["judged"] >= 0.6:
+        return "fix-ready", (f"{blocked}/{w['judged']} verdicts were blocked: READY counts runs that don't test the prediction. "
+                             "Fix the evidence rule in verdict_sweep.py; the numbers stay."), None
+    if w["braked"] >= 4 and w["ready_first"] - w["ready_last"] < 10 and JUDGE_N < 10:
+        n = min(10, JUDGE_N + 3)
+        return "batch", (f"The brake held on {w['braked']} runs and READY fell only {w['ready_first']} -> {w['ready_last']}: "
+                         f"judge {n} per run instead of {JUDGE_N}."), ("JUDGE_N", JUDGE_N, n)
+    if w["ready_last"] <= MAX_READY and w["over14_last"] >= 40 and MAX_READY > 5:
+        n = max(5, MAX_READY - 5)
+        return "threshold", (f"READY is within the brake ({w['ready_last']} <= {MAX_READY}) but {w['over14_last']} entries are "
+                             f"over 14 days: brake at {n} instead of {MAX_READY}."), ("MAX_READY", MAX_READY, n)
+    return "keep", f"READY {w['ready_first']} -> {w['ready_last']}, nothing outside the rules: keep {MAX_READY}/{JUDGE_N}.", None
+
+
+def brake_review(date=None):
+    """Score the week before `date` against brake_rule and stage it as a proposal: Go has the builder make the change
+    (or, on keep, add the week as a verdict line on the brake entry); Reject keeps the numbers as they are."""
+    date = date or time.strftime("%Y-%m-%d")
+    since = time.strftime("%Y-%m-%d", time.localtime(time.mktime(time.strptime(date, "%Y-%m-%d")) - 7 * 86400))
+    w = brake_week(since)
+    kind, why, move = brake_rule(w)
+    week = BRAKE_REVIEWS.index(date) + 1 if date in BRAKE_REVIEWS else 0
+    report = OUT / f"brake-review-{date}.md"
+    OUT.mkdir(parents=True, exist_ok=True)
+    report.write_text(f"# Brake review {date} (week {week} of {len(BRAKE_REVIEWS)})\n\nRule: **{kind}**. {why}\n\n"
+                      f"```json\n{json.dumps(w, indent=1)}\n```\n\nNumbers today: MAX_READY={MAX_READY}, JUDGE_N={JUDGE_N}. "
+                      "Rules: upgrades.py brake_rule, fixed on 2026-11-09 before any data.\n")
+    entry = "the 2026-11-09 verification-brake entry in resources/skills/_shared/CHANGE_LOG.md"
+    line = (f"Add a dated `- **Verdict ({date}, brake review):**` line to {entry} with this week's numbers "
+            f"(READY {w['ready_first']} -> {w['ready_last']}, verdicts {w['verdicts']}, ${w['cost_usd']}, {w['overrides']} overrides)")
+    steps, files = [line], ["resources/skills/_shared/CHANGE_LOG.md"]
+    if move:
+        steps = [f"Set {move[0]} from {move[1]} to {move[2]} in upgrades.py",
+                 "Update the number in harness-upgrade-scout SKILL.md (Brake and Budget lines)", line]
+        files = [REL(__file__), "resources/skills/workflow-ops/harness-upgrade-scout/SKILL.md", *files]
+    elif kind == "propose-only":
+        steps = ["In upgrades.py judge(), stop calling write_verdicts; log the VERDICTS.json path instead",
+                 "Say so in the SKILL.md Verdict judge section", line]
+        files = [REL(__file__), "resources/skills/workflow-ops/harness-upgrade-scout/SKILL.md", *files]
+    elif kind == "fix-ready":
+        steps = ["Read the week's blocked proofs and name what READY counted that it shouldn't",
+                 "Tighten the strong-evidence rule in verdict_sweep.py to exclude it", line]
+        files = ["resources/skills/_shared/scripts/verdict_sweep.py", *files]
+    root = REPO / "output" / ".runs" / f"{time.strftime('%Y%m%d-%H%M%S')}-brake-review"
+    root.mkdir(parents=True)
+    save(root / "RESULT.json", {"searched": [], "considered": 1, "proposals": [{
+        "title": f"Brake review {date}: {kind}" + (f" ({move[0]} {move[1]} -> {move[2]})" if move else ""),
+        "scope": "run-failures", "source": {"url": REL(report), "title": f"Brake review {date}", "date": date},
+        "finding": why, "current": f"upgrades.py MAX_READY={MAX_READY}, JUDGE_N={JUDGE_N}; week: {json.dumps(w)}",
+        "change": why, "files": files, "steps": steps,
+        "predicted_effect": "Next week's review shows READY falling faster, or the brake released, with no more blocked share",
+        "refuted_if": "Next week's review matches the same rule again with the same numbers",
+        "effort": "S", "risk": "Judging more per run costs about $0.19 per entry; a lower brake pauses the scout more often",
+        "confidence": "verified"}]})
+    staged = stage(root)
+    state = load(STATE, {})
+    state.setdefault("brake_reviews", {})[date] = {"rule": kind, "week": w, "staged": staged}
+    save(STATE, state)
+    log(f"brake review {date}: {kind}; {REL(report)}")
+    return kind
 
 
 def judge_check(root):
@@ -710,6 +819,8 @@ if __name__ == "__main__":
         sys.exit(1 if e else 0)
     elif a[:1] == ["judge"]:
         judge()
+    elif a[:1] == ["brake-review"] and len(a) <= 2:
+        brake_review(a[1] if len(a) == 2 else None)
     elif a[:1] == ["judge-check"] and len(a) == 2:
         e = judge_check(a[1])
         print("OK" if not e else "\n".join(e))
