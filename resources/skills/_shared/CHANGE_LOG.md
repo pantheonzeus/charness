@@ -1333,3 +1333,11 @@ One entry per edit made under the [[change-manifest]] module. Newest first. Verd
   - The `EXTERNAL` regex is a cue list (URL, LinkedIn, web search, speaker page, press release). A web fact phrased without any cue passes.
   - `.claude/agents/verdict-judge.md` (built in a parallel session, not on main) needs a registry entry before it merges, or CI goes red.
 - **Verdict:** pending. Check on the meeting-prep ledger and preps on 2026-11-23, the caps on 2026-12-07, and the first spot-check score.
+
+## 2026-11-09 — Multi-Agent Platform v3: worked example for registry and caps
+- **Trigger:** the principal approved turning the registry fields and the caps formula from the AI-team gap build (entry above) into a worked example in `technology/multi-agent-platform`.
+- **Touched:** new `references/worked-example-registry.md`; `SKILL.md` v3 (step 8 links it, frontmatter `references:`). No client names and no personal jobs named.
+- **Expected to fix (falsifiable):** the next registry or budget design run with this skill produces registry keys and a caps rule on the first draft, without the principal having to ask for them.
+- **Refuted if:** the next such run again proposes budgets as round guesses, or a registry without `stop_when` and `evals`.
+- **Fires on stable:** reference-only; no script and no routing change.
+- **Verdict:** pending. Check on the next use of `multi-agent-platform` in design or review mode.
