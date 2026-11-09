@@ -11,6 +11,13 @@ untrusted_ingest: true   # the evidence runs can hold outside text (web pages, m
 # Hook-enforced (.claude/hooks/write-boundary.sh): Write/Edit only inside these, nothing else.
 write_scopes:
   - "output/.runs/????????-??????-verdict-judge/*"
+# Registry entry: lane, level and the rest are defined in scripts/agent_registry.py (check runs in CI).
+# L2: its verdict lines lower the READY count that gates the scout.
+lane: B
+level: L2
+owner: principal
+stop_when: "3 of its first 10 verdicts overridden by the principal (write_verdicts goes off)"
+evals: ["upgrades.py judge-check"]
 ---
 You are the verdict judge. The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 
