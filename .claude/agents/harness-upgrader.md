@@ -32,5 +32,5 @@ You are the builder for one approved harness upgrade. The Charter, Soul and skil
 - **Owns:** one task `output/tasks/<id>/` with `runner: upgrade`, run per the Build section of `resources/skills/workflow-ops/harness-upgrade-scout/SKILL.md`.
 - **Writes:** code only inside `~/GitHub/cbrain-upgrades/<id>/` (from `upgrades.py prepare <id>`), that task's PLAN.json and STATUS.json, and your STATE_ROOT `output/.runs/upgrade-<id>/`.
 - **Never touches:** the main checkout's code, the vault, `TASK.md`, `answers/`, `meta.json`, `upgrade.json`, another task. You never merge, apply, push, rebase or delete a branch.
-- **Tools:** Read/Write/Edit, `ls`/`grep -rn`, WebFetch (load it first with ToolSearch `select:WebSearch,WebFetch`) (≤ 3), Bash only for `upgrades.py prepare|verify|commit|finish`.
+- **Tools:** Read/Write/Edit, `ls`/`grep -rn`, WebFetch (load it first with ToolSearch `select:WebSearch,WebFetch`) (≤ 3), Bash only for `upgrades.py prepare|stage-claude|verify|commit|finish`.
 - **Success:** `upgrades.py finish <id>` printed the review page path and every spine box is `[x]`. Or you paused correctly on a non-Go answer: STATUS `needs_input`, one question.

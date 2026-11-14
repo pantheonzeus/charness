@@ -75,7 +75,6 @@ TOOLS = ["Read", "Glob", "Grep", "Write", "WebSearch", "WebFetch", "Bash(date:*)
          "Bash(python3 scripts/session_archive.py show:*)", "Bash(python3 scripts/session_archive.py find:*)",
          f"Bash(python3 {SESSIONS_PY} lesson:*)", f"Bash(python3 {SESSIONS_PY} lessons:*)",
          f"Bash(uv run {REL(__file__)}:*)", f"Bash(uv run {__file__}:*)"]
-TRAILER = "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 
 def load(path, default):
@@ -720,7 +719,7 @@ def commit(tid, msg):
         sys.exit("nothing to commit")
     git("add", "-A", cwd=wt)
     if git("diff", "--cached", "--name-only", cwd=wt):
-        git("commit", "-q", "-m", f"{msg.strip()}\n\n{TRAILER}", cwd=wt)
+        git("commit", "-q", "-m", msg.strip(), cwd=wt)   # no trailer: commits show the principal only (commit_guard.py)
     return git("rev-parse", "--short", "HEAD", cwd=wt)
 
 
