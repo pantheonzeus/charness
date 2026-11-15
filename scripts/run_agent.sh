@@ -10,6 +10,10 @@
 # `budget_usd:` frontmatter becomes --max-budget-usd and its `effort:` becomes --effort. The model
 # family's addendum (resources/models/<family>.md) is appended to the system prompt. CBRAIN_JOB is exported so the
 # write-boundary hook can hold the run to that file's `write_scopes:`.
+# Domain agents (2026-11-15): a job with `extends: <domain>` takes the domain's model, effort and
+# categories when it doesn't set them (scripts/agent_registry.py resolves them), and the domain's body
+# is appended to its system prompt. A domain agent run on its own gets resources/agents/headless.md
+# appended, the headless rules every job file carries in its own body.
 # The vault is snapshotted into its private history (scripts/vault_history.sh) before the run
 # (as "unattributed") and after it (as <job>), so every vault change is attributable and undoable.
 #
@@ -34,15 +38,18 @@ GIT_SHA="$(git -C "$REPO_ROOT" rev-parse --short HEAD 2>/dev/null || echo unknow
 [ -n "$(git -C "$REPO_ROOT" status --porcelain 2>/dev/null)" ] && GIT_SHA="$GIT_SHA-dirty"
 
 AGENT_ARGS=()
-BUDGET=""
+BUDGET=""; EFFORT=""; DOMAIN=""; CATEGORIES=""
 AGENT_FILE="$REPO_ROOT/.claude/agents/$JOB.md"
+REGISTRY="$REPO_ROOT/scripts/agent_registry.py"
 if [ -f "$AGENT_FILE" ]; then
   AGENT_ARGS=(--agent "$JOB")
+  DOMAIN="$(/usr/bin/python3 "$REGISTRY" get "$JOB" extends 2>/dev/null)"
+  CATEGORIES="$(/usr/bin/python3 "$REGISTRY" get "$JOB" categories 2>/dev/null)"
   BUDGET="$(sed -n 's/^budget_usd:[[:space:]]*\([0-9.]*\).*/\1/p' "$AGENT_FILE" | head -1)"
   [ -n "$BUDGET" ] && AGENT_ARGS+=(--max-budget-usd "$BUDGET")
   # Effort is the main per-model control and its levels mean different amounts of thinking on each model
   # (Anthropic, Prompting Claude Sonnet 5.5 / Opus 5.5), so each job pins it next to its pinned model.
-  EFFORT="$(sed -n 's/^effort:[[:space:]]*\([a-z]*\).*/\1/p' "$AGENT_FILE" | head -1)"
+  EFFORT="$(/usr/bin/python3 "$REGISTRY" get "$JOB" effort 2>/dev/null | tr -cd 'a-z')"
   [ -n "$EFFORT" ] && AGENT_ARGS+=(--effort "$EFFORT")
   # Bash sandbox (G4b), opt-in per job: `sandbox: true` in the agent file's frontmatter, plus an
   # optional `network:` list of extra domains. Bash and its children may then write only inside the
@@ -79,12 +86,30 @@ fi
 # the system prompt. A --model passed by the caller wins over the agent file's, as it does in claude.
 MODEL=""; prev=""
 for a in "$@"; do [ "$prev" = "--model" ] && MODEL="$a"; prev="$a"; done
-[ -z "$MODEL" ] && [ -f "$AGENT_FILE" ] && MODEL="$(sed -n 's/^model:[[:space:]]*\([^[:space:]]*\).*/\1/p' "$AGENT_FILE" | head -1)"
+if [ -z "$MODEL" ] && [ -f "$AGENT_FILE" ]; then
+  # Resolved through extends; passed explicitly, since claude itself only reads the job file's own model.
+  MODEL="$(/usr/bin/python3 "$REGISTRY" get "$JOB" model 2>/dev/null | tr -cd 'a-z0-9.-')"
+  [ -n "$MODEL" ] && AGENT_ARGS+=(--model "$MODEL")
+fi
 ADDENDUM=""
 for fam in opus sonnet haiku fable; do
   case "$MODEL" in *"$fam"*) [ -f "$REPO_ROOT/resources/models/$fam.md" ] && ADDENDUM="resources/models/$fam.md"; break ;; esac
 done
-[ -n "$ADDENDUM" ] && AGENT_ARGS+=(--append-system-prompt-file "$REPO_ROOT/$ADDENDUM")
+# One appended system-prompt file: the domain's body (a job that extends one), the headless rules (a
+# domain agent run on its own), then the model addendum. A job without either keeps the addendum path as is.
+APPEND_FILE=""
+if [ -n "$DOMAIN" ] || [ -n "$CATEGORIES" ]; then
+  APPEND_FILE="$(mktemp -t run_agent_prompt)"
+  if [ -n "$DOMAIN" ]; then
+    /usr/bin/python3 "$REGISTRY" body "$DOMAIN" > "$APPEND_FILE" 2>/dev/null
+  else
+    cat "$REPO_ROOT/resources/agents/headless.md" > "$APPEND_FILE" 2>/dev/null
+  fi
+  [ -n "$ADDENDUM" ] && { printf '\n'; cat "$REPO_ROOT/$ADDENDUM"; } >> "$APPEND_FILE"
+  AGENT_ARGS+=(--append-system-prompt-file "$APPEND_FILE")
+elif [ -n "$ADDENDUM" ]; then
+  AGENT_ARGS+=(--append-system-prompt-file "$REPO_ROOT/$ADDENDUM")
+fi
 
 # Circuit breaker (G8): three runs in a row that end in API pressure (HTTP 429/529/5xx) open the
 # circuit for every job, so a backlog loop stops hammering a rate-limited login (2026-10-23:
@@ -170,6 +195,7 @@ elif [ "$RC" -eq 0 ]; then
   rm -f "$ALARM"
 fi
 rm -f "$ERRF"
+[ -n "$APPEND_FILE" ] && rm -f "$APPEND_FILE"
 
 # The result text is what the plain-text run used to print — keep the job log readable.
 printf '%s\n' "$OUT" | jq -r '.result // empty' 2>/dev/null || printf '%s\n' "$OUT"
@@ -201,10 +227,11 @@ META="$(printf '%s' "$OUT" | jq -c '{is_error, subtype, terminal_reason,
 [ -n "$META" ] || META='{}'
 jq -cn --arg ts "$START" --arg job "$JOB" --arg sha "$GIT_SHA" --argjson rc "$RC" \
   --argjson handoff "$handoff_present" --arg budget "$BUDGET" --argjson meta "$META" --argjson auth "$auth_failed" \
-  --argjson files "${FILES_WRITTEN:-0}" --arg effort "${EFFORT:-}" --arg addendum "$ADDENDUM" \
+  --argjson files "${FILES_WRITTEN:-0}" --arg effort "${EFFORT:-}" --arg addendum "$ADDENDUM" --arg domain "${DOMAIN:-}" \
   '{ts: $ts, job: $job, git_sha: $sha, exit_code: $rc, handoff_present: $handoff, auth_failed: $auth,
     budget_usd: (if $budget == "" then null else ($budget | tonumber) end), files_written: $files,
-    effort: (if $effort == "" then null else $effort end), addendum: (if $addendum == "" then null else $addendum end)} + $meta' \
+    effort: (if $effort == "" then null else $effort end), addendum: (if $addendum == "" then null else $addendum end),
+    domain: (if $domain == "" then null else $domain end)} + $meta' \
   >> "$LEDGER_DIR/$JOB.jsonl"
 
 # Login expiry warning: Claude Code 2.1.318+ reports the sign-in's end in the JSON result. Under 7 days

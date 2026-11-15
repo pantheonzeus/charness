@@ -1,9 +1,8 @@
 ---
 name: meeting-prep
 description: Change-driven meeting enrichment agent. Runs the meeting-prep-loop skill on the batch sync.py queued. Launched headless by scripts/run_agent.sh from sync.py — not for interactive delegation.
-model: claude-sonnet-5-5
-# Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
-effort: high
+# Domain (scripts/agent_registry.py): model, effort and skill categories come from it, and its rules are appended to this prompt.
+extends: knowledge
 # Runaway guard, not a target. Ledger-set 2026-11-09 (scripts/agent_registry.py budgets).
 budget_usd: 2
 untrusted_ingest: true   # its input is outside text: the provenance hook labels every vault note it writes

@@ -1,6 +1,8 @@
 ---
 name: idea-engine
 description: Idea engine agent. Reads what changed in the vault and writes only the ideas that add value (LinkedIn post topics, learning and research opportunities, status-quo challenges). Launched headless by scripts/run_agent.sh from ideas.py run — not for interactive delegation.
+# Domain (scripts/agent_registry.py): skill categories come from it, and its rules are appended to this prompt. This job pins its own model and effort below.
+extends: content
 model: claude-sonnet-5-5
 # Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
 effort: high

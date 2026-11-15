@@ -5,7 +5,7 @@
 - Charter, Soul, the HarnessCard and the changelog are published from the root files. Their relative
   links point at the matching site page, or at the file on GitHub.
 - In any page, `](gh:path)` links that path on GitHub, and {{ skills_count }}, {{ categories_count }},
-  {{ jobs_count }} and {{ hook_suites_count }} are filled in from the repo at build time.
+  {{ jobs_count }}, {{ domains_count }} and {{ hook_suites_count }} are filled in from the repo at build time.
 """
 import posixpath
 import re
@@ -107,10 +107,14 @@ def rewrite_root_links(markdown: str, page_uri: str) -> str:
 
 
 def counts(skills: list[dict]) -> dict:
+    # A domain agent's file declares `categories:`; every other agent file is a headless job.
+    agents = sorted((ROOT / ".claude/agents").glob("*.md"))
+    domains = [f for f in agents if re.search(r"^categories:", f.read_text().split("\n---\n", 1)[0], re.M)]
     return {
         "skills_count": len(skills),
         "categories_count": len({s["category"] for s in skills}),
-        "jobs_count": len(list((ROOT / ".claude/agents").glob("*.md"))),
+        "jobs_count": len(agents) - len(domains),
+        "domains_count": len(domains),
         "hook_suites_count": len(list((ROOT / ".claude/hooks/tests").glob("*.test.sh"))),
     }
 

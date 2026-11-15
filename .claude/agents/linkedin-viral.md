@@ -1,9 +1,8 @@
 ---
 name: linkedin-viral
 description: Scheduled LinkedIn post agent (Tue/Thu). Runs the linkedin-viral-scheduler skill end-to-end. Launched headless by scripts/run_agent.sh — not for interactive delegation.
-model: claude-opus-5-5
-# Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
-effort: medium
+# Domain (scripts/agent_registry.py): model, effort and skill categories come from it, and its rules are appended to this prompt.
+extends: content
 # Runaway guard, not a target. Initial value is a guess; replace with ledger p95 x 1.5
 # once output/.runs/_ledger/linkedin-viral.jsonl holds >= 6 runs.
 budget_usd: 15

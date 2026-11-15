@@ -17,6 +17,9 @@
 # .claude/agents/<job>.md declares `write_scopes:` (repo-relative bash patterns, `*` crosses `/`;
 # a pattern starting with / or ~/ is absolute), that job may write ONLY inside them — the vault
 # included. No CBRAIN_JOB (interactive sessions) or no `write_scopes:` → the zones above apply.
+# Chat subagents (2026-11-15): the hook input's `agent_type` names the subagent (Agent tool) that made
+# the call. When .claude/agents/<agent_type>.md declares `write_scopes:` (the domain agents do), that
+# subagent is held to them as a headless job is. The main session has no agent_type and stays unscoped.
 # Test: bash .claude/hooks/tests/write-boundary.test.sh
 #
 # FAIL-OPEN by design: any parse problem, missing path, or non-file tool → allow (exit 0,
@@ -59,12 +62,17 @@ REPO="$(realpath_of "${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/
 HOME_CLAUDE="$(realpath_of "$HOME/.claude")"
 CASE_STUDY="$(dirname "$REPO")/case-study"
 JOB="${CBRAIN_JOB:-}"
+SCOPED="$JOB"   # whose write_scopes apply: the headless job, else the chat subagent's type
+if [ -z "$SCOPED" ]; then
+  atype="$(printf '%s' "$input" | jq -r '.agent_type // empty' 2>/dev/null || true)"
+  [[ "$atype" =~ ^[a-z0-9][a-z0-9-]*$ ]] && SCOPED="$atype"
+fi
 
 deny() {   # $1 = reason. Deny the write, and leave one line for run-forensics (best effort).
   jq -cn --arg r "$1" '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'
   local log="$REPO/output/.runs/_forensics/hooks.jsonl"
   mkdir -p "$(dirname "$log")" 2>/dev/null
-  printf '%s' "$input" | jq -c --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg path "$path" --arg job "$JOB" \
+  printf '%s' "$input" | jq -c --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg path "$path" --arg job "$SCOPED" \
     '{ts: $ts, session_id: (.session_id // null), hook: "write-boundary", decision: "deny", tool: (.tool_name // null), path: $path, job: (if $job == "" then null else $job end)}' \
     >> "$log" 2>/dev/null || true
   exit 0
@@ -81,13 +89,13 @@ if [ -n "$JOB" ] && [[ "$path" == "$REPO"/cbrain/* ]] && printf '%s' "$input" | 
 fi
 shopt -u nocasematch
 
-# Headless job with declared scopes → its scopes are the whole allow-list.
-if [ -n "$JOB" ] && [ -f "$REPO/.claude/agents/$JOB.md" ]; then
+# Headless job or chat subagent with declared scopes → its scopes are the whole allow-list.
+if [ -n "$SCOPED" ] && [ -f "$REPO/.claude/agents/$SCOPED.md" ]; then
   scopes="$(awk '
     /^---[[:space:]]*$/ { fm++; next }
     fm == 1 && /^write_scopes:/ { on = 1; next }
     fm == 1 && on && /^[[:space:]]+-[[:space:]]/ { sub(/^[[:space:]]+-[[:space:]]+/, ""); gsub(/^["'\'']|["'\''][[:space:]]*$/, ""); print; next }
-    { on = 0 }' "$REPO/.claude/agents/$JOB.md" 2>/dev/null || true)"
+    { on = 0 }' "$REPO/.claude/agents/$SCOPED.md" 2>/dev/null || true)"
   if [ -n "$scopes" ]; then
     # APFS is case-insensitive: cbrain/Notes/ and cbrain/notes/ are one folder, so match that way.
     shopt -s nocasematch
@@ -99,7 +107,7 @@ if [ -n "$JOB" ] && [ -f "$REPO/.claude/agents/$JOB.md" ]; then
         *)     [ "$rel" != "$path" ] && [[ "$rel" == $pat ]] && exit 0 ;;
       esac
     done <<< "$scopes"
-    deny "write-boundary guard: job '$JOB' may write only inside its write_scopes ($(printf '%s' "$scopes" | paste -sd' ' -)); '$rel' is outside them. Write inside your scopes, or report the gap in your RESPONSE.md. A wrong scope is fixed by a human in .claude/agents/$JOB.md, never by this run."
+    deny "write-boundary guard: '$SCOPED' may write only inside its write_scopes ($(printf '%s' "$scopes" | paste -sd' ' -)); '$rel' is outside them. Write inside your scopes, or report the gap in your RESPONSE.md. A wrong scope is fixed by a human in .claude/agents/$SCOPED.md, never by this run."
   fi
 fi
 

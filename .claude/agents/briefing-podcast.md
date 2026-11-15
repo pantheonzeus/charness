@@ -1,6 +1,8 @@
 ---
 name: briefing-podcast
 description: Writes the two-host podcast script for a daily-intel briefing. Runs the daily-intel-briefing skill's workflows/podcast-script.md. Launched headless by scripts/run_agent.sh (via podcast.sh) — not for interactive delegation.
+# Domain (scripts/agent_registry.py): skill categories come from it, and its rules are appended to this prompt. This job pins its own model and effort below.
+extends: content
 model: claude-sonnet-5-5
 # Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
 effort: high

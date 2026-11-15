@@ -471,8 +471,11 @@ def suite_verdicts():
 
 
 def agent_field(job, key):
+    """One frontmatter value of a job's agent file; model and effort fall back to its `extends:` domain."""
     f = REPO / ".claude" / "agents" / f"{job}.md"
     m = re.search(rf"^{key}:\s*(\S+)", f.read_text(), re.M) if f.exists() else None
+    if not m and key in ("model", "effort") and job and (dom := agent_field(job, "extends")) and dom != job:
+        return agent_field(dom, key)
     return m.group(1) if m else None
 
 

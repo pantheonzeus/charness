@@ -1,9 +1,8 @@
 ---
 name: researcher
 description: Background Researcher for console-delegated tasks (standard depth). Runs the research/deep-research skill. Launched headless by the console via scripts/run_agent.sh — not for interactive delegation.
-model: claude-sonnet-5-5
-# Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
-effort: high
+# Domain (scripts/agent_registry.py): model, effort and skill categories come from it, and its rules are appended to this prompt.
+extends: research
 # Runaway guard per run (one run = until the next pause or the end), not a target.
 # Ledger-set 2026-11-09 (scripts/agent_registry.py budgets).
 budget_usd: 2.5

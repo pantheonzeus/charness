@@ -84,6 +84,34 @@ confirm "job MultiEdit confirmed:"       deny  unscoped '{"edits":[{"old_string"
 confirm "job body edit, line untouched"  allow scoped   '{"old_string":"## Links\n","new_string":"## Links\n- [[X]] — reason\n"}'
 confirm "job prose mentions confirmed"   allow scoped   '{"old_string":"a","new_string":"the client confirmed: yes"}'
 confirm "interactive sets confirmed:"    allow ""       '{"old_string":"type: topic\n","new_string":"type: topic\nconfirmed: 2026-10-29\n"}'
+# Chat subagents: no CBRAIN_JOB, the hook input's agent_type picks the agent file (domain agents).
+cat > "$FAKE/.claude/agents/dom.md" <<'EOF'
+---
+name: dom
+categories: [sales]
+write_scopes:
+  - "output/[!.]*"
+  - "output/.runs/[!_]*"
+  - "cbrain/Clients/*"
+---
+EOF
+sub() {   # $1 name, $2 expect, $3 agent_type, $4 path, [$5 CBRAIN_JOB]
+  local out got
+  out="$(jq -cn --arg a "$3" --arg p "$4" --arg cwd "$FAKE" \
+          '{tool_name: "Write", cwd: $cwd, session_id: "test", agent_type: $a, tool_input: {file_path: $p}}' \
+        | CLAUDE_PROJECT_DIR="$FAKE" CBRAIN_JOB="${5:-}" bash "$HOOK")"
+  if printf '%s' "$out" | grep -q '"permissionDecision":"deny"'; then got=deny; else got=allow; fi
+  if [ "$got" = "$2" ]; then pass=$((pass + 1)); else fail=$((fail + 1)); echo "FAIL: $1 — expected $2, got $got ($out)"; fi
+}
+sub "subagent in-scope deliverable"      allow dom      "$FAKE/output/20261115-brief.md"
+sub "subagent in-scope state root"       allow dom      "$FAKE/output/.runs/20261115-x/children/a/RESPONSE.md"
+sub "subagent own vault area"            allow dom      "$FAKE/cbrain/Clients/A.md"
+sub "subagent other vault area"          deny  dom      "$FAKE/cbrain/projects/Topic.md"
+sub "subagent ledger is off limits"      deny  dom      "$FAKE/output/.runs/_ledger/dom.jsonl"
+sub "subagent harness is off limits"     deny  dom      "$FAKE/.claude/agents/dom.md"
+sub "built-in subagent type → zones"     allow Explore  "$FAKE/cbrain/projects/Topic.md"
+sub "path-like agent_type ignored"       allow "../agents/dom" "$FAKE/cbrain/projects/Topic.md"
+sub "headless job wins over agent_type"  deny  dom      "$FAKE/cbrain/Clients/A.md" scoped
 # Every deny is traced for run-forensics, with the job.
 grep -q '"job":"scoped"' "$FAKE/output/.runs/_forensics/hooks.jsonl" 2>/dev/null \
   && pass=$((pass + 1)) || { fail=$((fail + 1)); echo "FAIL: deny trace missing job field"; }

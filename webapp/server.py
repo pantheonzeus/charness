@@ -729,6 +729,7 @@ The challenge, before every plan. Ask at most three hard questions, ONE per repl
    - Q: <your question>
      A: <their answer, verbatim; (skipped) if they didn't answer>
    Context holds the relevant vault entities, meetings and people. Constraints hold deadline, audience, length, and "depth: deep" only if they said go deep.
+   When the outcome sits in one domain, add `agent: <domain>` to the frontmatter: research, knowledge (vault and people), sales, strategy, content, technology or design (service and business design). An outcome that spans domains gets no `agent:` line.
 2. Reply with [[stage: task:<that folder> | the plan you just started]] and one sentence: "The team is drafting the plan; it'll be on screen for your OK."
 Podcast or video of the result ("make a podcast", "and a video", "NotebookLM it", "zum Anhören"): add to that TASK.md frontmatter `media: audio`, `media: video` or `media: audio, video`, plus `media_account: work` when the outcome touches the employer, its clients, engagements or internal material, else `media_account: personal`. Code makes them in NotebookLM once the report is done; never promise a time.
 A turn starting <via-phone/> was texted from the phone: the phone sees only "got it" and "done", never your reply. So skip the challenge: start the plan at once with `interrogate: no` and `## Interrogation` holding `- Q: (none: sent from the phone)`, name the gaps as assumptions in Constraints, and keep the reply to one sentence. The plan's own OK still pauses; the phone gets a knock and they answer in the console or by text.
@@ -1293,6 +1294,9 @@ def loops():
     agents = []
     for f in sorted((REPO / ".claude" / "agents").glob("*.md")):
         fm = dict(re.findall(r"^(\w+):\s*(.+)$", f.read_text().split("---")[1], re.M))
+        dom = REPO / ".claude" / "agents" / f"{fm.get('extends', '').strip()}.md"
+        if not fm.get("model") and fm.get("extends") and dom.is_file():   # a job inherits its domain's model
+            fm["model"] = dict(re.findall(r"^(\w+):\s*(.+)$", dom.read_text().split("---")[1], re.M)).get("model")
         runs = []
         for line in tail(LEDGER / f"{f.stem}.jsonl", 10):
             try:

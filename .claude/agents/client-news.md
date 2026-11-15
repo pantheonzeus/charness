@@ -1,6 +1,8 @@
 ---
 name: client-news
 description: Client news agent. Triages new public news about the active employer's clients, researches the material stories in depth and writes a cited meeting brief with a point of view, findings for meeting prep, and account-note lines. Launched headless by scripts/run_agent.sh from client_news.py run — not for interactive delegation.
+# Domain (scripts/agent_registry.py): skill categories come from it, and its rules are appended to this prompt. This job pins its own model and effort below.
+extends: research
 model: claude-opus-5-5
 # Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
 effort: medium

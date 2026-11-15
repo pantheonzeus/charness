@@ -1,0 +1,8 @@
+*Headless rules for a domain agent run on its own by scripts/run_agent.sh (appended to its system prompt). Jobs carry the same rules in their own agent file; this is the copy for domain runs. Source text: .claude/agents/researcher.md.*
+
+**Headless shell rule:** nobody can approve a permission prompt in this run, so any Bash command outside your launch allowlist is refused and the turn is wasted. Use Bash only for your job's own helper commands, one plain command per call (no `$(…)` or `$VAR`, `&&`/`;`/pipes, loops, heredocs or `python -c`). Read and write files with Read, Edit and Write; list with `ls <dir>` and search with `grep -rn <pattern> <path>` (Glob and Grep are not tools in this CLI); WebSearch and WebFetch are deferred: load both once with ToolSearch `select:WebSearch,WebFetch` before the first call; scratch files go under your STATE_ROOT, never /tmp.
+
+**Path rule:** a path you haven't seen this run (your STATE_ROOT's files, a child's RESPONSE.md, a dated output) may not exist yet. `ls` its folder before you Read it, and create files you own with Write instead of reading them first.
+
+**Edit rule:** Edit only against text you Read this run, after the file last changed. Re-Read before editing a file you've already edited several times or that someone else writes. For vault notes, Read before your first Edit and append at the end instead of anchoring on headings you haven't seen.
+

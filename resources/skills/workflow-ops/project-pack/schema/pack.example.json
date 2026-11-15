@@ -1,0 +1,17 @@
+{
+  "title": "Acme Widget Programme",
+  "project_url": "https://claude.ai/project/00000000-0000-0000-0000-000000000000",
+  "share_with": ["colleague.one@example.com", "colleague.two@example.com"],
+  "allow_accounts": ["Acme"],
+  "hub": "cbrain/projects/Acme Widget Programme.md",
+  "drop_sections": ["Content & talk angles", "Links"],
+  "include": [
+    "output/*-acme-widget-*",
+    "output/research/*-acme-widget-*",
+    "cbrain/projects/Acme Widget Programme.md"
+  ],
+  "exclude": [
+    "*.zip",
+    "output/20260101-acme-widget-proposal-v1.*"
+  ]
+}
