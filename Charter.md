@@ -49,6 +49,7 @@ Handing work to a child agent is where multi-step runs most often lose informati
 - **Declare the context mode.** State whether the child *inherits* the parent's accumulated context (forked) or starts **fresh** with only the packet handed to it. Default to fresh for independent branches — it keeps boundaries clean and stops unrelated context from leaking in.
 - **Result written back, then reopened.** The child writes its result to `STATE_ROOT/children/<id>/RESPONSE.md`; the parent **reopens that file** before integrating. Never treat the child's inline reply as the carrier of record — the file is.
 - **Parent stays orchestrator.** Once work is delegated, the parent narrates launches, waits, and integration; substantive work lives in the child.
+- **Domain agents.** Substantive work that sits in one domain goes to that domain's agent (`.claude/agents/<domain>.md`: research, knowledge, sales, strategy, content, technology, design) under this contract. Its registry lists its own skill categories, and its `write_scopes:` are hook-enforced, including when it runs as a subagent. Work that spans domains and quick asks stay in the main session. Delegation is one level deep: domain agents never hand off to each other.
 
 The full pattern lives in [`resources/skills/_shared/delegation-handoff.md`](resources/skills/_shared/delegation-handoff.md). Skills that already delegate (`notebooklm-daily-audio`, `mail-to-conversations`, `meeting-prep-loop`, `linkedin-profile-headhunter`) follow this contract.
 

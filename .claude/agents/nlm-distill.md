@@ -1,9 +1,8 @@
 ---
 name: nlm-distill
 description: Scheduled NotebookLM distill agent. Runs the notebooklm-daily-audio distill-to-vault workflow. Launched headless by scripts/run_agent.sh — not for interactive delegation.
-model: claude-sonnet-5-5
-# Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
-effort: high
+# Domain (scripts/agent_registry.py): model, effort and skill categories come from it, and its rules are appended to this prompt.
+extends: knowledge
 # Runaway guard, not a target. Initial value is a guess; replace with ledger p95 x 1.5
 # once output/.runs/_ledger/nlm-distill.jsonl holds >= 6 runs.
 budget_usd: 5

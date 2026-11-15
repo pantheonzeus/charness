@@ -51,7 +51,7 @@ The Charter is the runtime that selects and executes the skills (the NLAHs); the
 │       └── <category>/ #   knowledge-graph · research · content · sales · strategy · technology · business-design · vault-hygiene · workflow-ops
 │           ├── _category.md       # scope + the category's **Skills:** list
 │           └── <skill-slug>/SKILL.md  # the skill (frontmatter + body [+ scripts/ workflows/ references/])
-├── .claude/            # Backend — settings.json (hooks: SessionStart injects INDEX + memory + persona; PreToolUse write-guard; Stop control-spine gate, scoped to the session's own runs), hooks/, agents/ (one file per scheduled agent job: model, budget_usd, write_scopes — hook-enforced), settings.local.json
+├── .claude/            # Backend — settings.json (hooks: SessionStart injects INDEX + memory + persona; PreToolUse write-guard; Stop control-spine gate, scoped to the session's own runs), hooks/, agents/ (one file per scheduled agent job: model, budget_usd, write_scopes — hook-enforced; plus 7 domain agents with `categories:` that jobs `extends:`, also used as chat subagents), settings.local.json
 └── cbrain/             # Obsidian Knowledge Vault (the semantic brain) — git-ignored, Obsidian-synced
     ├── Home.md         #   root MOC (progressive-disclosure entry point)
     ├── MOCs/           #   maps of content + generated indexes (e.g. People-Index, Meetings-Index, Pursuits)

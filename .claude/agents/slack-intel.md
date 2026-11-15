@@ -1,9 +1,8 @@
 ---
 name: slack-intel
 description: Chief of Staff's Slack intel agent. Judges new posts from the watched employer channels for new knowledge, researches what is new, writes the digest and vault links. Launched headless by scripts/run_agent.sh from slack_intel.py run — not for interactive delegation.
-model: claude-sonnet-5-5
-# Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
-effort: high
+# Domain (scripts/agent_registry.py): model, effort and skill categories come from it, and its rules are appended to this prompt.
+extends: research
 # Runaway guard per hourly run, not a target (the init passes --max-budget-usd 8). Replace with
 # ledger p95 x 1.5 once output/.runs/_ledger/slack-intel.jsonl holds >= 6 runs.
 budget_usd: 3

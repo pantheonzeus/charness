@@ -24,11 +24,34 @@ You are the scheduled vault-frontier agent. …
 
 The body says what the job owns, what it writes, what it never touches, and what success looks like.
 
+## Domain agents
+
+{{ domains_count }} more agent files are domain agents: research, knowledge, sales, strategy, content, technology and design. Each declares the skill categories it covers:
+
+```yaml
+---
+name: sales
+categories: [sales]        # its skill registry lists these only; the rest are named, not listed
+model: claude-opus-5-5
+effort: medium
+budget_usd: 3              # cap for a headless run
+write_scopes:              # hook-enforced, headless and as a chat subagent alike
+  - "output/[!.]*"
+  - "output/.runs/[!_]*"
+  - "cbrain/Clients/*"
+---
+**Domain: Sales** …
+```
+
+A domain agent runs in two ways. In a session, the main agent hands it a task packet with the Agent tool. A `SubagentStart` hook gives it its own categories' skills, and the write guard reads the subagent's type from the hook input and holds it to its scopes. Headless, the runner or the console runs it like a job (`agent: sales` in a console task).
+
+A job can `extends: <domain>`. It then takes the domain's model, effort and categories when it doesn't set them itself, and the domain's rules are appended to its prompt. The safety keys are never inherited: write scopes, budget, sandbox, code mode and the untrusted-ingest flag stay explicit in each job's own file. Delegation is one level deep, and a domain never extends another.
+
 ## One runner for every job
 
 [`scripts/run_agent.sh`](gh:scripts/run_agent.sh) wraps a single `claude -p` call, so every job is measured the same way:
 
-1. Applies the agent file: model, effort, `--max-budget-usd`.
+1. Applies the agent file, with `extends:` resolved: model, effort, `--max-budget-usd`, and the domain's rules.
 2. Appends the model family's prompt addendum from [`resources/models/`](gh:resources/models/README.md). These are Anthropic's tested fixes for that model, copied word for word.
 3. Exports `CBRAIN_JOB`, so the write guard holds the run to its `write_scopes`.
 4. Snapshots the vault before and after, into the private vault history.

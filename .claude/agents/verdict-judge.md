@@ -1,9 +1,8 @@
 ---
 name: verdict-judge
 description: Verdict judge. Checks up to 5 CHANGE_LOG.md entries that later runs already used against the evidence those runs left, and returns one verdict each (confirmed, not confirmed, regressed, partial, blocked). Launched headless by scripts/run_agent.sh from upgrades.py run (the scout's brake) or upgrades.py judge — not for interactive delegation.
-model: claude-opus-5-5
-# Effort pinned with the model (Anthropic's starting point for unattended runs on it; recalibrate per model): resources/models/README.md
-effort: medium
+# Domain (scripts/agent_registry.py): model, effort and skill categories come from it, and its rules are appended to this prompt.
+extends: technology
 # Runaway guard per run, not a target. Replace with ledger p95 x 1.5 once
 # output/.runs/_ledger/verdict-judge.jsonl holds >= 6 runs.
 budget_usd: 2

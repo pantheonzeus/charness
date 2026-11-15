@@ -22,6 +22,7 @@ its boilerplate words, so jobs (CBRAIN_JOB set by run_agent.sh) get no bodies.
 
   python3 scripts/skill_router.py hook                 UserPromptSubmit hook (JSON on stdin)
   python3 scripts/skill_router.py compact              SessionStart: category → slugs, < 10 K chars
+  python3 scripts/skill_router.py subagent             SubagentStart hook: a domain agent's own categories
   python3 scripts/skill_router.py route "<prompt>"     print the top rows with scores
   python3 scripts/skill_router.py eval [routing.tsv]   recall@5 on the golden set + quiet rate on `none`
   python3 scripts/skill_router.py memory-eval [memory.tsv]   right body on topic prompts + quiet rate on `none`
@@ -202,18 +203,50 @@ def render_memories(mems):
     return "\n".join(lines).rstrip()
 
 
-def compact():
+def categories_of(agent):
+    """A domain agent's skill categories (`extends:` applied), [] for none or an unknown agent."""
+    if not agent:
+        return []
+    sys.path.insert(0, str(REPO / "scripts"))
+    import agent_registry
+    return agent_registry.listed(agent_registry.resolved(agent).get("categories"))
+
+
+def compact(cats=None):
+    """The registry by category; with `cats`, a domain agent's categories only (the rest named, not listed)."""
     rows = load_index()
     by_cat = {}
     for r in rows:
         by_cat.setdefault(r["category"], []).append(r["slug"])
-    out = [f"### Repo skill registry — {sum(r['path'].endswith('/SKILL.md') for r in rows)} skills, compact. Full rows (triggers, descriptions): "
-           "resources/skills/INDEX.md. Each prompt also gets its likely skills preselected (UserPromptSubmit). "
-           "Before acting on OR declining a task, open the matching resources/skills/<category>/<slug>/SKILL.md; "
-           "Grep INDEX.md when nothing listed fits. This is separate from the harness skill list.", ""]
+    if cats:
+        others = [c for c in by_cat if c not in cats and not c.startswith("Shared")]
+        by_cat = {c: v for c, v in by_cat.items() if c in cats}
+        out = [f"### Your domain's skills — {sum(map(len, by_cat.values()))} skills in {', '.join(cats)}. Full rows "
+               "(triggers, descriptions): resources/skills/INDEX.md. Open the matching "
+               "resources/skills/<category>/<slug>/SKILL.md before acting on OR declining a task. Other categories "
+               f"({', '.join(others)}) are not listed here: grep INDEX.md when the task needs one, never conclude from "
+               "this list that a skill doesn't exist. This is separate from the harness skill list.", ""]
+    else:
+        out = [f"### Repo skill registry — {sum(r['path'].endswith('/SKILL.md') for r in rows)} skills, compact. Full rows (triggers, descriptions): "
+               "resources/skills/INDEX.md. Each prompt also gets its likely skills preselected (UserPromptSubmit). "
+               "Before acting on OR declining a task, open the matching resources/skills/<category>/<slug>/SKILL.md; "
+               "Grep INDEX.md when nothing listed fits. This is separate from the harness skill list.", ""]
     for cat, slugs in by_cat.items():
         out.append(f"**{cat}:** " + ", ".join(slugs))
     return "\n".join(out)
+
+
+def subagent():
+    """SubagentStart hook: a domain agent (Agent tool) gets its own categories' registry; others nothing."""
+    try:
+        agent = json.loads(sys.stdin.read() or "{}").get("agent_type", "")
+    except ValueError:
+        return 0
+    cats = categories_of(agent)
+    if cats:
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "SubagentStart",
+                                                 "additionalContext": compact(cats)[:9500]}}))
+    return 0
 
 
 def hook():
@@ -281,9 +314,11 @@ def main(argv):
     cmd = argv[0] if argv else ""
     if cmd == "hook":
         return hook()
-    if cmd == "compact":
-        print(compact())
+    if cmd == "compact":   # a headless job (CBRAIN_JOB) of a domain sees its domain's categories only
+        print(compact(categories_of(os.environ.get("CBRAIN_JOB", ""))))
         return 0
+    if cmd == "subagent":
+        return subagent()
     if cmd == "route" and len(argv) > 1:
         for s, r in route(" ".join(argv[1:])):
             print(f"{s:6.1f}  {r['path']}")

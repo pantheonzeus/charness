@@ -1,7 +1,8 @@
 """Background team tasks: the conversation delegates, the Researcher works, the user gets notified.
 
 Files are the interface (Charter §5), one folder per task under output/tasks/<id>/:
-  TASK.md      written by the conversation (or anyone): frontmatter title/depth + the brief
+  TASK.md      written by the conversation (or anyone): frontmatter title/depth + the brief;
+               `agent: <domain>` hands it to that domain agent (.claude/agents/<domain>.md with categories:)
   STATUS.json  written by the worker: working | needs_input | done | failed (+ question, summary…)
   answers/     the user's replies, one file each, from the console or relayed by the conversation
   meta.json    written only here: session id, launches, which answers were consumed, notifications
@@ -94,6 +95,12 @@ def frontmatter(text):
     return dict(re.findall(r"^(\w+):\s*(.+?)\s*$", m.group(1), re.M)) if m else {}
 
 
+def domain_agent(name):
+    """True for a domain agent's name: an agent file that declares skill `categories:` (scripts/agent_registry.py)."""
+    f = REPO / ".claude" / "agents" / f"{name}.md"
+    return bool(re.fullmatch(r"[a-z0-9][a-z0-9-]*", name or "")) and f.is_file() and "categories" in frontmatter(f.read_text())
+
+
 def processes():
     """Every process's command line: one `ps` per listing, not a `pgrep` per task (128 tasks took 3.5 s)."""
     return subprocess.run(["ps", "-axww", "-o", "command="], capture_output=True, text=True).stdout
@@ -118,6 +125,8 @@ def launch(d, meta, env, answer=None):
     agent, skill, prefix = KINDS.get(kind, KINDS["research"])
     if kind == "research" and fm.get("depth", "").strip().lower() == "deep":
         agent = "researcher-deep"
+    if domain_agent(fm.get("agent", "").strip().lower()):   # the domain's own agent runs the kind's skill
+        agent = fm["agent"].strip().lower()
     runner = fm.get("runner", "").strip().lower()
     if runner in RUNNERS:
         agent, skill, prefix = RUNNERS[runner]
