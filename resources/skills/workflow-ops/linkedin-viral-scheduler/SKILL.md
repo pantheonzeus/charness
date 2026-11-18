@@ -15,9 +15,9 @@ requires:
 modules: [file-backed-state, evidence-backed-answering, file-backed-handoff, self-evolution, verifier-separation]
 environment: "Local terminal, scheduled via launchd (`com.cbrain.linkedin-viral-scheduler`, Tue/Thu 09:00 — cron is documented but blocked by macOS TCC on this machine). Needs vault access (cbrain/), a local `claude` binary for the substance judges, and `python3` (stdlib only) for the deterministic audit — a cloud routine would lack the first two, same rationale as morning-briefing/notebooklm-daily-audio."
 status: active
-version: 11
+version: 12
 created: 2026-07-11
-updated: 2026-11-08
+updated: 2026-11-18
 vault_writes: ["cbrain/projects/*", "cbrain/notes/[0-9]*"]
 ---
 
@@ -66,7 +66,7 @@ Per iteration:
 3. **Mutate** `post.md` accordingly. Authentic human tone; never introduce a phrase from the canonical AI-fluff list (`references/rubric.md` / `scripts/prepublish_audit.py`); if the weakest metric is P2 (Story-over-Pitch), the mutation must ground the post in a more specific lived moment, not just soften the pitch language.
    - **When the weakest metric is P1 (Manufacturing-Buyer Resonance), reach for the dialect lever first (added 2026-08-18).** The cheapest real fix is usually vocabulary, not more argument: rewrite the post's domain terms from consultant dialect into the buyer's own words (Buyer Lexicon in `../../content/linkedin-authentic-storytelling/references/icp-positioning.md`). The reported `buyer_dialect` sub-score in the audit output tells you mechanically whether the mutation landed — it correlates **+0.444** with real Decision-Maker Density on this account's corpus (n=23) while being correctly uncorrelated with engagement rate. **It is non-gating**: use it as a cheap read on whether the rewrite happened, never as evidence that P1 improved — that is still the blind judge's call.
    - **Never salt in lexicon terms to move the reported number.** That is Goodharting a non-gating diagnostic, it is what a semantic retrieval model exists to see through, and it violates the persona's own no-padding line. If the buyer's words don't fit, the post isn't about the buyer's problem — change the post, not the wordlist.
-4. **Hygiene guard** — run `scripts/hygiene_check.sh STATE_ROOT/post.md` first (cheapest check). Fail → auto-reject: restore `post.md` from `best.md`, log `decision=discard, hygiene=fail`, skip straight to the next hypothesis (no audit run, no judge calls spent).
+4. **Hygiene + ABT guards** — run `scripts/hygiene_check.sh STATE_ROOT/post.md` and `python3 -I scripts/abt_check.py STATE_ROOT/post.md` first (cheapest checks). The ABT guard (added 2026-11-18) enforces the storytelling skill's default arc mechanically: 90–200 words, no "and then", 1–3 turns, at least one consequence. Either fails → auto-reject: restore `post.md` from `best.md`, log `decision=discard, hygiene=fail` (note which guard in the hypothesis), skip straight to the next hypothesis (no audit run, no judge calls spent). Exception: if `best.md` itself fails a guard, a mutation that only repairs it (e.g. a trim to 200 words, meaning unchanged) is kept with judges carried forward, logged `decision=keep (guard repair)`.
 5. **Audit (always, free)** — run `scripts/prepublish_audit.py STATE_ROOT/post.md`; record `hook/readability/spacing/aifluff/composite/band`.
 6. **Judge (conditionally)** — re-run the 3 fresh blind judges (`STATE_ROOT/children/judge-<n>/{TASK.md,RESPONSE.md}`, median per metric) for **both** Substance (M1/M3) and Audience Pull (P1/P2) together, in the same task packet — **only if this mutation changed the post's meaning, claims, or framing**; if it was a pure reformatting mutation (line breaks, hashtag/emoji count, word-order for scannability), carry the prior `M1`/`M3`/`substance`/`P1`/`P2`/`pull` forward unchanged and note `judged=carried-forward` in the row.
 7. **Decide:** compute `combined = (substance/10*100 + pull/10*100 + composite) / 3`. `combined > best_combined` → **keep** (promote `post.md` → `best.md`, log `decision=keep`). Otherwise → **discard** (restore `post.md` from `best.md`, log `decision=discard`).
