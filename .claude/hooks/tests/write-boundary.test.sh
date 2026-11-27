@@ -109,7 +109,17 @@ sub "subagent own vault area"            allow dom      "$FAKE/cbrain/Clients/A.
 sub "subagent other vault area"          deny  dom      "$FAKE/cbrain/projects/Topic.md"
 sub "subagent ledger is off limits"      deny  dom      "$FAKE/output/.runs/_ledger/dom.jsonl"
 sub "subagent harness is off limits"     deny  dom      "$FAKE/.claude/agents/dom.md"
-sub "built-in subagent type → zones"     allow Explore  "$FAKE/cbrain/projects/Topic.md"
+sub "unscoped subagent: vault denied"    deny  Explore  "$FAKE/cbrain/projects/Topic.md"
+sub "unscoped subagent: harness denied"  deny  general-purpose "$FAKE/.claude/hooks/x.sh"
+sub "unscoped subagent: Charter denied"  deny  general-purpose "$FAKE/Charter.md"
+sub "unscoped subagent: employers denied" deny general-purpose "$FAKE/employers/acme/role.md"
+sub "unscoped subagent: memory denied"   deny  general-purpose "$HOME/.claude/projects/x/memory/a.md"
+sub "unscoped subagent: packet allowed"  allow general-purpose "$FAKE/output/.runs/20261127-x/children/1/RESPONSE.md"
+sub "unscoped subagent: code allowed"    allow general-purpose "$FAKE/scripts/new_tool.py"
+sub "unscoped subagent: worktree allowed" allow general-purpose "$FAKE/.claude/worktrees/a/cbrain/x.md"
+sub "unscoped subagent: scratchpad ok"   allow general-purpose "/private/tmp/claude-501/x/scratchpad/a.md"
+sub "agent file without scopes = unscoped" deny unscoped "$FAKE/cbrain/projects/Topic.md"
+sub "headless job subagent keeps job scopes" allow general-purpose "$FAKE/cbrain/projects/Topic.md" scoped
 sub "path-like agent_type ignored"       allow "../agents/dom" "$FAKE/cbrain/projects/Topic.md"
 sub "headless job wins over agent_type"  deny  dom      "$FAKE/cbrain/Clients/A.md" scoped
 # Every deny is traced for run-forensics, with the job.

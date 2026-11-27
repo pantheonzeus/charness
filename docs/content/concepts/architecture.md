@@ -25,8 +25,8 @@ The design rule is **policy separated from mechanism**. Documents say what shoul
 | Reusable, ablatable modules | [`MODULES.md`](gh:resources/skills/MODULES.md) (vocabulary) + [`_shared/`](gh:resources/skills/_shared/) (evidence gate, handoff, self-evolution, verifier separation, change manifest) |
 | Intelligent Harness Runtime | Claude Code + `.claude/` hooks + the skill-dispatch protocol |
 | File-backed run state | `output/.runs/<slug>/`: control spine + evidence, kept apart from deliverables |
-| Parent → child handoff | File-backed task packets (`TASK.md` → `RESPONSE.md`), reopened by the parent |
-| Validation gates | Write, egress and send gates, the control-spine stop gate, the link-audit graph gate, the evidence gate |
+| Parent → child handoff | File-backed task packets (`TASK.md` → `RESPONSE.md`) with a verbatim constraints list the child echoes back, checked by `scripts/packet_lint.py`; one level deep, enforced by a hook |
+| Validation gates | Write, nesting, egress and send gates, the control-spine stop gate, the link-audit graph gate, the evidence gate |
 
 ## Why documents and code both
 

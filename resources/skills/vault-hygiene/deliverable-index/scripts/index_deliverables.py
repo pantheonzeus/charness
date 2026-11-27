@@ -33,8 +33,9 @@ WHAT IT DELIBERATELY SKIPS (and says so — no silent truncation, Charter budget
     via its `artifact:` field or a ../../../output/… link — never duplicated, never overwritten.
 
 Each index note carries Base-queryable YAML and auto-detected [[wikilinks]] to any existing
-person/topic note whose name appears in the artifact's path — so the artifact is wired into
-the graph, not left an island (Charter §6).
+person/topic note whose name appears in the artifact's path, plus every existing note a report
+lists in its frontmatter `vault_links:` (deep-research / living-plan Vault step) — so the artifact
+is wired into the graph, not left an island (Charter §6).
 
 IDEMPOTENT: index notes are fully generated (marked `generated: deliverable-index` /
 `input-index`) and overwritten on each run — like a Base. Re-running never duplicates. Notes
@@ -130,6 +131,24 @@ def detect_links(rel_output_path, ents):
     return out
 
 
+def declared_links(full, vault):
+    """Notes a report names in its frontmatter as `vault_links: ["Topic", "Person"]` (the Vault step of
+    deep-research / living-plan), kept only if they exist in projects/ or Clients/: a typo never links nowhere."""
+    if not full.endswith(".md"):
+        return []
+    try:
+        with open(full, errors="ignore") as f:
+            head = f.read(8192)
+    except OSError:
+        return []
+    m = re.match(r"---\n(.*?)\n---\n", head, re.S)
+    v = m and re.search(r"^vault_links:\s*\[(.*)\]\s*$", m.group(1), re.M)
+    if not v:
+        return []
+    return [n for n in re.findall(r'"([^"]+)"', v.group(1)) if "/" not in n
+            and any(os.path.isfile(os.path.join(vault, sub, n + ".md")) for sub in ("projects", "Clients"))]
+
+
 def slug_for(rel):
     """output/-relative path -> flat, collision-free index-note stem."""
     stem = os.path.splitext(rel)[0]
@@ -213,13 +232,15 @@ def plan_work(github_root):
 
 
 def build_note(full, rel, ents, siblings=(), root_name="output", index_dir_name=INDEX_DIR_NAME,
-               note_type="deliverable", gen_mark=GEN_MARK, default_cat="report"):
+               note_type="deliverable", gen_mark=GEN_MARK, default_cat="report", vault=None):
     st = os.stat(full)
     date = datetime.date.fromtimestamp(st.st_mtime).isoformat()
     kb = max(1, round(st.st_size / 1024))
     parts = rel.split("/")
     cat = parts[0] if len(parts) > 1 else default_cat
     links = detect_links(rel, ents)
+    if vault:   # the other half of a bi-directional link: the topic note's entry already points here
+        links = sorted(set(links) | set(declared_links(full, vault)))
     artifact = f"{root_name}/{rel}"
     fm = [
         "---",
@@ -333,7 +354,7 @@ def main():
     notes, bundles = plan_deliverables(output_root, claimed)
     wanted = {}     # note filename -> content
     for rel, siblings in notes:
-        wanted[slug_for(rel) + ".md"] = build_note(os.path.join(output_root, rel), rel, ents, siblings)
+        wanted[slug_for(rel) + ".md"] = build_note(os.path.join(output_root, rel), rel, ents, siblings, vault=args.vault)
     for rel_dir, images in sorted(bundles.items()):
         wanted[slug_for(rel_dir or "output") + "-images.md"] = build_bundle(output_root, rel_dir, images, ents)
     w, c, p = sync(index_dir, GEN_MARK, wanted, args.dry_run, not args.no_prune)

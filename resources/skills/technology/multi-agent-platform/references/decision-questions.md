@@ -1,6 +1,6 @@
 # Decision Questions — placement, triggers and the counter question set
 
-Client-agnostic. Distilled from a 2026 industrial agent-estate engagement and checked against the 2026 public guidance in [landscape-2026-10.md](landscape-2026-10.md).
+Client-agnostic. Distilled from a 2026 industrial agent-estate engagement and checked against the 2026 public guidance in [landscape-2026-11.md](landscape-2026-11.md).
 
 ## Placement — five questions, in order; stop at the first that decides
 

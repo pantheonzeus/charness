@@ -33,7 +33,7 @@ vault_writes: []
    "searched": ["query 1", "..."], "rejected": 0}
   ```
   Nothing else. No vault writes, no applications, no contact with anyone.
-- **Allowed tools:** WebSearch (at most 12 calls), WebFetch to open postings (at most 8; both are deferred, so load them once with ToolSearch `select:WebSearch,WebFetch` before the first call), Read and `grep -rn` over the profile and TASK.json, Write inside STATE_ROOT, `role_scout.py check`.
+- **Allowed tools:** WebSearch (at most 12 calls), WebFetch to open postings (at most 8; both are deferred, so load them once with ToolSearch `select:WebSearch,WebFetch` before the first call; if WebFetch does not come back, open each posting through the Agent tool with `subagent_type: "web-fetch"` and the full URL plus your question in its prompt (its report is the answer)), Read and `grep -rn` over the profile and TASK.json, Write inside STATE_ROOT, `role_scout.py check`.
 - **Budget:** `budget_usd` in `.claude/agents/role-scout.md` per run. On hitting a call cap, stop and write what you have.
 - **Done when:** `role_scout.py check <STATE_ROOT>` prints `OK` and every box in `RESPONSE.md` is `[x]`.
 

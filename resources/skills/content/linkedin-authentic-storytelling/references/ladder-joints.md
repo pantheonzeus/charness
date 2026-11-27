@@ -1,5 +1,7 @@
 # The Ladder and Its Joints — internal diagnostic spine
 
+> **Scope since 2026-11-21.** This is now the spine of the **industrial lane only**, one of four content lanes and used in at most one post in three. The lead lanes are B1 Digital backbone, B2 AI-native operating model and B3 Control of AI (`../../../workflow-ops/linkedin-viral-scheduler/references/topics-and-proof-bank.md`). The joints stay valid as a worked example of where backbones stall; write them so a non-industrial CTO, PE partner or founder still recognises the problem.
+
 *Created 2026-08-22 as the positioning spine for the Ladder Campaign (`output/20260822-ladder-campaign-charter.md` §6). Load this alongside [`icp-positioning.md`](icp-positioning.md): that file says **who** a post is for, this one says **which problem** it is about. Sibling files, one folder, same convention.*
 
 > **Read this first — the naming rule.** The ladder is an **internal** diagnostic. It structures target diagnosis, pursuit work and post selection. It is **never presented in public as a named model.** Two reasons, both hard: the sequence is prior art (§0), and a signature framework is the classic consultant artifact — the Company A loss turned on being read as an advisor rather than an operator (`output/20260822-company-a-postmortem.md`). A post that reads as methodology works against the campaign's goal even when the methodology is correct.

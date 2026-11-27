@@ -8,11 +8,12 @@ triggers: [walk into, get me ready for, make a plan, plan this, prepare a positi
 tags: [workflow-ops, delegation, plan, checkpoints, console, evidence]
 related: ["[[deep-research]]", "[[meeting-prep-loop]]", "[[daily-intel-briefing]]", "[[communication-architecture]]"]
 status: active
-version: 11
+version: 12
 created: 2026-10-11
-updated: 2026-10-23
+updated: 2026-11-21
 modules: [file-backed-state, file-backed-handoff, evidence-backed-answering, self-evolution, verifier-separation]
 scripts: [scripts/plan.py]
+vault_writes: ["cbrain/projects/*", "cbrain/Clients/*"]
 ---
 
 # Living Plan
@@ -23,8 +24,9 @@ scripts: [scripts/plan.py]
   - `output/tasks/<id>/PLAN.json`, the shared living document (schema below), which the console renders and the user edits while you are paused;
   - `output/tasks/<id>/STATUS.json`, using the same protocol as `research/deep-research`;
   - the deliverable at `deliverable.path`, under `output/plans/`. A document to read is a reading page (`workflow-ops/reading-pages`): frontmatter `template:` chosen by its shape (position or options → `decision`, research answer → `report`, phased playbook or roadmap → `plan`, person/company/meeting prep → `dossier`), plus its same-stem `.html`. An email body or a `**MAYA:**`/`**BEN:**` podcast script stays plain Markdown;
-  - the STATE_ROOT `output/.runs/plan-<id>/RESPONSE.md`.
-- **Allowed tools/artifacts:** Read/Grep/Glob over the repo and vault (vault is **read-only**), WebSearch/WebFetch, Task for sub-research, Write/Edit only for the files above. Gmail `draft_gmail_message` / `send_gmail_message` (workspace-mcp, `user_google_email` = the active employer pack's `employer.work_email`, from `python3 scripts/employer.py get employer.work_email`; only while the pack binds mail=google) only for a deliverable that is an email; see **Sending** below. **PDF / audio:** when the deliverable should be a PDF or something to listen to, run `uv run scripts/render.py pdf <file.html|file.md>` or `uv run scripts/render.py audio <file.md>`; it writes a same-stem `.pdf` / `.mp3` beside the file (audio voices `**MAYA:**` / `**BEN:**` turns, else narrates). Never ship "print-ready HTML" or a text script in place of a requested PDF or audio file.
+  - the STATE_ROOT `output/.runs/plan-<id>/RESPONSE.md`;
+  - for a reading-page deliverable, appended `## What changed` entries on up to 3 existing topic notes and their linked people (step 6).
+- **Allowed tools/artifacts:** Read/Grep/Glob over the repo and vault (vault is **read-only** except step 6's appends), WebSearch/WebFetch, Task for sub-research, Write/Edit only for the files above. Gmail `draft_gmail_message` / `send_gmail_message` (workspace-mcp, `user_google_email` = the active employer pack's `employer.work_email`, from `python3 scripts/employer.py get employer.work_email`; only while the pack binds mail=google) only for a deliverable that is an email; see **Sending** below. **PDF / audio:** when the deliverable should be a PDF or something to listen to, run `uv run scripts/render.py pdf <file.html|file.md>` or `uv run scripts/render.py audio <file.md>`; it writes a same-stem `.pdf` / `.mp3` beside the file (audio voices `**MAYA:**` / `**BEN:**` turns, else narrates). Never ship "print-ready HTML" or a text script in place of a requested PDF or audio file.
 - **Budget:** $5 cap per run (one run = until the next pause). ≤ 12 steps. ≤ 40 web calls across the plan.
 - **Done when:** `uv run resources/skills/workflow-ops/living-plan/scripts/plan.py check output/tasks/<id>/PLAN.json` prints `OK`, the deliverable exists (a reading page passes `uv run resources/skills/workflow-ops/reading-pages/scripts/page.py check <path>`), STATUS is `done` with a spoken `summary`, and every spine box is `[x]`.
 
@@ -78,7 +80,8 @@ scripts: [scripts/plan.py]
    - At a `you` step: same, with the decision that step needs.
    - **`## Sources` files are receipts.** Each one you rely on goes into `receipts` as `{"kind": "deliverable", "ref": "output/…", "label": "<title>", "used_in": [...]}`. A source older than its facts (dates, numbers, names) is re-checked before it backs a `verified` finding; one that turns out wrong or stale is said so in the finding, never quietly dropped.
 4. **Honour flags.** Before each step, read `output/tasks/<id>/flags.jsonl` if it exists. A receipt the user flagged as `wrong` or `stale` is untrusted: don't rely on it, and say so in any finding that would have used it.
-5. **Deliver.** Run the evidence gate (`_shared/evidence-gate.md`). Write the deliverable to `deliverable.path` in the promised shape, with claims carrying their confidence wording. For a reading page, write content only (never HTML or CSS), run `page.py check` until `OK`, then `page.py render`. STATUS `done` with a 3-sentence spoken `summary` (answer first, then the biggest caveat) and `report` set to the deliverable path. Run `plan.py check` and fix until it prints `OK`.
+5. **Deliver.** Run the evidence gate (`_shared/evidence-gate.md`). Write the deliverable to `deliverable.path` in the promised shape, with claims carrying their confidence wording. For a reading page, write content only (never HTML or CSS), run `page.py check` until `OK`, then `page.py render`. Then run step 6 before `done`. STATUS `done` with a 3-sentence spoken `summary` (answer first, then the biggest caveat) and `report` set to the deliverable path. Run `plan.py check` and fix until it prints `OK`.
+6. **Vault (reading-page deliverables only).** Run `research/deep-research` step 6 on the deliverable (at the default path `output/plans/<id>.md` its `<index note>` is `plans-<id>`). Feed in only the plan's `verified` and `likely` findings from outside sources. The plan's position, its number, client-internal context and anything from mail stay in the deliverable. An email or podcast-script deliverable skips this step: write `vault: skipped — <shape>` in the spine.
 
 **Sending (deliverable is an email).** The send is always its own last step, owner `cos`, with a checkpoint, because it is an external message and can't be undone.
 - Recipients come only from TASK.md or the approved outcome. Never add, guess or swap an address; if one is missing, it becomes the checkpoint question.

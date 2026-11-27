@@ -65,7 +65,7 @@ JOB="${CBRAIN_JOB:-}"
 SCOPED="$JOB"   # whose write_scopes apply: the headless job, else the chat subagent's type
 if [ -z "$SCOPED" ]; then
   atype="$(printf '%s' "$input" | jq -r '.agent_type // empty' 2>/dev/null || true)"
-  [[ "$atype" =~ ^[a-z0-9][a-z0-9-]*$ ]] && SCOPED="$atype"
+  [[ "$atype" =~ ^[A-Za-z0-9][A-Za-z0-9_-]*$ ]] && SCOPED="$atype"
 fi
 
 deny() {   # $1 = reason. Deny the write, and leave one line for run-forensics (best effort).
@@ -109,6 +109,20 @@ if [ -n "$SCOPED" ] && [ -f "$REPO/.claude/agents/$SCOPED.md" ]; then
     done <<< "$scopes"
     deny "write-boundary guard: '$SCOPED' may write only inside its write_scopes ($(printf '%s' "$scopes" | paste -sd' ' -)); '$rel' is outside them. Write inside your scopes, or report the gap in your RESPONSE.md. A wrong scope is fixed by a human in .claude/agents/$SCOPED.md, never by this run."
   fi
+fi
+
+# Unscoped chat subagents (2026-11-27): a subagent whose type declares no write_scopes (general-purpose,
+# Explore, a fork, ...) keeps the repo zones but not the shared state: the vault, the harness (.claude/,
+# agent worktrees excepted), the core docs, the employer packs and the memory dir. One writer per shared
+# artifact (technology/multi-agent-platform principle 2; arXiv 2610.14800): work that writes there goes
+# to the domain agent whose scopes cover it, or comes back to the parent in RESPONSE.md.
+if [ -z "$JOB" ] && [ -n "$SCOPED" ]; then
+  case "$path" in
+    "$REPO"/.claude/worktrees/*) : ;;
+    "$REPO"/cbrain|"$REPO"/cbrain/*|"$REPO"/.claude|"$REPO"/.claude/*|"$REPO"/employers|"$REPO"/employers/*|\
+    "$REPO"/Charter.md|"$REPO"/Soul.md|"$REPO"/CLAUDE.md|"$REPO"/IDENTITY.md|"$HOME_CLAUDE"/projects/*/memory/*)
+      deny "write-boundary guard: subagent '$SCOPED' declares no write_scopes, so it may not write shared state (${path#"$REPO"/}). Put the content in your RESPONSE.md for the parent, or the parent hands this to the domain agent whose write_scopes cover it." ;;
+  esac
 fi
 
 case "$path" in

@@ -55,7 +55,7 @@ Some procedures are used by many skills, so they live once in [`_shared/`](gh:re
 | Module | What it does |
 |---|---|
 | Evidence gate | Before a client-facing deliverable ships, every release-critical claim is tagged as observed or inferred and carries a source. |
-| Delegation handoff | A child agent gets its task as a file and writes its result to a file, which the parent reopens. |
+| Delegation handoff | A child agent gets its task as a file, with its constraints copied word for word, and writes its result to a file that echoes each constraint. The parent reopens it and checks the echo with `scripts/packet_lint.py`. |
 | Verifier separation | A distinct checking step, run apart from the step that produced the work. |
 | Self-evolution | Within one run: reflect, redesign, retry, capped at 5 attempts. |
 | Change manifest | Every harness edit records a falsifiable prediction, checked at its next real use. |

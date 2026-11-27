@@ -95,16 +95,14 @@ ADDENDUM=""
 for fam in opus sonnet haiku fable; do
   case "$MODEL" in *"$fam"*) [ -f "$REPO_ROOT/resources/models/$fam.md" ] && ADDENDUM="resources/models/$fam.md"; break ;; esac
 done
-# One appended system-prompt file: the domain's body (a job that extends one), the headless rules (a
-# domain agent run on its own), then the model addendum. A job without either keeps the addendum path as is.
+# One appended system-prompt file: the headless rules (every job with an agent file; resources/agents/headless.md
+# is their only copy since 2026-11-27), the domain's body (a job that extends one), then the model addendum.
+# A run without an agent file keeps the addendum path as is.
 APPEND_FILE=""
-if [ -n "$DOMAIN" ] || [ -n "$CATEGORIES" ]; then
+if [ -f "$AGENT_FILE" ]; then
   APPEND_FILE="$(mktemp -t run_agent_prompt)"
-  if [ -n "$DOMAIN" ]; then
-    /usr/bin/python3 "$REGISTRY" body "$DOMAIN" > "$APPEND_FILE" 2>/dev/null
-  else
-    cat "$REPO_ROOT/resources/agents/headless.md" > "$APPEND_FILE" 2>/dev/null
-  fi
+  cat "$REPO_ROOT/resources/agents/headless.md" > "$APPEND_FILE" 2>/dev/null
+  [ -n "$DOMAIN" ] && { printf '\n'; /usr/bin/python3 "$REGISTRY" body "$DOMAIN" 2>/dev/null; } >> "$APPEND_FILE"
   [ -n "$ADDENDUM" ] && { printf '\n'; cat "$REPO_ROOT/$ADDENDUM"; } >> "$APPEND_FILE"
   AGENT_ARGS+=(--append-system-prompt-file "$APPEND_FILE")
 elif [ -n "$ADDENDUM" ]; then

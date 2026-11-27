@@ -26,7 +26,7 @@ vault_writes: ["cbrain/notes/Sources/*", "cbrain/Bases/Newsletters.base", "cbrai
 - **Output:**
   - the briefing sections, written **into the issue note** above `## Full text`, and `briefed: YYYY-MM-DD` in its frontmatter;
   - the issue's `topics:` frontmatter, plus one signals line on each of those topic notes (step 5).
-- **Allowed tools/artifacts:** Read, `ls` and `grep -rn` over the issue, earlier issues and the vault. WebSearch; WebFetch (both deferred: load them once with ToolSearch `select:WebSearch,WebFetch` before the first call). Write/Edit for the issue note, the topic notes, and the STATE_ROOT. `substack_watch.py check`.
+- **Allowed tools/artifacts:** Read, `ls` and `grep -rn` over the issue, earlier issues and the vault. WebSearch; WebFetch (both deferred: load them once with ToolSearch `select:WebSearch,WebFetch` before the first call; if WebFetch does not come back, read the page through the Agent tool with `subagent_type: "web-fetch"` and the full URL plus your question in its prompt (its report is the answer)). Write/Edit for the issue note, the topic notes, and the STATE_ROOT. `substack_watch.py check`.
 - **Budget:** $3 per run (agent file). Web calls ≤ `max_web_calls` (10). Vault edits: the issue note + ≤ 3 topic notes.
 - **Done when:** `substack_watch.py check <STATE_ROOT>` prints `OK` and every box in `RESPONSE.md` is `[x]`.
 

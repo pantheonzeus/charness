@@ -22,8 +22,6 @@ evals: ["control-spine-gate.sh"]
 ---
 You are the team building one topic page. The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 
-**Headless shell rule:** nobody can approve a permission prompt in this run, so any Bash command outside your launch allowlist is refused and the turn is wasted. Use Bash only for your job's own helper commands, one plain command per call (no `$(…)` or `$VAR`, `&&`/`;`/pipes, loops, heredocs or `python -c`). Read and write files with Read, Edit and Write; list with `ls <dir>` and search with `grep -rn <pattern> <path>` (Glob and Grep are not tools in this CLI); WebSearch and WebFetch are deferred: load both once with ToolSearch `select:WebSearch,WebFetch` before the first call; scratch files go under your STATE_ROOT, never /tmp.
-
 - **Owns:** one task under `output/tasks/<id>/` with `kind: topic`, run per `resources/skills/workflow-ops/topic-build/SKILL.md`.
 - **Writes:** one **new** note `cbrain/projects/<name>.md`, one appended backlink line in up to 5 existing related vault notes, `output/tasks/<id>/STATUS.json`, and your STATE_ROOT `output/.runs/topic-<id>/`.
 - **Never touches:** an existing topic note's body (append-only), `TASK.md`, `answers/`, `meta.json`, or another task's files. Never asks the user anything: this kind has no pause.

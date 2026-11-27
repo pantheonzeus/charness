@@ -6,6 +6,8 @@ categories: [research]
 model: claude-sonnet-5-5
 # Effort pinned with the model (resources/models/README.md).
 effort: high
+# Turn cap (2026-11-27): job runs reach 71 turns at p99 (2,408 ledgered runs); a chat subagent has no budget cap.
+maxTurns: 80
 # Runaway guard per headless run, a starting cap: recalibrate with `agent_registry.py budgets` after 6 runs.
 budget_usd: 2.5
 untrusted_ingest: true   # reads the web: the provenance hook labels every vault note it writes

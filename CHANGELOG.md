@@ -7,6 +7,25 @@ GitHub release (`.github/workflows/release.yml`); the release fails if the secti
 ## [Unreleased]
 
 ### Added
+- **Domain agents.** Seven domain profiles (research, knowledge, sales, strategy, content, technology, design)
+  in `.claude/agents/`, usable as chat subagents and headless. Each sees only its own skill categories (a
+  `SubagentStart` hook) and is held to its own `write_scopes`. 18 of 20 jobs `extends:` a domain for model,
+  effort and categories; safety keys are never inherited.
+- **Agent registry.** Every agent file is a registry entry (lane, level, owner, `stop_when`, evals), checked
+  in CI by `scripts/agent_registry.py`; job budgets are set from the run ledger by a fixed formula. A worked
+  example ships with `technology/multi-agent-platform`.
+- **Verification brake.** While more than 10 harness changes await a verdict, the daily upgrade scout runs a
+  verdict judge on the oldest instead of proposing new changes; its threshold is tuned weekly by rules fixed
+  in advance. A weekly blind spot-check sheet samples approved agent output.
+- **Nesting guard.** `.claude/hooks/nesting-guard.sh` makes "delegation is one level deep" mechanical: an
+  Agent/Task call from inside a subagent is denied and logged.
+- **Packet lint.** Delegation packets carry their constraints verbatim (`## Constraints`) and the child echoes
+  each one with a verdict (`## Constraints checked`); `scripts/packet_lint.py` checks both.
+- **Project pack.** `workflow-ops/project-pack` builds an upload-ready folder of engagement work for a shared
+  claude.ai Project, with a scope gate against other clients, and files pasted artifacts back as untrusted
+  ingest.
+- **Research reaches the vault.** `deep-research` and `living-plan` append up to three cited, dated
+  `What changed` entries to existing topic notes, back-linked through `vault_links:`.
 - **Console: a quick voice in front.** A warm Haiku session says in a few words what is being done with the
   question at about +1.3 s, while the main session thinks (`webapp/foreground.py`).
 - **Output-quality judge.** `run-forensics/scripts/judge.py` grades daily-intel briefing items against rules
@@ -16,8 +35,21 @@ GitHub release (`.github/workflows/release.yml`); the release fails if the secti
   Report-only.
 - **Citation file.** `CITATION.cff` gives the repo GitHub's "Cite this repository" button (APA, BibTeX).
 
+### Changed
+- **Subagents without scopes** (general-purpose, Explore, a fork) may no longer write the vault, `.claude/`
+  (agent worktrees excepted), the core documents, `employers/` or the memory dir.
+- **One copy of the headless rules.** `resources/agents/headless.md` is appended to every job by
+  `run_agent.sh`; 28 copies left the agent files. It now covers BSD `ls`/`grep` and reading a web page
+  through the `web-fetch` subagent, since a `claude -p` main context has no WebFetch.
+- **`technology/multi-agent-platform` v4** with a November landscape snapshot (compute-matched single- vs
+  multi-agent evidence, handoff constraint loss, MCP 2026-07-28, agent registries).
+
 ### Fixed
 - **Commit guard** accepts GitHub's merge button as committer, so UI merges no longer fail CI on `main`.
+- **Concurrent vault writes.** `scripts/vault_api.py` locks each note and swaps it in only if unchanged; in a
+  new test the old code kept 17 of 30 parallel appends, the new one keeps all 30.
+- **Write guard** recognises capitalised built-in subagent types (`Explore`).
+- **Run forensics** files auto-mode classifier refusals under `PERM_BLOCKED` instead of `UNCLASSIFIED`.
 
 ## [0.1.1] — 2026-11-08
 

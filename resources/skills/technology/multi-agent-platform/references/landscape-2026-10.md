@@ -1,5 +1,7 @@
 # Landscape snapshot — agents, protocols, platforms, regulation (retrieved 2026-10-10)
 
+> Superseded by [landscape-2026-11.md](landscape-2026-11.md) (2026-11-27). Kept for history.
+
 **Dated snapshot. Re-verify every item before it lands in a client deliverable.** Tags:
 - **[D]** read in the primary source on retrieval;
 - **[S]** secondary source only (trade press or aggregator);

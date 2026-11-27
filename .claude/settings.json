@@ -82,6 +82,16 @@
             "statusMessage": "Checking git safety"
           }
         ]
+      },
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/nesting-guard.sh\"",
+            "statusMessage": "Checking delegation depth"
+          }
+        ]
       }
     ],
     "PostToolUse": [

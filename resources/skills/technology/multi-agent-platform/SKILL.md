@@ -9,14 +9,14 @@ tags: [technology, architecture, ai-agents, multi-agent, orchestration, platform
 related: ["[[agent-architecture]]", "[[agentic-service-blueprint]]", "[[agentic-service-evaluation]]", "[[agent-ready-service]]", "[[ai-opportunity-portfolio]]", "[[ecosystem-platform-design]]", "[[cloud-architecture]]", "[[operating-model-design]]", "[[decision-memo]]"]
 modules: [file-backed-state, evidence-backed-answering, verifier-separation]
 status: active
-version: 3
+version: 4
 created: 2026-10-10
-updated: 2026-11-09
+updated: 2026-11-27
 requires:
   tools: [web_search, web_fetch]
   optional: [python3 (scripts/research_firewall.py reference implementation + selftest)]
-environment: "Runs anywhere. references/landscape-2026-10.md is a dated snapshot (protocols, frameworks, EU AI Act Omnibus dates, industrial vendors); several items are secondary-source only and marked so — re-verify before client use."
-references: [references/landscape-2026-10.md, references/decision-questions.md, references/harness-scaling.md, references/enterprise-orchestration-primer.md, references/worked-example-registry.md, ../agent-architecture/references/harness-patterns.md]
+environment: "Runs anywhere. references/landscape-2026-11.md is a dated snapshot (protocols, frameworks, EU AI Act Omnibus dates, industrial vendors); several items are secondary-source only and marked so — re-verify before client use."
+references: [references/landscape-2026-11.md, references/decision-questions.md, references/harness-scaling.md, references/enterprise-orchestration-primer.md, references/worked-example-registry.md, ../agent-architecture/references/harness-patterns.md]
 ---
 
 # Multi-Agent Platform & Orchestration — Lanes, Research Firewall, Three Clocks & Control Plane
@@ -66,7 +66,7 @@ references: [references/landscape-2026-10.md, references/decision-questions.md, 
   - The platform team's operating model → `operating-model-design`.
 
 ## Operating principles (enforceable)
-1. **Multi-agent must earn its 15×.** Default to one agent, or a workflow. Go multi-agent only when the task is breadth-first and parallelizable, high-value enough to pay ~15× chat tokens (single agent ~4×), and evals show the single agent failing. A multi-agent system fits badly when agents must share context or have dense interdependencies. State the Anthropic-vs-Cognition disagreement honestly: this is task-shape dependent, not settled.
+1. **Multi-agent must earn its 15×.** Default to one agent, or a workflow. Go multi-agent only when the task is breadth-first and parallelizable, high-value enough to pay ~15× chat tokens (single agent ~4×), and evals show the single agent failing. A multi-agent system fits badly when agents must share context or have dense interdependencies. State the Anthropic-vs-Cognition disagreement honestly: this is task-shape dependent, not settled. Since 2026 the compute-matched evidence leans single: at equal token budgets single agents match or beat MAS on multi-hop reasoning, and 1 of 6 MAS workflows beat a single-agent baseline (landscape §2). Split by context or permission, never by role or persona.
 2. **Parallelize reads, serialize writes.** Sub-agents may explore in parallel and return condensed, cited findings. Exactly one writer owns each artifact or side effect. Parallel writers make conflicting implicit decisions.
 3. **Lanes before frameworks.** Classify every agent by what it is trusted for, not by the library it uses:
    - **A — gated process:** fixed order, reproducible, human gate, no cross-run memory.
@@ -76,7 +76,7 @@ references: [references/landscape-2026-10.md, references/decision-questions.md, 
    Never standardize on one agent shape. Cross-run memory is a feature in C and a defect in A.
 4. **The research firewall is code, not convention.** Claims sourced outside the client's systems of record are `external` (URL, retrieval date, run id, source tier). `gate_eligible()` returns False for them, and a gated step that tries to use one raises an error and stops. Promotion to `observation` happens only by re-verification against a named system, as an audited event with an owner — never automatic, never by a model. This is what lets research agents run unattended next to decision agents: **autonomy is cheap where the blast radius is bounded.** Reference implementation: `scripts/research_firewall.py`.
 5. **Lane B must pass a rejection test.** Teams will claim B for everything. Before granting it, name the single step whose tool sequence is genuinely unknowable in advance, show that the rest is fixed, and show the downstream re-verification. If you can't name it, the agent is lane A. If there are several such steps, it's a lane-C problem or a redesign.
-6. **Delegation is a file packet, not a chat message.** The packet holds objective, inputs by path, output schema, tool allowlist, boundaries, budget (sub-agents, tool calls, wall-clock, tokens) and termination condition. The receiving agent starts **fresh** from it and writes its result back to a path. These fields target the MAST failure modes directly: step repetition, unawareness of termination, task-spec disobedience, derailment, and verification that is missing or superficial.
+6. **Delegation is a file packet, not a chat message.** The packet holds objective, inputs by path, output schema, tool allowlist, boundaries, budget (sub-agents, tool calls, wall-clock, tokens) and termination condition. Boundaries travel **verbatim** as a typed constraints list that the receiver echoes back with a verdict per line: summarised handoffs keep facts and drop rules (blockers off in 76.7–97.2% of cases; full text took forbidden actions from 85.2% to 0.0%, landscape §3). The receiving agent starts **fresh** from it and writes its result back to a path. These fields target the MAST failure modes directly: step repetition, unawareness of termination, task-spec disobedience, derailment, and verification that is missing or superficial.
 7. **Three clocks, three owners.** The **model gateway** (per call: routing, quota, cost attribution, logging, model swap) is mandatory from agent one. The **agent runtime** (seconds to hours: steps, state, resume, gate) is per agent team. **Process orchestration** (weeks to months: sequence, SLA, escalation, compensation) is introduced only when **any two** of these fire:
    - more than two agents share one transaction whose state outlives them all;
    - a handoff must survive a multi-day human wait with an SLA;
@@ -122,6 +122,8 @@ Substantive runs keep a STATE_ROOT at `output/.runs/<YYYYMMDD>-<slug>-agent-plat
 - "Orchestration layer" is one box naming a framework, a code host and a language.
 - Every agent has the same shape, or research agents can feed gates directly.
 - Sub-agents write to the same artifact, or talk peer-to-peer without a packet.
+- "One level deep" or "don't write there" exists only as prompt text: no tool restriction or hook denies a subagent's Agent call or its write to shared state.
+- Packet constraints are paraphrased ("keep it confidential") instead of copied as a checkable list.
 - A2A or another RPC is used as the internal bus inside one estate on one runtime.
 - Each repo holds its own model API key: no gateway, no cost attribution, no model swap.
 - A shared service account for "the agents"; write access granted "but the prompt says don't".

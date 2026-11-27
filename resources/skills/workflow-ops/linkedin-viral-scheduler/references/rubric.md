@@ -3,7 +3,7 @@
 A post ships only when it clears **all three pre-publish gates**. They measure different things and are never merged into one number:
 
 - **Scorecard A — Substance (blind-judged, subjective).** "Is this worth saying, and does it fit the persona?" Two metrics: M1 Topic-DNA, M3 Depth.
-- **Scorecard C — Audience Pull (blind-judged, subjective).** "Will the *right* buyer stop, and is this a story or a pitch?" Two metrics: P1 Manufacturing-Buyer Resonance, P2 Story-over-Pitch. **Added 2026-07-19** — the earlier two-gate scorer measured "worth saying" and "will the algorithm carry it," but neither gate caught the failure mode the analytics exposed: a post can pass both and still be a flat capability pitch that a manufacturing buyer scrolls past (see `engagement-learnings.md`, evidence from `[[LinkedIn-Posts-Index]]`).
+- **Scorecard C — Audience Pull (blind-judged, subjective).** "Will the *right* buyer stop, and is this a story or a pitch?" Two metrics: P1 Target-Reader Resonance (was Manufacturing-Buyer Resonance until 2026-11-21), P2 Story-over-Pitch. **Added 2026-07-19** — the earlier two-gate scorer measured "worth saying" and "will the algorithm carry it," but neither gate caught the failure mode the analytics exposed: a post can pass both and still be a flat capability pitch that a manufacturing buyer scrolls past (see `engagement-learnings.md`, evidence from `[[LinkedIn-Posts-Index]]`).
 - **Scorecard B — Pre-Publish Audit (deterministic, scripted).** "Will the algorithm carry it?" Four metrics: Hook, Readability, Spacing, AI-Fluff.
 
 A fourth scorecard exists but is **not a ship gate** — see below.
@@ -39,7 +39,7 @@ The original M2 (Dwell Time) and M4 (Algo Hygiene) are **retired** — Scorecard
 
 | Metric | Target | 5 | 3 | 1 |
 |---|---|---|---|---|
-| **P1: Manufacturing-Buyer Resonance** | Would a manufacturing/industrial digital-leadership decision-maker — Head of Digital / Industry 4.0 / Smart Factory lead, VP Ops/Manufacturing, plant/OT leader, industrial-PE operating partner, manufacturing CTO/CDO — stop, recognise *their* problem, and respect it? | Unmistakably their problem, at their altitude (capacity, capital, sovereignty, resilience) | Recognisable but generic-consulting-flavoured | Reads as written for IT/software peers, not a factory-floor or industrial-PE buyer |
+| **P1: Target-Reader Resonance** *(re-aimed 2026-11-21)* | Would a decision-maker who needs a digital backbone built and a company made AI-native — PE operating partner or board member, CTO/CDO/CIO, CEO/founder, any sector — stop, recognise *their* company's problem, and respect it? | Unmistakably their problem, at their altitude (money, risk, speed, ownership and control of data, models, vendors) | Recognisable but generic-consulting or AI-commentary flavoured | Reads as written for engineers or AI enthusiasts, or only a plant manager would claim it |
 | **P2: Story-over-Pitch** | Does it open on a real, specific lived moment/tension and let the take emerge, or does it announce a capability / "come see me speak"? | A concrete moment carries the take; no announcement framing | Some narrative but the pitch shows through | Pure capability announcement or event promotion |
 
 `pull = P1 + P2` (max 10). **Gate: `pull ≥ 8`.**

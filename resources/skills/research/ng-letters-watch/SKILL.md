@@ -27,7 +27,7 @@ vault_writes: ["cbrain/projects/*", "cbrain/notes/Deliverables/*"]
   - the briefing at `briefing`: a reading page, `template: briefing`. The runner renders its `.html` and indexes it into the vault;
   - `cbrain/projects/Andrew Ng - Thinking.md` and `Andrew Ng - Letters Ledger.md` updated (step 5);
   - append-only `## Andrew Ng signals` lines on the topic notes in `cbrain/projects/` the letter touches (step 6; topic notes only, never person notes).
-- **Allowed tools/artifacts:** Read, `ls` and `grep -rn` over the letters, earlier briefings and the vault. WebSearch; WebFetch (both deferred: load them once with ToolSearch `select:WebSearch,WebFetch` before the first call). Write/Edit for the files above and the STATE_ROOT. `page.py check`, `ng_letters.py check`.
+- **Allowed tools/artifacts:** Read, `ls` and `grep -rn` over the letters, earlier briefings and the vault. WebSearch; WebFetch (both deferred: load them once with ToolSearch `select:WebSearch,WebFetch` before the first call; if WebFetch does not come back, read the page through the Agent tool with `subagent_type: "web-fetch"` and the full URL plus your question in its prompt (its report is the answer)). Write/Edit for the files above and the STATE_ROOT. `page.py check`, `ng_letters.py check`.
 - **Budget:** $3 per run (agent file). Web calls ≤ `max_web_calls` (12). Vault edits ≤ 6.
 - **Done when:** `ng_letters.py check <STATE_ROOT>` prints `OK` and every box in `RESPONSE.md` is `[x]`.
 
