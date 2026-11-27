@@ -34,7 +34,7 @@ Rules of thumb:
 
 - **Narrowest scopes that work.** Date-shaped globs (`????-??-??`) beat `*`. The job's scopes must stay inside the skill's `vault_writes:`.
 - **Budget from observed runs.** Start tight, read the ledger, then adjust.
-- **One plain Bash command per call.** A headless run can't answer a permission prompt, so a command outside the launch allowlist wastes the turn. The existing agent files spell out the headless shell rule; copy it.
+- **Don't copy the headless rules.** A headless run can't answer a permission prompt, so a command outside the launch allowlist wastes the turn. The runner appends the shared rules in [`resources/agents/headless.md`](gh:resources/agents/headless.md) to every job: one plain Bash command per call, BSD `ls`/`grep`, how to read a web page, path and edit discipline. State a rule in your agent file only when your job needs a stricter version.
 
 ## 3. Write the launcher
 

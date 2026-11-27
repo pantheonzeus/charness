@@ -17,7 +17,12 @@ The rules that must hold are enforced by hooks and git hooks, not by the prompt.
 
 - **Interactive sessions** may write inside the repo, the session scratchpad and `~/.claude`. Targets are resolved through `..` segments and symlinks before the check.
 - **Headless jobs** (`CBRAIN_JOB` set by the runner) may write only inside the `write_scopes:` of their agent file. A scheduled agent can't touch vault notes outside its lane.
+- **Subagents** are identified by the hook input's `agent_type`. A domain agent is held to its own `write_scopes:`. A subagent type with no scopes (general-purpose, Explore, a fork) keeps the repo zones but may not write the vault, `.claude/` (agent worktrees excepted), the core documents, `employers/` or the memory dir: one writer per shared artifact.
 - **Fail-open.**
+
+### Nesting guard
+
+[`nesting-guard.sh`](gh:.claude/hooks/nesting-guard.sh) runs before the Agent tool. Delegation is one level deep: the main session and a headless job's own top level may start subagents, a subagent may not. Each denied attempt is logged for run forensics. Subagents keep WebFetch and WebSearch themselves, so they never need a helper agent. **Fail-open.**
 
 ### Egress guard
 
@@ -61,7 +66,8 @@ A Claude Code Bash hook denies the ways around it: `--no-verify`, redirecting `c
 | Budget cap | `budget_usd:` in the agent file | `--max-budget-usd` on every run |
 | Bash sandbox | `sandbox: true` | Writes only in the repo, network only to PyPI |
 | Code mode | `code_mode: true` | Sandbox forced; Bash writes to the vault and the harness denied at OS level |
-| Typed vault writer | `scripts/vault_api.py` | Bash-run vault writes keep the job's scopes and provenance; all-or-nothing |
+| Typed vault writer | `scripts/vault_api.py` | Bash-run vault writes keep the job's scopes and provenance; all-or-nothing; a per-note lock so concurrent jobs never drop each other's appends |
+| Shared headless rules | `resources/agents/headless.md` | One copy, appended to every job's prompt: one plain Bash command per call, BSD `ls`/`grep`, the web-fetch route, path and edit discipline |
 | Circuit breaker | `run_agent.sh` | All jobs stop after three API-pressure failures |
 
 ## Run the tests

@@ -65,7 +65,7 @@ The documents carry the policy. The code makes sure the policy holds. [Architect
 <div class="cx-card" markdown>
 :material-folder-lock-outline:{ .cx-icon }
 ### Writes outside the lane
-A scheduled job may write only inside the `write_scopes` its agent file declares. A hook denies everything else, with symlinks resolved.
+A scheduled job or a domain agent may write only inside the `write_scopes` its agent file declares. A subagent with no scopes can't touch the vault or the harness, and no subagent can start another. Hooks deny the rest, with symlinks resolved.
 </div>
 
 <div class="cx-card" markdown>

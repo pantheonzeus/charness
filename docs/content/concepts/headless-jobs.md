@@ -45,13 +45,13 @@ write_scopes:              # hook-enforced, headless and as a chat subagent alik
 
 A domain agent runs in two ways. In a session, the main agent hands it a task packet with the Agent tool. A `SubagentStart` hook gives it its own categories' skills, and the write guard reads the subagent's type from the hook input and holds it to its scopes. Headless, the runner or the console runs it like a job (`agent: sales` in a console task).
 
-A job can `extends: <domain>`. It then takes the domain's model, effort and categories when it doesn't set them itself, and the domain's rules are appended to its prompt. The safety keys are never inherited: write scopes, budget, sandbox, code mode and the untrusted-ingest flag stay explicit in each job's own file. Delegation is one level deep, and a domain never extends another.
+A job can `extends: <domain>`. It then takes the domain's model, effort and categories when it doesn't set them itself, and the domain's rules are appended to its prompt. The safety keys are never inherited: write scopes, budget, sandbox, code mode and the untrusted-ingest flag stay explicit in each job's own file. Delegation is one level deep, enforced by the [nesting guard](../governance/guardrails.md#nesting-guard), and a domain never extends another.
 
 ## One runner for every job
 
 [`scripts/run_agent.sh`](gh:scripts/run_agent.sh) wraps a single `claude -p` call, so every job is measured the same way:
 
-1. Applies the agent file, with `extends:` resolved: model, effort, `--max-budget-usd`, and the domain's rules.
+1. Applies the agent file, with `extends:` resolved: model, effort and `--max-budget-usd`. It appends one prompt file: the shared headless rules ([`resources/agents/headless.md`](gh:resources/agents/headless.md), their only copy), then the domain's rules.
 2. Appends the model family's prompt addendum from [`resources/models/`](gh:resources/models/README.md). These are Anthropic's tested fixes for that model, copied word for word.
 3. Exports `CBRAIN_JOB`, so the write guard holds the run to its `write_scopes`.
 4. Snapshots the vault before and after, into the private vault history.
@@ -70,7 +70,7 @@ Most loops are split into a cheap trigger and a costly agent. A deterministic po
 
 Bash-run writes never pass the write hook, so they get the vault by one of two paths only:
 
-- **`scripts/vault_api.py`**, a typed, all-or-nothing batch writer that enforces the same scopes and provenance rules in its own code;
+- **`scripts/vault_api.py`**, a typed, all-or-nothing batch writer that enforces the same scopes and provenance rules in its own code, and locks each note so concurrent jobs never drop each other's appends;
 - **none at all.** A job whose agent file says `code_mode: true` (it runs code it wrote) is sandboxed at OS level, with the vault and the harness denied for writing.
 
 ## Failure forensics
