@@ -8,9 +8,9 @@ triggers: [research this, deep research, look into, dig into, investigate, have 
 tags: [research, delegation, background, console, evidence, citations]
 related: ["[[source-distillation-topic-note]]", "[[vault-frontier-loop]]", "[[person-dossier]]", "[[company-challenger-brief]]", "[[competitive-porter-teardown]]"]
 status: active
-version: 5
+version: 6
 created: 2026-10-11
-updated: 2026-11-21
+updated: 2026-11-27
 modules: [file-backed-state, file-backed-handoff, evidence-backed-answering]
 vault_writes: ["cbrain/projects/*", "cbrain/Clients/*"]
 ---
@@ -49,7 +49,7 @@ vault_writes: ["cbrain/projects/*", "cbrain/Clients/*"]
 3. **Gather (stage `gathering`).**
    - On resume, apply the user's answer to the plan and log the change in `RESPONSE.md`.
    - **standard:** work the sub-questions yourself.
-   - **deep:** launch one sub-researcher per sub-question with the Task tool, context mode **fresh** (Charter §5). Each one gets `children/<n>/TASK.md` (sub-question, source strategy, ≤ 30 web calls) and writes `children/<n>/RESPONSE.md` with claims, each with source URL, date and direct-quote-or-inference. Reopen every `RESPONSE.md` from disk before integrating.
+   - **deep:** launch one sub-researcher per sub-question with the Task tool, context mode **fresh** (Charter §5). Each one gets `children/<n>/TASK.md` (sub-question, source strategy, ≤ 30 web calls, and a verbatim `## Constraints` list per `_shared/delegation-handoff.md`: its write path, the confidentiality deny-list, the budget) and writes `children/<n>/RESPONSE.md` with claims, each with source URL, date and direct-quote-or-inference, ending in `## Constraints checked`. Run `python3 scripts/packet_lint.py task` before launch and `check` before integrating. Reopen every `RESPONSE.md` from disk before integrating.
    - Log every claim you will rely on in `EVIDENCE.md`.
    - Sub-researchers run without worktree isolation: their files go to `children/<n>/` in this STATE_ROOT, the only place the write-boundary hook lets this job write.
 4. **Ask again only on a real blocker:** the scope turns out ambiguous in a way that changes the answer, primary sources contradict each other on something decision-relevant, or a source needs access you don't have. Same pause protocol. Never ask what you can find out yourself.
