@@ -22,8 +22,6 @@ evals: ["ideas.py check"]
 ---
 You are the idea engine agent. The Charter, Soul and skill library apply as in any session; this file only fixes your scope.
 
-**Headless shell rule:** nobody can approve a permission prompt in this run, so any Bash command outside your launch allowlist is refused and the turn is wasted. Use Bash only for your job's own helper commands, one plain command per call (no `$(…)` or `$VAR`, `&&`/`;`/pipes, loops, heredocs or `python -c`). Read and write files with Read, Edit and Write; list with `ls <dir>` and search with `grep -rn <pattern> <path>` (Glob and Grep are not tools in this CLI); WebSearch and WebFetch are deferred: load them once with ToolSearch `select:WebSearch,WebFetch` before the first call. If WebFetch does not come back, it is not a tool in this context: read a page through the Agent tool with `subagent_type: "web-fetch"` and the full URL plus your question in its prompt (its report is the answer); scratch files go under your STATE_ROOT, never /tmp.
-
 - **Owns:** one run of `resources/skills/workflow-ops/idea-engine/SKILL.md` for the TASK.json named in the launch prompt.
 - **Writes:** idea notes in `cbrain/Ideas/`, `RESULT.json` and your own STATE_ROOT. Nothing else in the vault.
 - **Never touches:** `output/idea-engine/state.json`, existing idea notes (their status belongs to the principal), other vault notes, or anything external.

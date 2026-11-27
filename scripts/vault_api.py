@@ -25,16 +25,20 @@ batch.json: {"ops": [{"op": "append", "note": "notes/20261028-X.md", "under": "#
 Stdlib only.
 """
 import datetime as dt
+import fcntl
 import fnmatch
+import hashlib
 import json
 import os
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 VAULT = (REPO / "cbrain").resolve()
 LOG = REPO / "output" / ".runs" / "_forensics" / "vault_api.jsonl"
+LOCKS = REPO / "output" / ".runs" / "_locks"
 sys.path.insert(0, str(REPO / "scripts"))
 import ingest_lint  # noqa: E402  provenance labels, shared with the Write/Edit hook
 
@@ -94,6 +98,30 @@ def insert(body, under, text):
     return "\n".join(lines[:last] + gap + add + tail + lines[end:]) + "\n"
 
 
+def locked_append(path, under, text, tries=3):
+    """Append without losing a concurrent writer's text (2026-11-27). A per-note lock serialises vault_api
+    writers (the lock files live outside the vault, so Obsidian never sees them); the note is re-read under
+    the lock, written to a temp file beside it and swapped in with os.replace only if the note is still what
+    was read, so a Write/Edit landing in between is retried, not overwritten."""
+    LOCKS.mkdir(parents=True, exist_ok=True)
+    lock = LOCKS / (hashlib.sha1(str(path).encode()).hexdigest() + ".lock")
+    with open(lock, "w") as lf:
+        fcntl.flock(lf, fcntl.LOCK_EX)
+        for _ in range(tries):
+            body = path.read_text(errors="ignore")
+            if text in body:
+                return "skipped (already there)"
+            fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+            with os.fdopen(fd, "w") as f:
+                f.write(insert(body, under, text))
+            os.chmod(tmp, path.stat().st_mode & 0o777)
+            if path.read_text(errors="ignore") == body:
+                os.replace(tmp, path)
+                return "appended"
+            os.unlink(tmp)
+    return f"not written: the note changed under every one of {tries} tries; run the batch again"
+
+
 def apply(batch, job, run, now):
     ops = batch.get("ops") if isinstance(batch, dict) else None
     if not isinstance(ops, list) or not ops:
@@ -122,11 +150,10 @@ def apply(batch, job, run, now):
         return {"ok": False, "errors": errors, "written": []}
     results, by = [], f"{job or 'interactive'} (vault_api)"
     for path, under, text in plan:
-        body = path.read_text(errors="ignore")
-        if text in body:
-            results.append({"note": str(path.relative_to(VAULT)), "result": "skipped (already there)"})
+        res = locked_append(path, under, text)
+        if res != "appended":
+            results.append({"note": str(path.relative_to(VAULT)), "result": res})
             continue
-        path.write_text(insert(body, under, text))
         labelled = ingest_lint.provenance(path) is None and ingest_lint.label(
             path, {"job-input"} if ingest_lint.agent_ingests(job) else {"unknown-session"}, by)
         results.append({"note": str(path.relative_to(VAULT)), "result": "appended" + (", labelled" if labelled else "")})

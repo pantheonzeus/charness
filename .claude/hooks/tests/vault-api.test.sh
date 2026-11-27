@@ -77,5 +77,16 @@ check "find alias" "$(printf '%s' "$f" | python3 -c 'import json,sys; print(json
 check "find name" "$(printf '%s' "$f" | python3 -c 'import json,sys; print(json.load(sys.stdin)["Jane Doe"])')" "['Clients/Jane Doe.md']"
 check "find miss" "$(printf '%s' "$f" | python3 -c 'import json,sys; print(json.load(sys.stdin)["nobody@x.com"])')" "[]"
 
+# Concurrency (2026-11-27): two writers appending to one note at once lose nothing, leave no temp files,
+# keep the file mode, and the lock files stay outside the vault.
+printf -- '---\ntype: topic\n---\n# Race\n\n## Log\n' > "$V/projects/Race.md"; chmod 644 "$V/projects/Race.md"
+race() { for i in $(seq 1 15); do printf '{"ops":[{"op":"append","note":"projects/Race.md","under":"## Log","text":"- %s-%s"}]}' "$1" "$i" > "$FAKE/race-$1-$i.json"; python3 "$API" apply "$FAKE/race-$1-$i.json" >/dev/null; done; }
+race a & race b & wait
+check "no lost appends" "$(grep -c '^- [ab]-[0-9]*$' "$V/projects/Race.md")" "30"
+check "no temp files left" "$(find "$V/projects" -name '.*.tmp' | wc -l | tr -d ' ')" "0"
+check "file mode kept" "$(stat -f '%Lp' "$V/projects/Race.md")" "644"
+check "no lock files in the vault" "$(find "$V" -name '*.lock' | wc -l | tr -d ' ')" "0"
+check "lock files under output/.runs/_locks" "$([ -n "$(ls "$FAKE/output/.runs/_locks" 2>/dev/null)" ] && echo yes)" "yes"
+
 echo "vault_api: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

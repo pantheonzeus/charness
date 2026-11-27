@@ -30,6 +30,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 
@@ -102,6 +103,24 @@ def grade(spec, result, uses, denials):
     return fails
 
 
+def append_file(agent, add):
+    """The system-prompt append scripts/run_agent.sh builds for a job: the headless rules (every agent run),
+    the domain body (a job that extends one), then the model addendum. No agent: the addendum alone."""
+    if not agent:
+        return add
+    reg = [sys.executable, str(REPO / "scripts" / "agent_registry.py")]
+    parts = [(REPO / "resources" / "agents" / "headless.md").read_text()]
+    dom = subprocess.run(reg + ["get", agent, "extends"], capture_output=True, text=True, cwd=REPO).stdout.strip()
+    if dom:
+        parts.append(subprocess.run(reg + ["body", dom], capture_output=True, text=True, cwd=REPO).stdout)
+    if add:
+        parts.append(Path(add).read_text())
+    f = tempfile.NamedTemporaryFile("w", suffix=".md", prefix="regression_prompt_", delete=False)
+    f.write("\n".join(parts))
+    f.close()
+    return Path(f.name)
+
+
 def run_probe(p, model, dry, effort=None, add=None):
     if "fixture" in p:
         f = REPO / p["fixture"]["path"]
@@ -115,8 +134,9 @@ def run_probe(p, model, dry, effort=None, add=None):
         cmd[3:3] = ["--agent", p["agent"]]
     if effort:
         cmd += ["--effort", effort]
-    if add:
-        cmd += ["--append-system-prompt-file", str(add)]
+    prompt_file = append_file(p.get("agent"), add)
+    if prompt_file:
+        cmd += ["--append-system-prompt-file", str(prompt_file)]
     if dry:
         print("would run:", " ".join(cmd[:3]), "…", " ".join(cmd[4:]))
         return None
