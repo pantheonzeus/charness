@@ -9,9 +9,9 @@ tags: [content, linkedin, storytelling, personal-brand, ssi, social-selling, icp
 related: ["[[communication-architecture]]", "[[audience-of-one-report]]", "[[linkedin-viral-scheduler]]", "[[linkedin-comment-engagement]]", "[[linkedin-repost-evaluator]]", "[[notebooklm]]"]
 references: [references/icp-positioning.md, references/ladder-joints.md, "../../workflow-ops/linkedin-viral-scheduler/references/engagement-learnings.md", "../../workflow-ops/linkedin-viral-scheduler/references/ranking-model-2026.md"]
 status: active
-version: 9
+version: 10
 created: 2026-07-09
-updated: 2026-11-18
+updated: 2026-11-21
 vault_writes: ["cbrain/projects/*", "cbrain/notes/[0-9]*"]
 ---
 
@@ -28,7 +28,7 @@ vault_writes: ["cbrain/projects/*", "cbrain/notes/[0-9]*"]
 Route by intent: *writing a post →* §0–2 · *scoring/planning for SSI →* §3 · *auditing existing posts →* §4 · *harvesting ideas / saving drafts →* §5.
 
 ### 0. Load the Target + Pick the Goal (do this first)
-- **Read [`references/icp-positioning.md`](references/icp-positioning.md)** — the ICP definition (co-primary since 2026-07-19: Group CTO/NED/Board **and** manufacturing/industrial decision-makers), the two registers, and the positioning pillars. This is the target; the rest of the method aims at it.
+- **Read [`references/icp-positioning.md`](references/icp-positioning.md)** — the ICP definition (since 2026-11-21: PE operating partners and boards, CTOs/CDOs/CIOs, and CEOs/founders who need an operator to build a digital backbone and an AI-native company, any sector; manufacturing is one proof domain, not an audience), the two registers, and the positioning pillars. This is the target; the rest of the method aims at it.
 - **Read [`engagement-learnings.md`](../../workflow-ops/linkedin-viral-scheduler/references/engagement-learnings.md)** — the empirical rules from the post archive (story beats pitch, sovereignty over-indexes, reach ≠ audience quality). Rule 1 in particular changes how §2 is written below.
 - **Read [`ranking-model-2026.md`](../../workflow-ops/linkedin-viral-scheduler/references/ranking-model-2026.md)** (added 2026-08-18) — how LinkedIn's 2026 feed actually ranks, built only on LinkedIn's own engineering publications. Three things there change how §2 below is written: the **hook and the body are read by two different things** (M1), **reach to the wrong audience is mechanically negative, not merely wasted** (M2), and **word choice decides which audience a post is retrieved to** (M4). Everything in it is a mechanism or a labelled inference — it never moves a ship gate on its own.
 - **Read [`references/ladder-joints.md`](references/ladder-joints.md)** (added 2026-08-22) — the internal diagnostic spine. Four joints in the climb from tool to ecosystem, and for each one **why companies stall there**. The stall is the owned territory; the rung sequence itself is published prior art and is never claimed. **The ladder is never presented in public as a named model** — see the methodology check in §2 and the reasoning in that file's opening note.
@@ -96,7 +96,7 @@ A tension-perfect hook on a vague body survives the fold and then fails retrieva
 Run each recent post through:
 - **Does it pass the audience-fit test** — would a European Group CTO / board member stop and respect it?
 - **Pitch-not-story?** — does it open on a capability announcement, framework, or event promotion instead of a lived moment? (Added 2026-07-19 — this single failure mode explains the two worst posts in the archive: 0.00% and 0.16% engagement, both pitch-opened.)
-- **Would a manufacturing buyer claim this problem?** — would a Head of Digital/Industry 4.0, VP Ops/Manufacturing, plant leader, or industrial-PE operating partner recognise it as *their* problem, at their altitude? (Added 2026-07-19, co-primary ICP.)
+- **Would a backbone buyer claim this problem?** — would a PE operating partner, a CTO/CDO/CIO or a CEO/founder recognise it as *their* company's problem, at their altitude? An industrial example passes only if a non-industrial reader still claims it. (Replaced the manufacturing-buyer check 2026-11-21.)
 - **Whose dialect is it in?** — list the domain terms the post actually uses and sort them into consultant vs buyer dialect (`icp-positioning.md`, Buyer Lexicon). A post that is on-theme but entirely in consultant dialect explains the Rule 5 audience gap on its own, and is the single most fixable defect in the archive. (Added 2026-08-18.)
 - **Does it read as methodology?** — could a reader reconstruct a stage model from it? Does it name a framework, number its stages, or spend more words on the model than on what happened? (Added 2026-08-22 — see §2. The archive has never been run against this check, and the framework-shaped posts are the likely failures.)
 - **Which joint is it on, and is it only one?** — a post spanning several joints is a maturity model in disguise. (Added 2026-08-22.)

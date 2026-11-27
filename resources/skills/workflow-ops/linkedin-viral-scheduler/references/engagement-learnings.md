@@ -29,6 +29,8 @@ that **imprecise reach carries a cost**. Narrow and resonant beats wide and igno
 Buyer-Weighted Engagement north-star (Scorecard D) is the right shape for exactly this reason.
 
 ## Rule 5 — The audience gap: on-theme message, off-target distribution — and it is partly *lexical*
+
+> **Re-scoped 2026-11-21.** The principal repositioned to digital backbones and AI-native companies, any sector, with manufacturing as one proof domain. The gap described below (manufacturing message, IT/consulting audience) is no longer a gap to close: 56% IT/software/tech/consulting viewers in 2026-W47 is now close to the target neighbourhood. What still applies is the mechanism: vocabulary decides who is reached, so write for decision-makers (money, risk, speed, ownership), not for engineers or AI enthusiasts. H1 (plant dialect) is retired.
 Despite ~10 of 19 posts being manufacturing/Industry-4.0-5.0/MaaS/servitization content, viewers still skew IT-services/consulting + software + Munich + Futurice's own network on nearly every post. Manufacturing/industrial-machinery viewers stay single-digit %; defense/GovTech/sovereignty audiences don't appear at all.
 
 **Revised 2026-08-18 — the original "the writing craft alone can't fully solve this" was too
